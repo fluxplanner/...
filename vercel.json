@@ -1,7 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/api/ai-proxy", "destination": "/api/ai-proxy" },
-    { "source": "/api/canvas-proxy", "destination": "/api/canvas-proxy" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "version": 2,
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
