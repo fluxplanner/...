@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Flux IA East Planner</title>
+<title>Flux Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,15 +13,23 @@
 <!-- ══ SPLASH SCREEN ══ -->
 <div id="splash">
   <div class="splash-logo">Flux</div>
-  <div class="splash-sub">IA East Planner</div>
+  <div class="splash-sub">Planner</div>
   <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+</div>
+
+<!-- ══ ONBOARDING ══ -->
+<div id="onboarding" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:800;align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:24px;width:100%;max-width:420px;padding:32px 28px">
+    <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:6px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase">Flux Planner · Setup</div>
+    <div id="obWrap"></div>
+  </div>
 </div>
 
 <!-- ══ LOGIN SCREEN ══ -->
 <div id="loginScreen">
   <div class="login-card">
     <div class="login-logo">Flux</div>
-    <div class="login-tagline">IA EAST · IB MYP PLANNER</div>
+    <div class="login-tagline">YOUR SMART SCHOOL PLANNER</div>
     <button class="login-google-btn" onclick="signInWithGoogle()">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -37,13 +45,131 @@
   </div>
 </div>
 
+<!-- ══ ONBOARDING FLOW ══ -->
+<div id="onboarding">
+  <div class="ob-wrap">
+    <div class="ob-progress" id="obProgress"></div>
+    <div class="ob-card">
+
+      <!-- Step 1: Welcome + Name -->
+      <div class="ob-step active" id="ob-step-1">
+        <div style="font-size:2rem;margin-bottom:10px">👋</div>
+        <div class="ob-title">Welcome to Flux</div>
+        <div class="ob-sub">Let's get you set up. This takes about 2 minutes.</div>
+        <div class="ob-avatar-wrap">
+          <div class="ob-avatar" id="obAvatar" onclick="document.getElementById('obPicInput').click()">?
+            <input type="file" id="obPicInput" accept="image/*" style="display:none" onchange="handleObPic(event)">
+          </div>
+          <div style="font-size:.8rem;color:var(--muted2)">Tap to add a photo<br><span style="font-size:.72rem;font-family:'JetBrains Mono',monospace">optional</span></div>
+        </div>
+        <span class="ob-label">Your first name</span>
+        <input type="text" id="obName" placeholder="e.g. Azfer" style="margin:0" oninput="updateObPreview()">
+        <span class="ob-label">Grade</span>
+        <div class="ob-chip-wrap" id="obGradeChips">
+          <div class="ob-chip" onclick="selectObChip(this,'obGrade','9')">9th</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obGrade','10')">10th</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obGrade','11')">11th</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obGrade','12')">12th</div>
+        </div>
+        <button class="ob-btn" onclick="obNext()">Continue →</button>
+      </div>
+
+      <!-- Step 2: School -->
+      <div class="ob-step" id="ob-step-2">
+        <div style="font-size:2rem;margin-bottom:10px">🏫</div>
+        <div class="ob-title">Your School</div>
+        <div class="ob-sub">Tell us where you go so Flux can personalize your experience.</div>
+        <span class="ob-label">School name</span>
+        <input type="text" id="obSchool" placeholder="e.g. International Academy East" style="margin:0">
+        <span class="ob-label">IB Program / Track</span>
+        <div class="ob-chip-wrap" id="obTrackChips">
+          <div class="ob-chip" onclick="selectObChip(this,'obTrack','Pre-IB / MYP')">Pre-IB / MYP</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obTrack','IB Diploma')">IB Diploma</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obTrack','Not IB')">Not IB</div>
+        </div>
+        <span class="ob-label">Counselor name <span style="color:var(--muted);font-weight:400">(optional)</span></span>
+        <input type="text" id="obCounselor" placeholder="e.g. Ms. Johnson" style="margin:0">
+        <span class="ob-label">Locker number <span style="color:var(--muted);font-weight:400">(optional)</span></span>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="obLocker" placeholder="e.g. 342" style="margin:0;flex:1">
+          <input type="text" id="obCombo" placeholder="Combo e.g. 14-32-07" style="margin:0;flex:2">
+        </div>
+        <button class="ob-btn" onclick="obNext()">Continue →</button>
+        <button class="ob-btn-sec" onclick="obBack()">← Back</button>
+      </div>
+
+      <!-- Step 3: Schedule upload -->
+      <div class="ob-step" id="ob-step-3">
+        <div style="font-size:2rem;margin-bottom:10px">📋</div>
+        <div class="ob-title">Your Schedule</div>
+        <div class="ob-sub">Upload a photo of your schedule and AI will read it automatically. Or add classes manually below.</div>
+        <div class="schedule-drop" id="scheduleDrop">
+          <input type="file" accept="image/*" id="scheduleImg" onchange="handleScheduleImg(event)">
+          <div style="font-size:1.6rem;margin-bottom:8px">📷</div>
+          <div style="font-size:.88rem;font-weight:600">Drop or tap to upload schedule</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace">Screenshot, photo, PDF screenshot</div>
+        </div>
+        <div class="schedule-preview" id="schedulePreview">
+          <img id="schedulePreviewImg" src="" alt="Schedule preview">
+        </div>
+        <div id="obAnalyzing" style="display:none" class="ob-analyzing">
+          <div class="ob-spin"></div>
+          <span>Gemini AI is reading your schedule…</span>
+        </div>
+        <div id="obExtractedClasses" class="ob-class-list"></div>
+        <div style="margin-top:14px;font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">ADD CLASS MANUALLY</div>
+        <div style="display:grid;grid-template-columns:44px 1fr 1fr;gap:6px;margin-bottom:6px">
+          <input type="number" id="obManualPeriod" placeholder="#" min="1" max="8" style="margin:0;padding:8px 6px;text-align:center">
+          <input type="text" id="obManualName" placeholder="Class name" style="margin:0">
+          <input type="text" id="obManualTeacher" placeholder="Teacher" style="margin:0">
+        </div>
+        <button onclick="addObClass()" class="btn-sec" style="width:100%;padding:8px;font-size:.82rem">+ Add Class</button>
+        <button class="ob-btn" onclick="obNext()" style="margin-top:14px">Continue →</button>
+        <button class="ob-btn-sec" onclick="obBack()">← Back</button>
+      </div>
+
+      <!-- Step 4: Study style -->
+      <div class="ob-step" id="ob-step-4">
+        <div style="font-size:2rem;margin-bottom:10px">🧠</div>
+        <div class="ob-title">How do you study?</div>
+        <div class="ob-sub">Flux will personalize suggestions based on how you learn best.</div>
+        <span class="ob-label">Learning style <span style="color:var(--muted);font-weight:400">(pick all that apply)</span></span>
+        <div class="ob-chip-wrap">
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-dna="visual">👁 Visual</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-dna="audio">👂 Audio</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-dna="reading">📖 Reading</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-dna="practice">✏️ Practice</div>
+        </div>
+        <span class="ob-label" style="margin-top:16px">Daily study goal</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+          <input type="range" id="obStudyGoal" min="0.5" max="6" step="0.5" value="2" style="flex:1;margin:0" oninput="document.getElementById('obGoalLabel').textContent=this.value+'h'">
+          <span id="obGoalLabel" style="font-size:1rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);min-width:32px">2h</span>
+        </div>
+        <span class="ob-label" style="margin-top:14px">Subjects you want to focus on</span>
+        <div class="ob-chip-wrap">
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-focus="LIT">Am. Lit</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-focus="AME">Am. Studies</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-focus="CHE">Chemistry</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-focus="FRE">French</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-focus="MTH">Math 3</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-focus="PHY">Physics</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-focus="PP">Personal Project</div>
+        </div>
+        <button class="ob-btn" onclick="obFinish()">Let's go! 🚀</button>
+        <button class="ob-btn-sec" onclick="obBack()">← Back</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ══ MAIN APP ══ -->
 <div id="app">
 
   <!-- ── DESKTOP SIDEBAR ── -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <span class="sidebar-logo">Flux IA East</span>
+      <span class="sidebar-logo">Flux Planner</span>
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">☰</button>
     </div>
     <div class="sidebar-nav">
@@ -84,7 +210,7 @@
   <div class="mob-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
   <div class="mob-drawer" id="mobDrawer">
     <div class="mob-drawer-header">
-      <span class="mob-drawer-logo">Flux IA East</span>
+      <span class="mob-drawer-logo">Flux Planner</span>
       <button class="mob-drawer-close" onclick="closeDrawer()">✕</button>
     </div>
     <div class="mob-drawer-nav">
