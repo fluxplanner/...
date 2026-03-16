@@ -390,3 +390,7 @@ button:active{transform:scale(.97)}
 .ob-done-emoji{font-size:2.8rem;text-align:center;margin-bottom:12px}
 .ob-done-title{font-size:1.25rem;font-weight:800;text-align:center;margin-bottom:8px}
 .ob-done-sub{font-size:.85rem;color:var(--muted2);text-align:center;line-height:1.7;margin-bottom:24px}
+
+/* ══ GMAIL ══ */
+.gmail-item{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;animation:fadeUp .18s ease}
+.gmail-item:hover{border-color:var(--accent)}
