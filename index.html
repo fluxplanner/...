@@ -42,48 +42,32 @@
             <div class="nav-group">
                 <p class="nav-label">Personal</p>
                 <button class="nav-item" data-tab="profile"><i data-lucide="user"></i> <span>Profile</span></button>
-                <button class="nav-item" data-tab="habits"><i data-lucide="check-circle"></i> <span>Habits</span></button>
                 <button class="nav-item" data-tab="settings"><i data-lucide="settings"></i> <span>Settings</span></button>
             </div>
         </nav>
 
         <main class="content-area">
             <header class="topbar">
-                <div class="topbar-left">
-                    <h2 id="current-tab-title">Dashboard</h2>
-                </div>
+                <div class="topbar-left"><h2 id="current-tab-title">Dashboard</h2></div>
                 <div class="topbar-right">
                     <div id="sync-status" class="status-pill"><i data-lucide="cloud-check"></i> Saved</div>
-                    <div id="day-pill" class="status-pill">A Day</div>
-                    <button id="user-menu" class="user-pill">
+                    <div id="user-menu" class="user-pill">
                         <img id="user-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Flux" alt="avatar">
                         <span id="user-name-display">Student</span>
                     </button>
                 </div>
             </header>
-
-            <section id="tab-content">
-                </section>
+            <section id="tab-content"></section>
         </main>
-
-        <nav class="mobile-nav">
-            <button class="nav-item active" data-tab="dashboard"><i data-lucide="layout-dashboard"></i></button>
-            <button class="nav-item" data-tab="calendar"><i data-lucide="calendar"></i></button>
-            <button class="nav-item" data-tab="ai"><i data-lucide="sparkles"></i></button>
-            <button class="nav-item" data-tab="school-info"><i data-lucide="school"></i></button>
-            <button id="mobile-more-btn" class="nav-item"><i data-lucide="more-horizontal"></i></button>
-        </nav>
     </div>
 
     <div id="auth-overlay" class="modal-overlay" style="display: none;">
         <div class="auth-card">
             <h2>Welcome to Flux</h2>
-            <p>Your personalized IB academic command center.</p>
+            <p>Your personalized academic command center.</p>
             <button id="google-login-btn" class="primary-btn"><img src="https://www.google.com/favicon.ico" width="16"> Continue with Google</button>
-            <button id="guest-login-btn" class="secondary-btn">Continue as Guest</button>
         </div>
     </div>
-
     <script src="public/js/app.js"></script>
 </body>
 </html>
