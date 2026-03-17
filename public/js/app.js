@@ -74,16 +74,40 @@ function checkAllPanic(){if(!settings.panic||quietHours()){hidePanic();return;}c
 function showPanic(list){document.getElementById('panicBanner').classList.add('on');const pp=document.getElementById('panicPill');if(pp)pp.style.display='flex';document.getElementById('panicList').textContent=list.map(t=>t.name).join(' · ');}
 function hidePanic(){document.getElementById('panicBanner').classList.remove('on');const pp=document.getElementById('panicPill');if(pp)pp.style.display='none';}
 
-// ══ SPLASH ANIMATION ══
-function runSplash(cb){
-  const splash=document.getElementById('splash');
-  requestAnimationFrame(()=>{
-    splash.classList.add('active');
-    setTimeout(()=>{
-      splash.classList.add('fade-out');
-      setTimeout(()=>{splash.style.display='none';cb();},500);
-    },2200);
-  });
+// ══ SPLASH ══
+// runSplash() is defined in splash.js and exposed on window
+// This stub ensures nothing breaks if splash.js hasn't loaded yet
+if(!window.runSplash){
+  window.runSplash=function(cb){
+    const s=document.getElementById('splash');
+    if(s)s.style.display='none';
+    cb();
+  };
+}
+
+// ══ LOGIN FEATURE PILLS ══
+function initLoginFeaturePills(){
+  const pills=[
+    {icon:'✦',text:'Flux AI Tutor'},
+    {icon:'📷',text:'Vision Import'},
+    {icon:'📊',text:'GPA Tracker'},
+    {icon:'⏱',text:'Pomodoro Timer'},
+    {icon:'📅',text:'Smart Calendar'},
+    {icon:'☁️',text:'Cloud Sync'},
+    {icon:'🃏',text:'Flashcard Gen'},
+    {icon:'📧',text:'Gmail Tasks'},
+    {icon:'🎯',text:'Goal Tracker'},
+    {icon:'🔥',text:'Habit Streaks'},
+    {icon:'📝',text:'Rich Notes'},
+    {icon:'😊',text:'Mood Check-In'},
+    {icon:'🏫',text:'Canvas Sync'},
+    {icon:'🧠',text:'Study DNA'},
+  ];
+  const el=document.getElementById('featPills');
+  if(!el)return;
+  // Duplicate for seamless infinite scroll
+  const doubled=[...pills,...pills];
+  el.innerHTML=doubled.map(p=>`<div class="feat-pill"><span class="fp-icon">${p.icon}</span>${p.text}</div>`).join('');
 }
 
 // ══ NAV ══
@@ -407,7 +431,8 @@ function showOnboarding(){
   obCurrentStep=1;
   document.getElementById('loginScreen').classList.remove('visible');
   document.getElementById('app').classList.remove('visible');
-  document.getElementById('onboarding').classList.add('visible');
+  const ob=document.getElementById('onboarding');
+  if(ob)ob.classList.add('visible');
   renderObProgress();
   showObStep(1);
 }
@@ -469,12 +494,17 @@ function obNext(){
 }
 function obBack(){if(obCurrentStep>1)showObStep(obCurrentStep-1);}
 function obFinish(){
+  // Capture DNA + study goal from step 4 if set
+  const dnaChips=document.querySelectorAll('.ob-chip[data-dna].active');
+  if(dnaChips.length){studyDNA=Array.from(dnaChips).map(c=>c.dataset.dna);save('flux_dna',studyDNA);}
+  const goalSlider=document.getElementById('obStudyGoal');
+  if(goalSlider){settings.dailyGoalHrs=parseFloat(goalSlider.value)||2;save('flux_settings',settings);}
   save('flux_onboarded',true);
-  document.getElementById('onboarding').classList.remove('visible');
+  const ob=document.getElementById('onboarding');if(ob)ob.classList.remove('visible');
   document.getElementById('app').classList.add('visible');
   spawnConfetti();
   renderProfile();renderSchool();
-  syncToCloud();
+  if(currentUser)syncToCloud();
 }
 function _updateSidebarName(name){
   const sn=document.getElementById('sidebarName');if(sn)sn.textContent=name;
@@ -567,42 +597,42 @@ async function signOut(){
   handleSignedOut();
 }
 
-// ── GUEST LOGIN — shows disclaimer then enters app ──
+// ── GUEST LOGIN ──
 function skipLogin(){
-  // Show guest disclaimer modal first
   showGuestDisclaimer();
 }
 
 function showGuestDisclaimer(){
-  // Remove existing modal if any
   const existing=document.getElementById('guestModal');if(existing)existing.remove();
   const modal=document.createElement('div');
   modal.id='guestModal';
-  modal.className='modal-overlay';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)';
   modal.innerHTML=`
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:28px 24px;width:100%;max-width:400px;text-align:center">
-      <div style="font-size:2rem;margin-bottom:12px">👤</div>
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:22px;padding:30px 24px;width:100%;max-width:380px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.5)">
+      <div style="font-size:2.2rem;margin-bottom:14px">👤</div>
       <div style="font-size:1.1rem;font-weight:800;margin-bottom:8px">Continuing as Guest</div>
-      <div style="font-size:.85rem;color:var(--muted2);line-height:1.7;margin-bottom:20px">
+      <div style="font-size:.84rem;color:var(--muted2);line-height:1.75;margin-bottom:22px">
         Your data will be saved <strong style="color:var(--gold)">on this device only</strong>.<br>
-        It will not sync across devices and may be lost if you clear your browser data.<br><br>
-        <span style="font-size:.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace">Sign in with Google anytime to back up your data.</span>
+        It won't sync across devices and could be lost if you clear your browser storage.<br><br>
+        <span style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace">You can sign in with Google anytime from Settings to back everything up.</span>
       </div>
-      <button onclick="confirmGuestLogin()" style="width:100%;padding:12px;margin-bottom:10px">Got it — Continue as Guest</button>
-      <button onclick="document.getElementById('guestModal').remove();document.getElementById('loginScreen').classList.add('visible')" class="btn-sec" style="width:100%;padding:10px;font-size:.85rem">← Back to Sign In</button>
+      <button onclick="confirmGuestLogin()" style="width:100%;padding:13px;margin-bottom:10px;font-size:.92rem">Got it — Continue as Guest</button>
+      <button onclick="document.getElementById('guestModal').remove()" class="btn-sec" style="width:100%;padding:11px;font-size:.85rem">← Back to Sign In</button>
     </div>`;
   document.body.appendChild(modal);
 }
 
 function confirmGuestLogin(){
   const modal=document.getElementById('guestModal');if(modal)modal.remove();
+  save('flux_was_guest',true);
   document.getElementById('loginScreen').classList.remove('visible');
   const onboarded=load('flux_onboarded',false);
   const hasData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
   if(!onboarded&&!hasData){
+    // First time guest — show onboarding
     showOnboarding();
   }else{
+    // Returning guest — go straight to app
     document.getElementById('app').classList.add('visible');
   }
   setSyncStatus('offline');
@@ -630,20 +660,24 @@ async function initAuth(){
 }
 
 function showLoginOrApp(){
+  // Always show login for Google users who signed out
+  // Returning guests who already onboarded can skip straight to app
   const onboarded=load('flux_onboarded',false);
   const hasData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
-  if(onboarded||hasData){
+  const wasGuest=load('flux_was_guest',false);
+  if(wasGuest&&(onboarded||hasData)){
     document.getElementById('loginScreen').classList.remove('visible');
     document.getElementById('app').classList.add('visible');
     setSyncStatus('offline');
   }else{
     document.getElementById('loginScreen').classList.add('visible');
+    initLoginFeaturePills();
   }
 }
 
 async function handleSignedIn(user,session){
   currentUser=user;
-  // Store Gmail token for later use
+  save('flux_was_guest',false); // clear guest flag when signed in with Google
   if(session?.provider_token){
     gmailToken=session.provider_token;
     sessionStorage.setItem('flux_gmail_token',session.provider_token);
@@ -654,12 +688,18 @@ async function handleSignedIn(user,session){
   if(!load('profile',{}).name)localStorage.setItem('flux_user_name',firstName);
   _updateUserUI(user,name);
   setSyncStatus('syncing');
+  // Pull cloud data first — it may tell us if user has been onboarded before
   await syncFromCloud();
+  const onboarded=load('flux_onboarded',false);
   const hasData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
-  const shouldOnboard=!load('flux_onboarded',false)&&!hasData;
-  if(shouldOnboard)showOnboarding();
-  else{
-    const ob=document.getElementById('onboarding');if(ob)ob.classList.remove('visible');
+  const isFirstTime=!onboarded&&!hasData;
+  const ob=document.getElementById('onboarding');
+  if(isFirstTime){
+    // First time with this Google account — show onboarding
+    if(ob)ob.classList.add('visible');
+  }else{
+    // Returning user — go straight to app
+    if(ob)ob.classList.remove('visible');
     document.getElementById('app').classList.add('visible');
   }
   setInterval(syncToCloud,5*60*1000);
@@ -691,6 +731,28 @@ function handleSignedOut(){
   document.getElementById('loginScreen').classList.add('visible');
 }
 
+// ══ FEATURE PILLS — injected into login screen ══
+function initFeaturePills(){
+  const wrap=document.getElementById('featPills');if(!wrap)return;
+  const pills=[
+    {label:'✦ Flux AI Tutor',c:'#6366f1'},
+    {label:'📷 Gemini Vision Import',c:'#10d9a0'},
+    {label:'📊 4-Decimal GPA',c:'#fbbf24'},
+    {label:'⏱ Pomodoro Timer',c:'#a78bfa'},
+    {label:'📅 A/B Day Calendar',c:'#3b82f6'},
+    {label:'☁️ Cloud Sync',c:'#10d9a0'},
+    {label:'🃏 AI Flashcards',c:'#e879f9'},
+    {label:'🚨 Panic Mode',c:'#f43f5e'},
+    {label:'📧 Gmail Tasks',c:'#fb923c'},
+    {label:'📝 Smart Notes',c:'#6366f1'},
+    {label:'🎯 Goal Tracker',c:'#fbbf24'},
+    {label:'🔥 Habit Streaks',c:'#fb923c'},
+  ];
+  // Duplicate for seamless scroll
+  const all=[...pills,...pills];
+  wrap.innerHTML=all.map(p=>`<div class="feat-pill" style="color:${p.c};border-color:${p.c}33;background:${p.c}11">${p.label}</div>`).join('');
+}
+
 // ══ INIT ══
 (function init(){
   loadTheme();
@@ -698,7 +760,7 @@ function handleSignedOut(){
   const sb=document.getElementById('sidebar');if(sb&&sidebarCollapsed)sb.classList.add('collapsed');
   document.getElementById('datePill').textContent=TODAY.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   const ab=AB_MAP[todayStr()];
-  if(ab){const p=document.getElementById('abPill');p.textContent=ab+' Day';p.style.display='block';p.style.background=ab==='A'?'rgba(99,102,241,.15)':('rgba(16,217,160,.15)');p.style.color=ab==='A'?'var(--accent)':('var(--green)');p.style.border='1px solid '+(ab==='A'?'rgba(99,102,241,.3)':('rgba(16,217,160,.3)'));}
+  if(ab){const p=document.getElementById('abPill');p.textContent=ab+' Day';p.style.display='block';p.style.background=ab==='A'?'rgba(99,102,241,.15)':'rgba(16,217,160,.15)';p.style.color=ab==='A'?'var(--accent)':'var(--green)';p.style.border='1px solid '+(ab==='A'?'rgba(99,102,241,.3)':'rgba(16,217,160,.3)');}
   const td=document.getElementById('taskDate');if(td)td.valueAsDate=TODAY;
   setEnergy(document.getElementById('energySlider')?.value||3);
   renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();
@@ -708,9 +770,27 @@ function handleSignedOut(){
   renderSubjectBudget();renderFocusHeatmap();
   updateTDisplay();renderTDots();updateTStats();
   checkAllPanic();setInterval(checkAllPanic,60000);
-  const shownSplash=sessionStorage.getItem('flux_splash_shown');
-  if(!shownSplash){sessionStorage.setItem('flux_splash_shown','1');runSplash(()=>initAuth());}
-  else{document.getElementById('splash').style.display='none';initAuth();}
+  initFeaturePills();
+
+  // ── FLOW: Splash (once per session) → Login → (1st time) Onboarding → App ──
+  const afterSplash = () => initAuth();
+
+  const shownSplash = sessionStorage.getItem('flux_splash_shown');
+  if(!shownSplash){
+    sessionStorage.setItem('flux_splash_shown','1');
+    // Small delay so splash.js script is definitely parsed
+    setTimeout(()=>{
+      if(typeof window.runSplash==='function'){
+        window.runSplash(afterSplash);
+      }else{
+        const s=document.getElementById('splash');if(s)s.style.display='none';
+        afterSplash();
+      }
+    },30);
+  }else{
+    const s=document.getElementById('splash');if(s)s.style.display='none';
+    afterSplash();
+  }
 })();
 
 // ══ IMAGE IMPORT FEATURES ══
