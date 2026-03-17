@@ -3,6 +3,9 @@ window.runSplash = function(callback) {
   const splash = document.getElementById('splash');
   if (!splash) { callback(); return; }
 
+  // Make visible immediately
+  splash.style.cssText = 'position:fixed;inset:0;background:#0a0b10;z-index:9999;overflow:hidden;display:block';
+
   splash.style.cssText = 'position:fixed;inset:0;background:#0c0d12;z-index:9999;overflow:hidden';
 
   splash.innerHTML = `
