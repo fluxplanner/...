@@ -34,6 +34,11 @@ let teacherNotes=load('flux_teacher_notes',[]);
 
 let taskFilter='all',editingId=null,editingGoalId=null;
 let aiHistory=[],aiPendingImg=null;
+// Canvas + Gmail — declared here so renderProfile/renderCanvasStatus can access them at init time
+let canvasToken=load('flux_canvas_token','');
+let canvasUrl=load('flux_canvas_url','');
+let gmailEmails=[];
+let gmailToken=sessionStorage.getItem('flux_gmail_token')||null;
 let calYear=TODAY.getFullYear(),calMonth=TODAY.getMonth(),calSelected=TODAY.getDate();
 let currentNoteId=null,noteFilter='all',flashcards=[],fcIndex=0,fcFlipped=false;
 let ambientCtx=null,breathingActive=false,breathTimer=null;
@@ -883,8 +888,6 @@ async function importScheduleFromPhoto(event,resultElId){
 }
 
 // ══ CANVAS SYNC ══
-let canvasToken=load('flux_canvas_token','');
-let canvasUrl=load('flux_canvas_url','');
 
 function saveCanvasConfig(){
   canvasToken=document.getElementById('canvasToken')?.value.trim()||'';
@@ -936,8 +939,6 @@ async function syncCanvas(){
 }
 
 // ══ GMAIL PANEL ══
-let gmailEmails=[];
-let gmailToken=sessionStorage.getItem('flux_gmail_token')||null;
 
 async function loadGmail(){
   const el=document.getElementById('gmailList');if(!el)return;
