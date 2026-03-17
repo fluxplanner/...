@@ -1,0 +1,49 @@
+/* ── FLUX PLANNER · login.css ── */
+
+#loginScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:none;overflow-y:auto}
+#loginScreen.visible{display:block}
+
+.login-bg{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 80% 60% at 20% 20%,rgba(99,102,241,.12) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(16,217,160,.08) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 60% 10%,rgba(192,132,252,.07) 0%,transparent 60%)}
+.login-blob{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;animation:blobDrift 12s ease-in-out infinite alternate}
+.login-blob-1{width:500px;height:500px;top:-100px;left:-100px;background:radial-gradient(circle,rgba(99,102,241,.15),transparent 70%);animation-duration:15s}
+.login-blob-2{width:400px;height:400px;bottom:-80px;right:-80px;background:radial-gradient(circle,rgba(16,217,160,.10),transparent 70%);animation-duration:18s;animation-delay:-6s}
+.login-blob-3{width:300px;height:300px;top:40%;left:50%;background:radial-gradient(circle,rgba(192,132,252,.08),transparent 70%);animation-duration:20s;animation-delay:-3s}
+@keyframes blobDrift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,20px) scale(1.05)}100%{transform:translate(-20px,40px) scale(.95)}}
+
+.login-scroll{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px 60px;gap:0}
+
+.login-card{background:var(--card);border:1px solid var(--border2);border-radius:24px;padding:40px 32px;width:100%;max-width:420px;text-align:center;position:relative;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.4);animation:loginCardIn .7s cubic-bezier(.16,1,.3,1) both}
+@keyframes loginCardIn{from{opacity:0;transform:translateY(32px) scale(.97)}to{opacity:1;transform:none}}
+.login-card::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(99,102,241,.06) 0%,transparent 60%);border-radius:inherit}
+
+.login-logo{font-size:3rem;font-weight:800;letter-spacing:-2px;background:linear-gradient(135deg,#6366f1,#a78bfa,#10d9a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;line-height:1}
+.login-tagline{font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;letter-spacing:2.5px;margin-bottom:32px;text-transform:uppercase}
+
+.login-google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;margin-bottom:0}
+.login-google-btn:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.08);transform:translateY(-1px);box-shadow:0 6px 20px rgba(var(--accent-rgb),.15)}
+.login-google-btn svg{width:20px;height:20px;flex-shrink:0}
+
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--muted);font-size:.72rem}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.login-skip{font-size:.78rem;color:var(--muted2);cursor:pointer;text-decoration:underline;text-underline-offset:3px;transition:color .15s;display:block;margin-bottom:16px}
+.login-skip:hover{color:var(--text)}
+.login-note{font-size:.68rem;color:var(--muted);line-height:1.7;font-family:'JetBrains Mono',monospace}
+
+/* ── Scrolling pills ── */
+.feat-pills-wrap{width:100%;max-width:480px;overflow:hidden;mask-image:linear-gradient(90deg,transparent,black 12%,black 88%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,black 12%,black 88%,transparent);margin-top:28px}
+.feat-pills{display:flex;gap:10px;width:max-content;animation:pillScroll 22s linear infinite}
+.feat-pills:hover{animation-play-state:paused}
+@keyframes pillScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.feat-pill{padding:7px 14px;border-radius:20px;white-space:nowrap;font-size:.75rem;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;border:1px solid;flex-shrink:0;cursor:default}
+
+/* ── Feature grid ── */
+.login-features{width:100%;max-width:480px;margin-top:32px;animation:loginCardIn .7s cubic-bezier(.16,1,.3,1) .2s both}
+.login-features-title{text-align:center;font-size:.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:16px}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.feat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;transition:border-color .2s,transform .2s}
+.feat-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.feat-icon{font-size:1.4rem;margin-bottom:8px;line-height:1}
+.feat-name{font-size:.82rem;font-weight:700;margin-bottom:4px}
+.feat-desc{font-size:.7rem;color:var(--muted2);line-height:1.5;font-family:'JetBrains Mono',monospace}
+.login-bottom{height:20px}
