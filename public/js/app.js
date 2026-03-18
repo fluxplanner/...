@@ -1375,17 +1375,18 @@ function initFeaturePills(){
   const shownSplash = sessionStorage.getItem('flux_splash_shown');
   if(!shownSplash){
     sessionStorage.setItem('flux_splash_shown','1');
-    // Small delay so splash.js script is definitely parsed
+    const s=document.getElementById('splash');
+    if(s)s.style.display='block';
     setTimeout(()=>{
       if(typeof window.runSplash==='function'){
         window.runSplash(afterSplash);
       }else{
-        const s=document.getElementById('splash');if(s)s.style.display='none';
+        if(s)s.style.display='none';
         afterSplash();
       }
     },30);
   }else{
-    const s=document.getElementById('splash');if(s)s.style.display='none';
+    // Splash already shown this session — go straight to auth
     afterSplash();
   }
 })();
