@@ -12,6 +12,17 @@
 
 .login-scroll{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px 60px;gap:0}
 
+/* ── TWO-COLUMN DESKTOP LAYOUT ── */
+.login-2col{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;min-height:100vh;max-width:1200px;margin:0 auto;padding:0 40px;gap:60px;align-items:center}
+.login-left{display:flex;align-items:center;justify-content:flex-end;padding:60px 0}
+.login-left-inner{max-width:420px;width:100%}
+.login-right{display:flex;align-items:center;justify-content:flex-start;padding:60px 0}
+@media(max-width:768px){
+  .login-2col{grid-template-columns:1fr;padding:20px;gap:0;align-items:flex-start}
+  .login-left{display:none}
+  .login-right{padding:40px 0 60px;justify-content:center;width:100%}
+}
+
 .login-card{background:var(--card);border:1px solid var(--border2);border-radius:24px;padding:40px 32px;width:100%;max-width:420px;text-align:center;position:relative;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.4);animation:loginCardIn .7s cubic-bezier(.16,1,.3,1) both}
 @keyframes loginCardIn{from{opacity:0;transform:translateY(32px) scale(.97)}to{opacity:1;transform:none}}
 .login-card::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(99,102,241,.06) 0%,transparent 60%);border-radius:inherit}
