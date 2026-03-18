@@ -44,7 +44,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.18)}
 
 /* ══ SPLASH ══ */
-#splash{position:fixed;inset:0;background:#0c0d12;z-index:9999;overflow:hidden;display:block}
+#splash{position:fixed;inset:0;background:#0c0d12;z-index:9999;overflow:hidden}
 
 /* ══ LOGIN — handled by login.css, just ensure z-index here ══ */
 
