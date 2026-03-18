@@ -1,5 +1,9 @@
 /* ── FLUX PLANNER · app.js v2 ── */
 
+// ══ STORAGE — must be first, everything below depends on it ══
+const load=(k,def)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.warn('Storage full',e);}};
+
 // ══ CONSTANTS ══
 // ══ SUBJECTS — built dynamically from user's classes ══
 // No hardcoded subjects. Colors auto-assigned.
@@ -26,9 +30,6 @@ function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
 const TODAY=new Date();
 
-// ══ STORAGE ══
-const load=(k,def)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}};
-const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.warn('Storage full',e);}};
 
 // ══ STATE ══
 let tasks=load('tasks',[]);
