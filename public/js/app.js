@@ -864,46 +864,118 @@ function exportToICal(){const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//
 function clearCache(){if(!confirm('Clear all local data?'))return;const keep=['flux_settings','flux_accent','flux_accent_rgb','flux_theme','profile','flux_user_name'];Object.keys(localStorage).forEach(k=>{if(!keep.includes(k))localStorage.removeItem(k);});tasks=[];grades={};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];renderStats();renderTasks();}
 
 // ══ MOD / DEV ACCOUNT ══
-const MOD_EMAILS=['azfermohammed@gmail.com']; // Add your email here
-function isMod(){return currentUser&&MOD_EMAILS.includes(currentUser.email);}
+// ══ OWNER / DEV ACCOUNT SYSTEM ══
+const OWNER_EMAIL='azfermohammed21@gmail.com';
+
+// Permission levels: owner > dev > user
+// Dev accounts + their permissions stored in Supabase under owner's row
+function isOwner(){return currentUser&&currentUser.email===OWNER_EMAIL;}
+function getMyRole(){
+  if(isOwner())return'owner';
+  const devAccounts=load('flux_dev_accounts',[]);
+  const me=devAccounts.find(d=>d.email===currentUser?.email);
+  return me?'dev':'user';
+}
+function getMyDevPerms(){
+  const devAccounts=load('flux_dev_accounts',[]);
+  const me=devAccounts.find(d=>d.email===currentUser?.email);
+  return me?.perms||[];
+}
+function hasDevPerm(perm){
+  if(isOwner())return true;
+  return getMyDevPerms().includes(perm);
+}
 function isDevMode(){return load('flux_dev_mode',false);}
 
+// Load dev accounts from cloud (stored under owner's Supabase row)
+async function loadDevAccounts(){
+  const sb=getSB();if(!sb)return;
+  try{
+    const{data}=await sb.from('user_data').select('data').eq('id',currentUser.id).single();
+    if(data?.data?.devAccounts){
+      save('flux_dev_accounts',data.data.devAccounts);
+    }
+  }catch(e){}
+}
+
+// Save dev accounts to cloud under owner's row
+async function saveDevAccounts(devAccounts){
+  save('flux_dev_accounts',devAccounts);
+  // Also push to cloud immediately
+  if(isOwner())await syncToCloud();
+}
+
 function initModFeatures(){
-  if(!isMod())return;
-  // Add mod badge to sidebar
+  const role=getMyRole();
+  if(role==='user')return;
   const footer=document.querySelector('.sidebar-footer');
-  if(footer&&!document.getElementById('modBadge')){
-    const badge=document.createElement('div');
-    badge.id='modBadge';
-    badge.style.cssText='padding:6px 10px;margin-bottom:6px;background:linear-gradient(135deg,rgba(var(--accent-rgb),.15),rgba(192,132,252,.1));border:1px solid rgba(var(--accent-rgb),.3);border-radius:10px;font-size:.68rem;font-family:JetBrains Mono,monospace;color:var(--accent);display:flex;align-items:center;gap:6px;cursor:pointer';
-    badge.innerHTML=`<span>⚡</span><span>Mod Account</span><span style="margin-left:auto;opacity:.6">${isDevMode()?'DEV':'LIVE'}</span>`;
-    badge.onclick=()=>openModPanel();
-    footer.insertBefore(badge,footer.firstChild);
-  }
+  if(!footer||document.getElementById('modBadge'))return;
+  const badge=document.createElement('div');
+  badge.id='modBadge';
+  const isOwnerAcc=role==='owner';
+  badge.style.cssText=`padding:6px 10px;margin-bottom:6px;background:${isOwnerAcc?'linear-gradient(135deg,rgba(251,191,36,.2),rgba(249,115,22,.15))':'linear-gradient(135deg,rgba(var(--accent-rgb),.15),rgba(192,132,252,.1))'};border:1px solid ${isOwnerAcc?'rgba(251,191,36,.4)':'rgba(var(--accent-rgb),.3)'};border-radius:10px;font-size:.68rem;font-family:JetBrains Mono,monospace;color:${isOwnerAcc?'var(--gold)':'var(--accent)'};display:flex;align-items:center;gap:6px;cursor:pointer`;
+  badge.innerHTML=`<span>${isOwnerAcc?'👑':'⚡'}</span><span>${isOwnerAcc?'Owner':'Dev Account'}</span><span style="margin-left:auto;opacity:.6">${isDevMode()?'DEV':'LIVE'}</span>`;
+  badge.onclick=()=>openModPanel();
+  footer.insertBefore(badge,footer.firstChild);
 }
 
 function openModPanel(){
-  if(!isMod())return;
+  const role=getMyRole();
+  if(role==='user')return;
   const existing=document.getElementById('modPanel');if(existing)existing.remove();
   const panel=document.createElement('div');
   panel.id='modPanel';
-  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9800;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)';
+  panel.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9800;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);overflow-y:auto';
+
   const devMode=isDevMode();
+  const devAccounts=load('flux_dev_accounts',[]);
+  const allPerms=['clear_data','feature_flags','dev_mode','manage_devs','view_users'];
+  const permLabels={clear_data:'Clear Data',feature_flags:'Feature Flags',dev_mode:'Dev Mode Toggle',manage_devs:'Manage Dev Accounts',view_users:'View Users'};
+
+  const devAccountsHTML=isOwner()?`
+    <div style="margin-top:18px">
+      <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px">Dev Accounts</div>
+      <div id="devAccountsList">
+        ${devAccounts.length?devAccounts.map((d,i)=>`
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:.82rem;font-weight:700;flex:1">${d.email}</span>
+              <button onclick="removeDevAccount(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.8rem;padding:2px 6px">✕ Remove</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${allPerms.map(p=>`<button onclick="toggleDevPerm(${i},'${p}',this)" style="padding:3px 10px;font-size:.68rem;border-radius:20px;background:${d.perms?.includes(p)?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)'};border:1px solid ${d.perms?.includes(p)?'rgba(var(--accent-rgb),.35)':'var(--border2)'};color:${d.perms?.includes(p)?'var(--accent)':'var(--muted2)'}">${permLabels[p]}</button>`).join('')}
+            </div>
+          </div>`).join(''):'<div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">No dev accounts yet.</div>'}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="email" id="newDevEmail" placeholder="email@gmail.com" style="flex:1;margin:0;padding:8px 12px;font-size:.8rem">
+        <button onclick="addDevAccount()" style="padding:8px 14px;font-size:.78rem;flex-shrink:0">+ Add Dev</button>
+      </div>
+    </div>`:'';
+
+  const myPerms=getMyDevPerms();
+
   panel.innerHTML=`
-    <div style="background:var(--card);border:1px solid rgba(var(--accent-rgb),.3);border-radius:22px;padding:28px;width:100%;max-width:440px;box-shadow:0 32px 80px rgba(0,0,0,.6)">
+    <div style="background:var(--card);border:1px solid ${role==='owner'?'rgba(251,191,36,.4)':'rgba(var(--accent-rgb),.3)'};border-radius:22px;padding:24px;width:100%;max-width:500px;box-shadow:0 32px 80px rgba(0,0,0,.6);max-height:90vh;overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-        <div style="font-size:1.4rem">⚡</div>
-        <div><div style="font-size:1rem;font-weight:800">Mod Panel</div><div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${currentUser?.email}</div></div>
-        <button onclick="document.getElementById('modPanel').remove()" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:0">✕</button>
+        <div style="font-size:1.4rem">${role==='owner'?'👑':'⚡'}</div>
+        <div>
+          <div style="font-size:1rem;font-weight:800">${role==='owner'?'Owner Panel':'Dev Panel'}</div>
+          <div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${currentUser?.email}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span style="font-size:.65rem;padding:3px 8px;border-radius:20px;background:${role==='owner'?'rgba(251,191,36,.15)':'rgba(var(--accent-rgb),.12)'};border:1px solid ${role==='owner'?'rgba(251,191,36,.3)':'rgba(var(--accent-rgb),.25)'};color:${role==='owner'?'var(--gold)':'var(--accent)'};font-family:JetBrains Mono,monospace">${role.toUpperCase()}</span>
+          <button onclick="document.getElementById('modPanel').remove()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:0">✕</button>
+        </div>
       </div>
 
-      <!-- Dev mode toggle -->
+      ${(isOwner()||myPerms.includes('dev_mode'))?`
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
         <div><div style="font-size:.87rem;font-weight:700">🧪 Dev Mode</div><div style="font-size:.72rem;color:var(--muted)">Test features before pushing to users</div></div>
         <button onclick="toggleDevMode()" style="padding:6px 16px;font-size:.78rem;background:${devMode?'var(--green)':'rgba(255,255,255,.06)'};border:1px solid ${devMode?'var(--green)':'var(--border2)'};color:${devMode?'#080a0f':'var(--muted2)'}">${devMode?'ON':'OFF'}</button>
-      </div>
+      </div>`:''}
 
-      <!-- Feature flags -->
+      ${(isOwner()||myPerms.includes('feature_flags'))?`
       <div style="margin-top:14px;margin-bottom:6px;font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace">Feature Flags</div>
       ${['ai','gmail','calendar','grades','goals','habits','mood','timer','notes'].map(f=>{
         const enabled=load('flux_feat_'+f,true);
@@ -911,22 +983,56 @@ function openModPanel(){
           <span style="font-size:.85rem;font-weight:500">${f.charAt(0).toUpperCase()+f.slice(1)}</span>
           <button onclick="toggleFeatureFlag('${f}',this)" style="padding:4px 12px;font-size:.72rem;background:${enabled?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)'};border:1px solid ${enabled?'rgba(var(--accent-rgb),.3)':'var(--border2)'};color:${enabled?'var(--accent)':'var(--muted2)'}">${enabled?'Enabled':'Disabled'}</button>
         </div>`;
-      }).join('')}
+      }).join('')}`:''}
 
-      <div style="margin-top:16px;display:flex;gap:8px">
-        <button onclick="clearMyPlannerData()" style="flex:1;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:var(--red);font-size:.78rem">🗑 Clear My Planner Data</button>
-        <button onclick="forceSyncNow()" style="flex:1;font-size:.78rem">⟳ Force Sync</button>
+      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+        ${(isOwner()||myPerms.includes('clear_data'))?`<button onclick="clearMyPlannerData()" style="flex:1;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:var(--red);font-size:.78rem;min-width:120px">🗑 Clear My Data</button>`:''}
+        <button onclick="forceSyncNow()" style="flex:1;font-size:.78rem;min-width:100px">⟳ Force Sync</button>
       </div>
-      ${devMode?'<div style="margin-top:10px;padding:8px 12px;background:rgba(var(--accent-rgb),.06);border-radius:8px;font-size:.72rem;color:var(--muted);font-family:JetBrains Mono,monospace">Dev mode: changes only affect your account</div>':''}
+
+      ${devAccountsHTML}
     </div>`;
   document.body.appendChild(panel);
+}
+
+function addDevAccount(){
+  if(!isOwner())return;
+  const email=document.getElementById('newDevEmail')?.value.trim();
+  if(!email||!email.includes('@')){alert('Enter a valid email.');return;}
+  const devAccounts=load('flux_dev_accounts',[]);
+  if(devAccounts.find(d=>d.email===email)){alert('Already a dev account.');return;}
+  devAccounts.push({email,perms:[],addedAt:Date.now()});
+  saveDevAccounts(devAccounts);
+  openModPanel();
+}
+
+function removeDevAccount(idx){
+  if(!isOwner())return;
+  const devAccounts=load('flux_dev_accounts',[]);
+  devAccounts.splice(idx,1);
+  saveDevAccounts(devAccounts);
+  openModPanel();
+}
+
+function toggleDevPerm(idx,perm,btn){
+  if(!isOwner())return;
+  const devAccounts=load('flux_dev_accounts',[]);
+  const acc=devAccounts[idx];if(!acc)return;
+  if(!acc.perms)acc.perms=[];
+  const has=acc.perms.includes(perm);
+  if(has)acc.perms=acc.perms.filter(p=>p!==perm);
+  else acc.perms.push(perm);
+  saveDevAccounts(devAccounts);
+  btn.style.background=!has?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)';
+  btn.style.borderColor=!has?'rgba(var(--accent-rgb),.35)':'var(--border2)';
+  btn.style.color=!has?'var(--accent)':'var(--muted2)';
 }
 
 function toggleDevMode(){
   const cur=isDevMode();
   save('flux_dev_mode',!cur);
-  openModPanel(); // refresh panel
-  initModFeatures(); // refresh badge
+  openModPanel();
+  initModFeatures();
 }
 
 function toggleFeatureFlag(feature,btn){
@@ -936,13 +1042,12 @@ function toggleFeatureFlag(feature,btn){
   btn.style.background=cur?'rgba(255,255,255,.04)':'rgba(var(--accent-rgb),.15)';
   btn.style.borderColor=cur?'var(--border2)':'rgba(var(--accent-rgb),.3)';
   btn.style.color=cur?'var(--muted2)':'var(--accent)';
-  // Apply immediately — hide/show tab
   const tc=tabConfig.find(t=>t.id===feature);
   if(tc){tc.visible=!cur;save('flux_tabs',tabConfig);renderSidebars();}
 }
 
 function clearMyPlannerData(){
-  if(!confirm('Clear ALL your planner data (tasks, grades, notes, habits, goals)? This cannot be undone.'))return;
+  if(!confirm('Clear ALL your planner data? This cannot be undone.'))return;
   tasks=[];grades={};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];weightedRows=[];
   save('tasks',tasks);save('flux_grades',grades);save('flux_notes',notes);
   save('flux_habits',habits);save('flux_goals',goals);save('flux_colleges',colleges);
@@ -1153,6 +1258,12 @@ function setSyncStatus(status){
   else if(status==='syncing'){el.className='sync-badge syncing';el.textContent='↑ Syncing...';if(sl)sl.textContent='Syncing...';}
   else{el.className='sync-badge offline';el.textContent='○ Local';if(sl)sl.textContent='Not signed in — data is local only';}
   el.style.display=currentUser?'flex':'none';
+  // Show guest banner in account settings if guest
+  const guestBanner=document.getElementById('guestAccountBanner');
+  const signedOutMsg=document.getElementById('accountSignedOutMsg');
+  const wasGuest=load('flux_was_guest',false);
+  if(guestBanner){guestBanner.style.display=wasGuest&&!currentUser?'block':'none';}
+  if(signedOutMsg){signedOutMsg.style.display=wasGuest&&!currentUser?'none':'block';}
 }
 function getCloudPayload(){
   return{
@@ -1175,6 +1286,7 @@ function getCloudPayload(){
     noHWDays:load('flux_no_hw_days',[]),
     events:load('flux_events',[]),
     settings,
+    ...(isOwner()?{devAccounts:load('flux_dev_accounts',[]),ownerEmail:OWNER_EMAIL}:{}),
   };
 }
 async function syncToCloud(){
@@ -1235,6 +1347,16 @@ async function syncFromCloud(){
     if(d.events){save('flux_events',d.events);}
     if(d.settings){settings={...settings,...d.settings};save('flux_settings',settings);}
     if(d.onboarded)save('flux_onboarded',true);
+    // Load devAccounts — owner's list syncs to all dev accounts too
+    if(d.devAccounts)save('flux_dev_accounts',d.devAccounts);
+    // Dev accounts: fetch owner's devAccounts list to check permissions
+    if(!isOwner()&&!d.devAccounts){
+      // Try to load dev accounts from owner's row
+      try{
+        const ownerRes=await sb.from('user_data').select('data').eq('id',(await sb.from('user_data').select('id,data').limit(100)).data?.find(r=>r.data?.ownerEmail===OWNER_EMAIL)?.id||'').single();
+        if(ownerRes.data?.data?.devAccounts)save('flux_dev_accounts',ownerRes.data.data.devAccounts);
+      }catch(e){}
+    }
     setSyncStatus('synced');
     const hasCloudData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0||!!load('profile',{}).name||d.onboarded;
     if(hasCloudData)save('flux_onboarded',true);
@@ -1397,6 +1519,13 @@ function getRedirectURL(){
   return loc.origin+'/';
 }
 
+// Sign in with Google while keeping all existing guest data
+async function signInWithGoogleKeepData(){
+  // Mark that we want to migrate guest data after sign-in
+  save('flux_migrate_guest',true);
+  await signInWithGoogle();
+}
+
 async function signInWithGoogle(){
   const sb=getSB();
   if(!sb){
@@ -1518,11 +1647,16 @@ async function handleSignedIn(user,session){
   _updateUserUI(user,name);
   setSyncStatus('syncing');
 
-  // Pull cloud data first
+  // If migrating from guest account, push local data to cloud first
+  const migratingGuest=load('flux_migrate_guest',false);
+  if(migratingGuest){
+    save('flux_migrate_guest',false);
+    save('flux_onboarded',true);
+    await syncToCloud();
+  }
+
   await syncFromCloud();
 
-  // Only show onboarding if BOTH local AND cloud have zero data
-  // i.e. this is truly a brand new account that has never been set up
   const onboarded=load('flux_onboarded',false);
   const hasLocalData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
   const hasProfile=!!load('profile',{}).name;
