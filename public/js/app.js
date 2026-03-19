@@ -115,6 +115,7 @@ const isBreak=d=>noHomeworkDays.includes(d);
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const strip=html=>html.replace(/<[^>]+>/g,'').slice(0,120);
 const todayStr=()=>TODAY.toISOString().slice(0,10);
+const fmtTime=t=>{if(!t)return'';const[h,m]=t.split(':').map(Number);const ampm=h>=12?'PM':'AM';return`${h%12||12}:${String(m).padStart(2,'0')} ${ampm}`;};
 
 function refreshAIContext(){
   const now=new Date();now.setHours(0,0,0,0);
@@ -454,7 +455,27 @@ function addGCalEventAsTask(encodedName,date){
 
 // ══ SCHOOL INFO ══
 function saveSchoolInfo(){schoolInfo={locker:document.getElementById('inputLocker').value.trim(),combo:document.getElementById('inputCombo').value.trim(),counselor:document.getElementById('inputCounselor').value.trim(),studentID:document.getElementById('inputStudentID').value.trim()};save('flux_school',schoolInfo);renderSchool();syncKey('school',schoolInfo);const b=event?.target;if(b){b.textContent='✓ Saved!';setTimeout(()=>b.textContent='Save Info',1500);}}
-function addClass(){const period=document.getElementById('classPeriod').value,name=document.getElementById('className').value.trim(),teacher=document.getElementById('classTeacher').value.trim(),room=document.getElementById('classRoom').value.trim();if(!name)return;classes.push({id:Date.now(),period:parseInt(period)||classes.length+1,name,teacher,room});classes.sort((a,b)=>a.period-b.period);save('flux_classes',classes);document.getElementById('classPeriod').value='';document.getElementById('className').value='';document.getElementById('classTeacher').value='';document.getElementById('classRoom').value='';renderSchool();populateSubjectSelects();syncKey('classes',classes);}
+function addClass(){
+  const period=document.getElementById('classPeriod').value;
+  const name=document.getElementById('className').value.trim();
+  const teacher=document.getElementById('classTeacher').value.trim();
+  const room=document.getElementById('classRoom').value.trim();
+  const days=document.getElementById('classDays').value;
+  const timeStart=document.getElementById('classTimeStart').value;
+  const timeEnd=document.getElementById('classTimeEnd').value;
+  if(!name)return;
+  classes.push({id:Date.now(),period:parseInt(period)||classes.length+1,name,teacher,room,days,timeStart,timeEnd});
+  classes.sort((a,b)=>a.period-b.period);
+  save('flux_classes',classes);
+  document.getElementById('classPeriod').value='';
+  document.getElementById('className').value='';
+  document.getElementById('classTeacher').value='';
+  document.getElementById('classRoom').value='';
+  document.getElementById('classDays').value='';
+  document.getElementById('classTimeStart').value='';
+  document.getElementById('classTimeEnd').value='';
+  renderSchool();populateSubjectSelects();syncKey('classes',classes);
+}
 function deleteClass(id){classes=classes.filter(c=>c.id!==id);save('flux_classes',classes);renderSchool();populateSubjectSelects();}
 function addTeacherNote(){const teacher=document.getElementById('tNoteTeacher').value.trim(),note=document.getElementById('tNoteText').value.trim();if(!teacher||!note)return;teacherNotes.push({id:Date.now(),teacher,note});save('flux_teacher_notes',teacherNotes);document.getElementById('tNoteTeacher').value='';document.getElementById('tNoteText').value='';renderSchool();}
 function deleteTeacherNote(id){teacherNotes=teacherNotes.filter(n=>n.id!==id);save('flux_teacher_notes',teacherNotes);renderSchool();}
@@ -470,7 +491,12 @@ function renderSchool(){
   const cl=document.getElementById('classesList');
   if(!classes.length){cl.innerHTML='<div class="empty" style="padding:10px 0">No classes added yet.</div>';return;}
   const subColors=Object.values(SUBJECTS).map(s=>s.color);
-  cl.innerHTML=classes.map((c,i)=>{const col=subColors[i%subColors.length];return`<div class="class-row"><div class="class-period" style="background:${col}22;color:${col}">${c.period}</div><div style="flex:1"><div style="font-size:.88rem;font-weight:700">${esc(c.name)}</div><div style="font-size:.72rem;color:var(--muted2);font-family:'JetBrains Mono',monospace">${c.teacher?c.teacher:''}${c.room?' · '+c.room:''}</div></div><button onclick="deleteClass(${c.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px">✕</button></div>`;}).join('');
+  cl.innerHTML=classes.map((c,i)=>{
+    const col=subColors[i%subColors.length];
+    const timeStr=c.timeStart?`${fmtTime(c.timeStart)}${c.timeEnd?' – '+fmtTime(c.timeEnd):''}` :'';
+    const meta=[c.teacher,c.days,timeStr,c.room].filter(Boolean).join(' · ');
+    return`<div class="class-row"><div class="class-period" style="background:${col}22;color:${col}">${c.period}</div><div style="flex:1"><div style="font-size:.88rem;font-weight:700">${esc(c.name)}</div><div style="font-size:.72rem;color:var(--muted2);font-family:'JetBrains Mono',monospace">${meta}</div></div><button onclick="deleteClass(${c.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px">✕</button></div>`;
+  }).join('');
   const tn=document.getElementById('teacherNotesList');
   if(!teacherNotes.length){tn.innerHTML='<div style="color:var(--muted);font-size:.82rem;margin-bottom:8px">No notes yet.</div>';return;}
   tn.innerHTML=teacherNotes.map(n=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:.82rem;font-weight:700">${esc(n.teacher)}</div><div style="font-size:.75rem;color:var(--muted2);font-family:'JetBrains Mono',monospace">${esc(n.note)}</div></div><button onclick="deleteTeacherNote(${n.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px">✕</button></div>`).join('');
