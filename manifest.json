@@ -1,0 +1,16 @@
+{
+  "name": "Flux Planner",
+  "short_name": "Flux",
+  "description": "Your AI-powered student school planner",
+  "start_url": "/Fluxplanner/",
+  "display": "standalone",
+  "background_color": "#07080f",
+  "theme_color": "#6c63ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/Fluxplanner/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/Fluxplanner/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": []
+}
