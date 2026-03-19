@@ -9,23 +9,19 @@
 <meta name="apple-mobile-web-app-title" content="Flux">
 <meta name="description" content="Your AI-powered student school planner">
 <title>Flux Planner</title>
+<meta property="og:title" content="Flux Planner">
+<meta property="og:site_name" content="Flux Planner">
+<link rel="privacy-policy" href="https://azfermohammed.github.io/Fluxplanner/privacy.html">
+
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="public/css/styles.css">
 <link rel="stylesheet" href="public/css/login.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<meta property="og:title" content="Flux Planner">
-<meta property="og:description" content="Your AI-powered student school planner">
-<link rel="privacy-policy" href="https://azfermohammed.github.io/Fluxplanner/privacy.html">
 </head>
 <body>
-<noscript><a href="privacy.html">Privacy Policy</a></noscript>
-<div style="position:fixed;bottom:0;left:0;right:0;z-index:2147483647;background:#111;color:#aaa;text-align:center;padding:6px;font-size:13px;font-family:sans-serif;">
-Flux Planner &mdash; <a href="privacy.html" style="color:#aaa;text-decoration:underline;">Privacy Policy</a>
-</div>
-
+<h1 style="position:absolute;left:-9999px;top:-9999px;">Flux Planner</h1>
 
 <!-- ══ SPLASH SCREEN ══ -->
 <!-- Built dynamically by splash.js, just needs the container -->
@@ -119,6 +115,12 @@ Flux Planner &mdash; <a href="privacy.html" style="color:#aaa;text-decoration:un
         <div class="login-divider">or</div>
         <span class="login-skip" onclick="skipLogin()">Continue without signing in</span>
         <div class="login-note">Sign in to sync your data across all devices.</div>
+        <!-- Privacy policy — required for Google OAuth verification -->
+        <div style="text-align:center;margin-top:16px;font-size:0.72rem;color:#666;">
+          <a href="privacy.html" style="color:#888;text-decoration:underline;">Privacy Policy</a>
+          &nbsp;·&nbsp; Flux Planner
+        </div>
+
 
         <!-- Stats row -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:20px">
