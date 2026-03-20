@@ -3,7 +3,7 @@ window.runSplash = function(callback) {
   const splash = document.getElementById('splash');
   if (!splash) { callback(); return; }
 
-  // Fix purple status bar — force black
+  // Fix purple status bar
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.setAttribute('content', '#0c0d12');
 
@@ -12,30 +12,72 @@ window.runSplash = function(callback) {
   splash.innerHTML = `
     <canvas id="splashCanvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
 
-    <!-- Centered logo block -->
-    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:0">
+    <div style="
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      pointer-events:none;
+      text-align:center;
+    ">
+      <!-- Glow ring behind logo -->
+      <div id="splRing" style="
+        position:absolute;
+        width:260px;height:260px;
+        border-radius:50%;
+        border:1px solid rgba(99,102,241,0);
+        opacity:0;
+        transform:scale(0.4);
+        transition:opacity .5s ease, transform 1s cubic-bezier(.16,1,.3,1), border-color .5s ease;
+      "></div>
 
-      <!-- Letter burst ring -->
-      <div id="splRing" style="position:absolute;width:220px;height:220px;border-radius:50%;border:1px solid rgba(99,102,241,0);opacity:0;transform:scale(0.3);transition:opacity .4s ease,transform .8s cubic-bezier(.16,1,.3,1),border-color .4s ease"></div>
+      <!-- FLUX — single element, no letter spacing issues -->
+      <div id="splFlux" style="
+        font-family:'Plus Jakarta Sans',sans-serif;
+        font-size:clamp(4.5rem,15vw,7rem);
+        font-weight:800;
+        letter-spacing:-0.03em;
+        line-height:1;
+        background:linear-gradient(135deg,#6366f1 0%,#a78bfa 55%,#10d9a0 100%);
+        -webkit-background-clip:text;
+        -webkit-text-fill-color:transparent;
+        background-clip:text;
+        opacity:0;
+        transform:translateY(40px) scale(0.85);
+        transition:opacity .6s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
+        display:block;
+        width:100%;
+      ">FLUX</div>
 
-      <!-- FLUX — big centered -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-        <div style="position:relative;display:flex;align-items:center;gap:0">
-          <span id="splF"  style="font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(4rem,14vw,6.5rem);font-weight:800;letter-spacing:-4px;background:linear-gradient(135deg,#6366f1 0%,#a78bfa 50%,#10d9a0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;opacity:0;transform:translateY(60px) scale(.5) rotate(-8deg);transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)">F</span>
-          <span id="splL"  style="font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(4rem,14vw,6.5rem);font-weight:800;letter-spacing:-4px;color:#eef0f7;-webkit-text-fill-color:#eef0f7;opacity:0;transform:translateY(60px) scale(.5) rotate(-6deg);transition:opacity .5s cubic-bezier(.16,1,.3,1) .07s,transform .7s cubic-bezier(.16,1,.3,1) .07s">l</span>
-          <span id="splU"  style="font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(4rem,14vw,6.5rem);font-weight:800;letter-spacing:-4px;color:#eef0f7;-webkit-text-fill-color:#eef0f7;opacity:0;transform:translateY(60px) scale(.5) rotate(-4deg);transition:opacity .5s cubic-bezier(.16,1,.3,1) .13s,transform .7s cubic-bezier(.16,1,.3,1) .13s">u</span>
-          <span id="splX"  style="font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(4rem,14vw,6.5rem);font-weight:800;letter-spacing:-4px;background:linear-gradient(135deg,#a78bfa,#10d9a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;opacity:0;transform:translateY(60px) scale(.5) rotate(-2deg);transition:opacity .5s cubic-bezier(.16,1,.3,1) .19s,transform .7s cubic-bezier(.16,1,.3,1) .19s">x</span>
-        </div>
-
-        <!-- PLANNER — centered below FLUX -->
-        <div id="splPl" style="font-family:'JetBrains Mono',monospace;font-size:clamp(.7rem,2.5vw,.95rem);font-weight:500;color:#5a6080;letter-spacing:6px;text-transform:uppercase;opacity:0;transform:translateY(16px) scaleX(.6);transition:opacity .6s ease .55s,transform .6s cubic-bezier(.16,1,.3,1) .55s">PLANNER</div>
-      </div>
+      <!-- PLANNER — centered directly below, same width context -->
+      <div id="splPl" style="
+        font-family:'JetBrains Mono',monospace;
+        font-size:clamp(.65rem,2vw,.9rem);
+        font-weight:400;
+        color:#4a5070;
+        letter-spacing:0.45em;
+        text-transform:uppercase;
+        margin-top:10px;
+        opacity:0;
+        transform:translateY(12px) scaleX(0.7);
+        transition:opacity .5s ease .45s, transform .6s cubic-bezier(.16,1,.3,1) .45s;
+        display:block;
+        width:100%;
+      ">PLANNER</div>
 
       <!-- Tagline -->
-      <div id="splSub" style="font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:4px;color:#2a3050;text-transform:uppercase;margin-top:24px;opacity:0;transition:opacity .5s ease 1.05s">YOUR SMART SCHOOL PLANNER</div>
+      <div id="splSub" style="
+        font-family:'JetBrains Mono',monospace;
+        font-size:.58rem;
+        letter-spacing:0.25em;
+        color:#2a3050;
+        text-transform:uppercase;
+        margin-top:28px;
+        opacity:0;
+        transition:opacity .5s ease .9s;
+      ">YOUR SMART SCHOOL PLANNER</div>
 
-      <!-- Loading dots -->
-      <div id="splDots" style="display:flex;gap:8px;margin-top:36px;opacity:0;transition:opacity .4s ease 1.2s">
+      <!-- Dots -->
+      <div id="splDots" style="display:flex;gap:8px;margin-top:32px;opacity:0;transition:opacity .4s ease 1.1s">
         <div style="width:6px;height:6px;border-radius:50%;background:#6366f1;animation:spB 1.3s ease-in-out infinite"></div>
         <div style="width:6px;height:6px;border-radius:50%;background:#a78bfa;animation:spB 1.3s ease-in-out .22s infinite"></div>
         <div style="width:6px;height:6px;border-radius:50%;background:#10d9a0;animation:spB 1.3s ease-in-out .44s infinite"></div>
@@ -47,17 +89,10 @@ window.runSplash = function(callback) {
         0%,60%,100% { transform:translateY(0);opacity:.3 }
         30% { transform:translateY(-10px);opacity:1 }
       }
-      @keyframes ripple {
-        0%   { transform:scale(0.5);opacity:0.7 }
-        100% { transform:scale(2.2);opacity:0 }
-      }
-      @keyframes orbit {
-        from { transform:rotate(0deg) translateX(110px) rotate(0deg) }
-        to   { transform:rotate(360deg) translateX(110px) rotate(-360deg) }
-      }
-    </style>`;
+    </style>
+  `;
 
-  // ── Canvas: particles + shooting stars ──────────────────────
+  // ── Canvas ──────────────────────────────────────────────────
   const canvas = document.getElementById('splashCanvas');
   const ctx    = canvas.getContext('2d');
   let W = 0, H = 0, animId, tick = 0;
@@ -71,49 +106,45 @@ window.runSplash = function(callback) {
 
   const COLORS = ['#6366f1','#a78bfa','#10d9a0','#3b82f6','#e879f9','#fbbf24'];
 
-  // Floating particles
-  const pts = Array.from({length: 80}, () => ({
+  const pts = Array.from({length: 75}, () => ({
     x: Math.random() * W, y: Math.random() * H,
     r: Math.random() * 1.8 + 0.2,
-    dx: (Math.random() - .5) * .45,
-    dy: (Math.random() - .5) * .45,
+    dx: (Math.random() - .5) * .4,
+    dy: (Math.random() - .5) * .4,
     color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    a: Math.random() * .5 + .05
+    a: Math.random() * .45 + .05
   }));
 
-  // Shooting stars pool
   const stars = [];
   function spawnStar() {
     stars.push({
-      x: Math.random() * W,
-      y: Math.random() * H * 0.5,
-      len: Math.random() * 120 + 60,
-      speed: Math.random() * 6 + 4,
-      angle: Math.PI / 4 + (Math.random() - .5) * .3,
-      alpha: 1,
+      x: Math.random() * W * 0.8,
+      y: Math.random() * H * 0.4,
+      len: Math.random() * 130 + 60,
+      speed: Math.random() * 5 + 4,
+      angle: Math.PI / 4 + (Math.random() - .5) * .25,
       life: 0,
-      maxLife: Math.random() * 30 + 25
+      maxLife: Math.random() * 28 + 20
     });
   }
 
-  // Ripple rings
   const ripples = [];
   function spawnRipple() {
-    ripples.push({ x: W/2, y: H/2, r: 0, maxR: Math.min(W,H)*0.5, alpha: 0.25 });
+    ripples.push({ x: W/2, y: H/2, r: 10, alpha: 0.3 });
   }
 
   function frame() {
     tick++;
     ctx.clearRect(0, 0, W, H);
 
-    // Connection lines between nearby particles
+    // Particle connections
     for (let i = 0; i < pts.length; i++) {
       for (let j = i + 1; j < pts.length; j++) {
         const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
         const d = Math.sqrt(dx*dx + dy*dy);
-        if (d < 110) {
+        if (d < 100) {
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(99,102,241,${(1-d/110)*.07})`;
+          ctx.strokeStyle = `rgba(99,102,241,${(1-d/100)*.06})`;
           ctx.lineWidth = .4;
           ctx.moveTo(pts[i].x, pts[i].y);
           ctx.lineTo(pts[j].x, pts[j].y);
@@ -122,12 +153,12 @@ window.runSplash = function(callback) {
       }
     }
 
-    // Draw + move particles
+    // Particles
     pts.forEach(p => {
       p.x += p.dx; p.y += p.dy;
       if (p.x < 0 || p.x > W) p.dx *= -1;
       if (p.y < 0 || p.y > H) p.dy *= -1;
-      const pulse = 0.8 + Math.sin(tick * 0.04 + p.x) * 0.2;
+      const pulse = 0.8 + Math.sin(tick * 0.04 + p.x * 0.01) * 0.2;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r * pulse, 0, Math.PI*2);
       ctx.fillStyle = p.color + Math.floor(p.a * 255).toString(16).padStart(2,'0');
@@ -135,41 +166,45 @@ window.runSplash = function(callback) {
     });
 
     // Ripples
-    ripples.forEach((rp, i) => {
-      rp.r += 2.5;
-      rp.alpha *= 0.94;
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const rp = ripples[i];
+      rp.r += 3;
+      rp.alpha *= 0.93;
       ctx.beginPath();
       ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI*2);
       ctx.strokeStyle = `rgba(99,102,241,${rp.alpha})`;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.stroke();
-      if (rp.alpha < 0.005) ripples.splice(i, 1);
-    });
+      if (rp.alpha < 0.004) ripples.splice(i, 1);
+    }
 
     // Shooting stars
-    if (tick % 55 === 0) spawnStar();
-    stars.forEach((s, i) => {
+    if (tick % 60 === 0) spawnStar();
+    for (let i = stars.length - 1; i >= 0; i--) {
+      const s = stars[i];
       s.life++;
       const pct = s.life / s.maxLife;
-      s.alpha = pct < .2 ? pct/.2 : 1 - (pct-.2)/.8;
+      const alpha = pct < .2 ? pct/.2 : Math.max(0, 1 - (pct-.2)/.8);
+      const ox = Math.cos(s.angle) * s.speed * s.life;
+      const oy = Math.sin(s.angle) * s.speed * s.life;
       const ex = s.x + Math.cos(s.angle) * s.len;
       const ey = s.y + Math.sin(s.angle) * s.len;
-      const grad = ctx.createLinearGradient(s.x, s.y, ex, ey);
+      const grad = ctx.createLinearGradient(s.x + ox, s.y + oy, ex + ox, ey + oy);
       grad.addColorStop(0, `rgba(255,255,255,0)`);
-      grad.addColorStop(1, `rgba(255,255,255,${s.alpha * .8})`);
+      grad.addColorStop(1, `rgba(255,255,255,${alpha * .85})`);
       ctx.beginPath();
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 1.2;
-      ctx.moveTo(s.x + Math.cos(s.angle)*s.speed*s.life, s.y + Math.sin(s.angle)*s.speed*s.life);
-      ctx.lineTo(ex + Math.cos(s.angle)*s.speed*s.life, ey + Math.sin(s.angle)*s.speed*s.life);
+      ctx.lineWidth = 1.4;
+      ctx.moveTo(s.x + ox, s.y + oy);
+      ctx.lineTo(ex + ox, ey + oy);
       ctx.stroke();
       if (s.life >= s.maxLife) stars.splice(i, 1);
-    });
+    }
 
-    // Glow pulse behind logo
-    const grd = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, 160);
-    const glowA = (0.04 + Math.sin(tick * 0.03) * 0.02).toFixed(3);
-    grd.addColorStop(0, `rgba(99,102,241,${glowA})`);
+    // Center glow
+    const grd = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, 180);
+    const ga = (0.05 + Math.sin(tick * 0.025) * 0.025).toFixed(3);
+    grd.addColorStop(0, `rgba(99,102,241,${ga})`);
     grd.addColorStop(1, 'rgba(99,102,241,0)');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
@@ -178,7 +213,7 @@ window.runSplash = function(callback) {
   }
   animId = requestAnimationFrame(frame);
 
-  // ── Stagger text reveals ────────────────────────────────────
+  // ── Reveal sequence ─────────────────────────────────────────
   const show = (id, delay) => setTimeout(() => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -186,29 +221,25 @@ window.runSplash = function(callback) {
     el.style.transform = 'none';
   }, delay);
 
-  // Spawn ripple on logo reveal
-  setTimeout(() => spawnRipple(), 200);
-  setTimeout(() => spawnRipple(), 500);
+  setTimeout(() => spawnRipple(), 220);
+  setTimeout(() => spawnRipple(), 520);
+  setTimeout(() => spawnRipple(), 900);
 
-  show('splF',  180);
-  show('splL',  250);
-  show('splU',  310);
-  show('splX',  370);
-  show('splPl', 580);
-  show('splSub', 1050);
-  show('splDots', 1220);
+  show('splFlux', 200);
+  show('splPl',   520);
+  show('splSub',  900);
+  show('splDots', 1100);
 
-  // Ring reveal
   setTimeout(() => {
     const ring = document.getElementById('splRing');
     if (ring) {
       ring.style.opacity = '1';
       ring.style.transform = 'scale(1)';
-      ring.style.borderColor = 'rgba(99,102,241,0.15)';
+      ring.style.borderColor = 'rgba(99,102,241,0.18)';
     }
-  }, 300);
+  }, 280);
 
-  // ── Exit after 3s ───────────────────────────────────────────
+  // ── Exit ────────────────────────────────────────────────────
   setTimeout(() => {
     window.removeEventListener('resize', resize);
     cancelAnimationFrame(animId);
