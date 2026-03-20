@@ -674,3 +674,41 @@ button:active:not(:disabled){transform:scale(.96) translateY(0)!important}
     background: var(--bg);
   }
 }
+
+/* ══ ITEM 21 — LAYOUT ══ */
+
+/* DESKTOP: contained scroll in flex layout */
+@media(min-width:769px){
+  #app{height:100vh!important;overflow:hidden!important;display:flex!important}
+  .sidebar{height:100vh!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;position:sticky!important;top:0!important}
+  .sidebar-nav{flex:1!important;overflow-y:auto!important;overflow-x:hidden!important}
+  .main-content{height:100vh!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;flex:1!important;min-width:0!important}
+  .topbar{flex-shrink:0!important;position:sticky!important;top:0!important;z-index:30!important}
+  .panel{flex:1!important;overflow-y:auto!important;height:0!important;overscroll-behavior:contain!important}
+  .panel.active{display:block!important}
+  #ai.active{overflow:hidden!important;height:auto!important;display:flex!important;flex-direction:column!important}
+  #aiMsgsWrap{flex:1!important;overflow-y:auto!important}
+  /* Settings tabs sticky inside scrolling panel */
+  .stabs{position:sticky!important;top:0!important;z-index:10!important;background:var(--bg)!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important;padding-top:4px!important}
+}
+
+/* MOBILE: normal document flow — NO height traps */
+@media(max-width:768px){
+  #app{height:auto!important;overflow:visible!important;display:block!important;padding-bottom:70px!important}
+  .main-content{height:auto!important;overflow:visible!important;display:block!important}
+  .topbar{position:sticky!important;top:0!important;z-index:50!important}
+  .panel{flex:none!important;height:auto!important;overflow-y:visible!important;min-height:0!important}
+  .panel.active{display:block!important;padding-bottom:90px!important}
+  #ai.active{
+    display:flex!important;flex-direction:column!important;
+    height:calc(100svh - 57px - 62px)!important;
+    overflow:hidden!important;padding:0!important
+  }
+  #aiMsgsWrap{flex:1!important;overflow-y:auto!important}
+  body{padding-bottom:0!important}
+  .sidebar{display:none!important}
+  .bottom-nav{position:fixed!important;bottom:0!important;left:0!important;right:0!important;z-index:100!important}
+  .stabs{position:sticky!important;top:57px!important;z-index:10!important;background:var(--bg)!important}
+}
+/* FAB plus centering */
+#fabBtn{display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;line-height:1!important;font-size:1.8rem!important;font-weight:200!important}
