@@ -2815,9 +2815,10 @@ function initDashboardFeatures(){
   // ── FLOW: Splash (once per session) → Login → (1st time) Onboarding → App ──
   const afterSplash = () => initAuth();
 
-  const shownSplash = sessionStorage.getItem('flux_splash_shown');
+  // Show splash only on first ever visit or fresh install
+  const shownSplash = localStorage.getItem('flux_splash_shown');
   if(!shownSplash){
-    sessionStorage.setItem('flux_splash_shown','1');
+    localStorage.setItem('flux_splash_shown','1');
     const s=document.getElementById('splash');
     if(s)s.style.display='block';
     setTimeout(()=>{
@@ -2829,7 +2830,6 @@ function initDashboardFeatures(){
       }
     },30);
   }else{
-    // Splash already shown this session — go straight to auth
     afterSplash();
   }
 })();
