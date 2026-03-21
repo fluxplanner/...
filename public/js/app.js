@@ -2584,12 +2584,20 @@ async function initAuth(){
     return;
   }
   try{
-    // STEP 1: Handle OAuth callback — Supabase v2 automatically exchanges
-    // the code/token in the URL hash on getSession(). This runs on every
-    // page load including when Google redirects back to GitHub Pages.
+    // Check if this is an OAuth callback (URL has access_token or code param)
+    const hash=window.location.hash;
+    const params=new URLSearchParams(window.location.search);
+    const isOAuthCallback=hash.includes('access_token')||hash.includes('error')||params.has('code');
+    
+    if(isOAuthCallback){
+      // Clear the URL so it looks clean, then let Supabase handle it
+      window.history.replaceState(null,'',window.location.pathname);
+    }
+
+    // STEP 1: getSession() automatically picks up OAuth tokens from URL
     const{data:{session},error}=await sb.auth.getSession();
     
-    // STEP 2: If we have a session (including from OAuth callback), sign in
+    // STEP 2: Sign in or show login
     if(session?.user){
       await handleSignedIn(session.user,session);
     }else{
@@ -2653,6 +2661,10 @@ function showApp(){
   renderSmartSug();renderProfile();renderGradeInputs();renderGradeOverview();
   renderNotesList();renderHabitList();renderGoalsList();renderMoodHistory();
   renderSchool();updateTStats();
+  // Update user card now that #app is visible
+  if(currentUser){
+    _updateUserUI(currentUser, currentUser.user_metadata?.full_name||currentUser.email?.split('@')[0]||'');
+  }
 }
 
 async function handleSignedIn(user,session){
@@ -2711,6 +2723,8 @@ async function handleSignedIn(user,session){
   }else{
     if(ob)ob.classList.remove('visible');
     showApp();
+    // Call _updateUserUI AFTER showApp() so DOM elements are visible
+    _updateUserUI(user, user.user_metadata?.full_name||user.email?.split('@')[0]||'');
   }
   // Sync every 2 minutes while logged in
   if(!window._syncInterval)window._syncInterval=setInterval(syncToCloud,2*60*1000);
