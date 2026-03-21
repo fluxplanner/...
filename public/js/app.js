@@ -2577,13 +2577,16 @@ async function initAuth(){
     else showLoginOrApp();
     sb.auth.onAuthStateChange(async(event,s)=>{
       if(event==='SIGNED_IN'&&s?.user){
-        // Hide login screen immediately on OAuth callback
-        const ls=document.getElementById('loginScreen');if(ls)ls.classList.remove('visible');
-        await handleSignedIn(s.user,s);
+        const ls=document.getElementById('loginScreen');
+        if(ls){ls.style.display='none';ls.classList.remove('visible');}
+        if(!currentUser||currentUser.id!==s.user.id){
+          await handleSignedIn(s.user,s);
+        }else{
+          _updateUserUI(s.user,s.user.user_metadata?.full_name||s.user.email?.split('@')[0]);
+        }
       }
       else if(event==='SIGNED_OUT')handleSignedOut();
       else if(event==='TOKEN_REFRESHED'&&s?.user&&currentUser){
-        // Keep user UI fresh on token refresh
         _updateUserUI(s.user,s.user.user_metadata?.full_name||s.user.email?.split('@')[0]);
       }
     });
@@ -2598,22 +2601,32 @@ function showLoginOrApp(){
   const hasData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
   const wasGuest=load('flux_was_guest',false);
   if(wasGuest&&(onboarded||hasData)){
-    document.getElementById('loginScreen').classList.remove('visible');
-    document.getElementById('app').classList.add('visible');
+    showApp();
     setSyncStatus('offline');
-    renderSidebars();
-    populateSubjectSelects();
-    // ← These were missing — without them NO clicks work in guest mode
-    initModFeatures();
-    initDashboardFeatures();
-    renderStats();renderTasks();renderCalendar();renderCountdown();
-    renderSmartSug();renderProfile();renderGradeInputs();renderGradeOverview();
-    renderNotesList();renderHabitList();renderGoalsList();renderMoodHistory();
-    renderSchool();updateTStats();
   }else{
-    document.getElementById('loginScreen').classList.add('visible');
-    initLoginFeaturePills();
+    showLoginScreen();
   }
+}
+function showLoginScreen(){
+  const ls=document.getElementById('loginScreen');
+  const app=document.getElementById('app');
+  if(ls){ls.style.display='block';ls.classList.add('visible');}
+  if(app)app.classList.remove('visible');
+  initLoginFeaturePills();
+}
+function showApp(){
+  const ls=document.getElementById('loginScreen');
+  const app=document.getElementById('app');
+  if(ls){ls.style.display='none';ls.classList.remove('visible');}
+  if(app)app.classList.add('visible');
+  renderSidebars();
+  populateSubjectSelects();
+  initModFeatures();
+  initDashboardFeatures();
+  renderStats();renderTasks();renderCalendar();renderCountdown();
+  renderSmartSug();renderProfile();renderGradeInputs();renderGradeOverview();
+  renderNotesList();renderHabitList();renderGoalsList();renderMoodHistory();
+  renderSchool();updateTStats();
 }
 
 async function handleSignedIn(user,session){
@@ -2643,7 +2656,8 @@ async function handleSignedIn(user,session){
     gmailToken=session.provider_token;
     sessionStorage.setItem('flux_gmail_token',session.provider_token);
   }
-  document.getElementById('loginScreen').classList.remove('visible');
+  // hide login immediately
+  const _ls=document.getElementById('loginScreen');if(_ls){_ls.style.display='none';_ls.classList.remove('visible');}
   const name=user.user_metadata?.full_name||user.email?.split('@')[0]||'Student';
   const firstName=name.split(' ')[0];
   localStorage.setItem('flux_user_name',firstName);
@@ -2670,11 +2684,7 @@ async function handleSignedIn(user,session){
     if(ob)ob.classList.add('visible');
   }else{
     if(ob)ob.classList.remove('visible');
-    document.getElementById('app').classList.add('visible');
-    renderSidebars();
-    populateSubjectSelects();
-    initModFeatures();
-    initDashboardFeatures();
+    showApp();
   }
   // Sync every 2 minutes while logged in
   if(!window._syncInterval)window._syncInterval=setInterval(syncToCloud,2*60*1000);
@@ -2682,40 +2692,38 @@ async function handleSignedIn(user,session){
 
 function _updateUserUI(user,name){
   const firstName=(name||user.email?.split('@')[0]||'User').split(' ')[0];
+  const fullName=name||firstName;
   localStorage.setItem('flux_user_name',firstName);
-  // Avatar — use Google profile pic if available
   const avatarUrl=user.user_metadata?.avatar_url||user.user_metadata?.picture||'';
   const avatarHTML=avatarUrl
-    ?`<img src="${avatarUrl}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-    :`<span style="font-size:.9rem;font-weight:700">${firstName.charAt(0).toUpperCase()}</span>`;
-  // Sidebar user card
-  const sav=document.getElementById('sidebarAv');if(sav)sav.innerHTML=avatarHTML;
-  const sn=document.getElementById('sidebarName');if(sn)sn.textContent=name||firstName;
-  const se=document.getElementById('sidebarEmail');if(se)se.textContent=user.email||'';
-  // Mobile drawer user card
-  const mav=document.getElementById('mobAv');if(mav)mav.innerHTML=avatarHTML;
-  const mn=document.getElementById('mobName');if(mn)mn.textContent=name||firstName;
-  const me=document.getElementById('mobEmail');if(me)me.textContent=user.email||'';
-  // Settings account section
+    ?`<img src="${avatarUrl}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`
+    :`<span style="font-size:.9rem;font-weight:700;line-height:1">${firstName.charAt(0).toUpperCase()}</span>`;
+  // Update every user display element
+  ['sidebarAv','mobAv'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=avatarHTML;});
+  ['sidebarName','mobName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fullName;});
+  ['sidebarEmail','mobEmail'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=user.email||'';});
   const asd=document.getElementById('accountSignedOut');if(asd)asd.style.display='none';
   const asi=document.getElementById('accountSignedIn');if(asi)asi.style.display='block';
   const emailEl=document.getElementById('accountEmail');if(emailEl)emailEl.textContent=user.email||'';
-  // Also update any topbar user indicators
   const topUser=document.getElementById('topbarUser');if(topUser)topUser.textContent=firstName;
+  // Re-call after DOM fully ready in case elements weren't present
+  setTimeout(()=>{
+    ['sidebarAv','mobAv'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.innerHTML.includes(firstName.charAt(0))&&!el.querySelector('img'))el.innerHTML=avatarHTML;});
+    ['sidebarName','mobName'].forEach(id=>{const el=document.getElementById(id);if(el&&el.textContent!==fullName)el.textContent=fullName;});
+  },500);
 }
 
 function handleSignedOut(){
   currentUser=null;gmailToken=null;
   if(window._syncInterval){clearInterval(window._syncInterval);window._syncInterval=null;}
   sessionStorage.clear();
-  // Keep only device prefs, wipe all user data
   const keysToKeep=['flux_splash_shown','flux_theme','flux_accent','flux_accent_rgb'];
   const kept={};
   keysToKeep.forEach(k=>{const v=localStorage.getItem(k);if(v!==null)kept[k]=v;});
   localStorage.clear();
   Object.entries(kept).forEach(([k,v])=>localStorage.setItem(k,v));
-  // Force hard reload — page restarts fresh, initAuth sees no session, shows login
-  window.location.href='https://azfermohammed.github.io/Fluxplanner/';
+  // Hard reload back to exact GitHub Pages URL — guarantees login screen on restart
+  window.location.replace('https://azfermohammed.github.io/Fluxplanner/');
 }
 
 // ══ FEATURE PILLS — injected into login screen ══
