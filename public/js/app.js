@@ -2588,14 +2588,14 @@ async function initAuth(){
     const hash=window.location.hash;
     const params=new URLSearchParams(window.location.search);
     const isOAuthCallback=hash.includes('access_token')||hash.includes('error')||params.has('code');
+
+    // STEP 1: getSession() FIRST — reads tokens from URL before we clean it
+    const{data:{session},error}=await sb.auth.getSession();
     
+    // Clean URL AFTER Supabase has read the tokens
     if(isOAuthCallback){
-      // Clear the URL so it looks clean, then let Supabase handle it
       window.history.replaceState(null,'',window.location.pathname);
     }
-
-    // STEP 1: getSession() automatically picks up OAuth tokens from URL
-    const{data:{session},error}=await sb.auth.getSession();
     
     // STEP 2: Sign in or show login
     if(session?.user){
