@@ -1942,7 +1942,26 @@ function fmtAI(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const f=isBot?fmtAI(content):esc(content);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
 function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","Make me a study plan","Create flashcards for my next test","Help with my essay outline","What should I work on now?","Generate a 3-day exam prep plan","Quiz me on my hardest subject","Summarize what I have coming up"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
-function handleAIImg(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{aiPendingImg={data:e.target.result.split(',')[1],mime:file.type,name:file.name};const prev=document.getElementById('aiImgPreview');if(prev){prev.style.display='block';prev.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.2);border-radius:8px"><img src="${e.target.result}" style="width:44px;height:44px;object-fit:cover;border-radius:6px"><div style="flex:1;font-size:.78rem;font-weight:600">${file.name}</div><button onclick="aiPendingImg=null;this.parentElement.parentElement.style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0">✕</button></div>`;}};reader.readAsDataURL(file);}
+function handleAIImg(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    aiPendingImg={data:e.target.result.split(',')[1],mime:file.type,name:file.name};
+    const prev=document.getElementById('aiImgPreview');
+    if(prev){
+      prev.style.display='block';
+      prev.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.2);border-radius:10px;margin-bottom:4px">
+        <img src="${e.target.result}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0">
+        <div style="flex:1;font-size:.75rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${file.name}</div>
+        <button onclick="aiPendingImg=null;document.getElementById('aiImgPreview').style.display='none';document.getElementById('aiImgUpload').value='';const b=document.getElementById('aiImgBtn');if(b){b.style.borderColor='';b.style.color='';}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px;flex-shrink:0">✕</button>
+      </div>`;
+    }
+    const btn=document.getElementById('aiImgBtn');
+    if(btn){btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
+  };
+  reader.readAsDataURL(file);
+}
+
 function buildAIPrompt(){
   const ctx=refreshAIContext();
   const name=localStorage.getItem('flux_user_name')||'Student';
@@ -2018,13 +2037,15 @@ async function sendAI(){
     thinkEl.remove();
     const ar=execActions(reply);
     // Strip the actions block from the displayed reply
-    // Strip actions block — handle both closed (``` ```) and unclosed versions
-    const clean=reply
-      .replace(/```actions[\s\S]*?(?:```|$)/g,'')
-      .replace(/```json[\s\S]*?(?:```|$)/g,'')
-      .replace(/\[\s*\{\s*"action"[\s\S]*?(?:\}\s*\]|$)/g,'')
-      .replace(/\n{3,}/g,'\n\n')
-      .trim();
+    // Strip ALL action/code blocks before displaying
+    let clean=reply;
+    // Remove ```actions...``` blocks (closed or unclosed)
+    clean=clean.replace(/`{3}actions[\s\S]*?`{3}/g,'');
+    clean=clean.replace(/`{3}actions[\s\S]*/g,'');  // unclosed
+    // Remove any remaining JSON action arrays
+    clean=clean.replace(/\[\s*\{[\s\S]*?"action"[\s\S]*?\}\s*\]/g,'');
+    // Clean up extra whitespace
+    clean=clean.replace(/\n{3,}/g,'\n\n').trim();
     if(clean){appendMsg('bot',clean);}
     // Show action result as a separate small confirmation below, not inside the bubble
     if(ar){
