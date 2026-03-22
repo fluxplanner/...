@@ -2091,6 +2091,12 @@ async function forceSyncNow(){
   renderProfile();renderGradeInputs();renderGradeOverview();renderNotesList();
   renderHabitList();renderGoalsList();renderCollegeList();renderMoodHistory();
   renderSchool();updateTStats();populateSubjectSelects();
+  // Re-apply accent AFTER all renders (renderSidebars rebuilds SVG logo)
+  const _a=localStorage.getItem('flux_accent')||'#00bfff';
+  const _r=localStorage.getItem('flux_accent_rgb')||'0,191,255';
+  document.documentElement.style.setProperty('--accent',_a);
+  document.documentElement.style.setProperty('--accent-rgb',_r);
+  updateLogoColor(_a);
   if(btn){btn.textContent='✓ Synced';setTimeout(()=>{btn.textContent='Force Sync Now';btn.disabled=false;},2000);}
   showToast('✓ Data synced');
 }
@@ -2156,6 +2162,12 @@ async function syncFromCloud(){
     if(hasCloudData)save('flux_onboarded',true);
     renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();renderProfile();renderGradeInputs();renderGradeOverview();renderNotesList();renderHabitList();renderGoalsList();renderCollegeList();renderMoodHistory();renderSchool();updateTStats();
     populateSubjectSelects();
+    // Re-apply accent after renders in case sidebar was rebuilt
+    const _sa=localStorage.getItem('flux_accent')||'#00bfff';
+    const _sr=localStorage.getItem('flux_accent_rgb')||'0,191,255';
+    document.documentElement.style.setProperty('--accent',_sa);
+    document.documentElement.style.setProperty('--accent-rgb',_sr);
+    updateLogoColor(_sa);
   }catch(e){console.error('Sync from cloud error',e);setSyncStatus('offline');}
 }
 const syncDebounceTimers={};
