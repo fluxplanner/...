@@ -1382,7 +1382,14 @@ function applyThemeByName(name){
 }
 function loadTheme(){
   const key=localStorage.getItem('flux_theme')||'dark';
-  applyTheme(key); // applyTheme already re-applies saved accent
+  // Apply accent BEFORE applyTheme so it's never overwritten
+  const acc=localStorage.getItem('flux_accent')||'#00bfff';
+  const rgb=localStorage.getItem('flux_accent_rgb')||'0,191,255';
+  document.documentElement.style.setProperty('--accent',acc);
+  document.documentElement.style.setProperty('--accent-rgb',rgb);
+  applyTheme(key);
+  // updateLogoColor after a tick to ensure DOM is ready
+  setTimeout(()=>updateLogoColor(acc),0);
 }
 
 function applyCustomVar(varName,value){
@@ -1411,6 +1418,10 @@ function updateLogoColor(hex){
     .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke]{stroke:${hex}!important}
     #fluxWG stop:nth-child(2),#fluxCG stop:nth-child(2){stop-color:${hex}!important}
     #fluxWG stop:nth-child(3){stop-color:${hex}aa!important}
+    #fabBtn{background:${hex}!important;box-shadow:0 6px 24px rgba(${hexToRgb(hex)},.45)!important}
+    .bottom-nav .bnav-item.active{color:${hex}!important}
+    .nav-item.active{color:${hex}!important;background:rgba(${hexToRgb(hex)},.12)!important}
+    .nav-item.active::before{background:${hex}!important}
   `;
   // Also set inline on root for immediate effect
   document.documentElement.style.setProperty('--accent',hex);
@@ -1456,7 +1467,7 @@ function applyCustomColor(){
 }
 
 // ══ SETTINGS ══
-function switchStab(id,el){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('spane-'+id).classList.add('active');}
+function switchStab(id,el){if(id==='data')id='about';document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');const pane=document.getElementById('spane-'+id);if(pane)pane.classList.add('active');}
 function toggleSetting(k,el){settings[k]=!settings[k];el.classList.toggle('on',settings[k]);save('flux_settings',settings);}
 function saveDND(){settings.dndStart=document.getElementById('dndStart').value;settings.dndEnd=document.getElementById('dndEnd').value;save('flux_settings',settings);const b=event?.target;if(b){b.textContent='✓';setTimeout(()=>b.textContent='Save',1500);}}
 function saveDailyGoal(){settings.dailyGoalHrs=parseFloat(document.getElementById('dailyGoalHrs').value)||2;save('flux_settings',settings);const done=tMins/60,goal=settings.dailyGoalHrs;const el=document.getElementById('dailyGoalStatus');if(el)el.textContent=done>=goal?`✓ Goal reached! (${done.toFixed(1)}h / ${goal}h)`:`Progress: ${done.toFixed(1)}h / ${goal}h`;}
@@ -1989,8 +2000,11 @@ async function sendAI(){
     thinkEl.remove();
     const ar=execActions(reply);
     // Strip the actions block from the displayed reply
-    const clean=reply.replace(/```actions[\s\S]*?```/g,'').trim();
-    // Only show the reply if there's actual text content (not just whitespace after stripping)
+    const clean=reply
+      .replace(/```actions[\s\S]*?```/g,'')
+      .replace(/```json[\s\S]*?```/g,'')
+      .replace(/\[\{"action"[\s\S]*?\}\]/g,'')
+      .trim();
     if(clean){appendMsg('bot',clean);}
     // Show action result as a separate small confirmation below, not inside the bubble
     if(ar){
