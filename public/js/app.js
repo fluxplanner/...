@@ -1325,7 +1325,7 @@ function saveConfidences(){save('flux_conf',confidences);const b=event?.target;i
 const THEMES={
   dark:{
     label:'🌙 Midnight',
-    vars:{'--bg':'#0a0b10','--bg2':'#0d0e15','--card':'#161826','--card2':'#1a1d2c','--card-solid':'#161826','--border':'rgba(255,255,255,.07)','--border2':'rgba(255,255,255,.1)','--text':'#eef0f7','--muted':'#6b7280','--muted2':'#9ca3af','--accent':'#6366f1','--accent-rgb':'99,102,241','--green':'#10d9a0','--red':'#f43f5e','--gold':'#fbbf24','--purple':'#c084fc','--orange':'#fb923c'}
+    vars:{'--bg':'#0a0b10','--bg2':'#0d0e15','--card':'#161826','--card2':'#1a1d2c','--card-solid':'#161826','--border':'rgba(255,255,255,.07)','--border2':'rgba(255,255,255,.1)','--text':'#eef0f7','--muted':'#6b7280','--muted2':'#9ca3af','--accent':'#00bfff','--accent-rgb':'0,191,255','--green':'#10d9a0','--red':'#f43f5e','--gold':'#fbbf24','--purple':'#c084fc','--orange':'#fb923c'}
   },
   light:{
     label:'☀️ Cloud',
@@ -1360,15 +1360,24 @@ const THEMES={
 function applyTheme(key){
   const theme=THEMES[key];if(!theme)return;
   const root=document.documentElement;
-  // First reset any custom overrides so theme shows cleanly
   Object.keys(THEMES.dark.vars).forEach(k=>root.style.removeProperty(k));
-  // Apply theme vars
   Object.entries(theme.vars).forEach(([k,v])=>root.style.setProperty(k,v));
   document.body.setAttribute('data-theme',key);
   localStorage.setItem('flux_theme',key);
-  // Re-apply custom color overrides on top
   const custom=load('flux_custom_colors',{});
   Object.entries(custom).forEach(([k,v])=>root.style.setProperty(k,v));
+  // Always re-apply saved accent on top of theme (prevents accent from resetting)
+  const savedAccent=localStorage.getItem('flux_accent')||'#00bfff';
+  const savedRgb=localStorage.getItem('flux_accent_rgb')||'0,191,255';
+  root.style.setProperty('--accent',savedAccent);
+  root.style.setProperty('--accent-rgb',savedRgb);
+  // Update logos
+  const logoGrad=`linear-gradient(135deg,${savedAccent},${savedAccent}bb)`;
+  setTimeout(()=>{
+    document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,.topbar-left').forEach(el=>{
+      if(el){el.style.background=logoGrad;el.style.webkitBackgroundClip='text';el.style.webkitTextFillColor='transparent';el.style.backgroundClip='text';}
+    });
+  },50);
 }
 function themeDark(){applyTheme('dark');}
 function themeCrimson(){applyTheme('ember');}
@@ -1382,6 +1391,18 @@ function applyThemeByName(name){
 function loadTheme(){
   const key=localStorage.getItem('flux_theme')||'dark';
   applyTheme(key);
+  // Apply saved accent, defaulting to cyan
+  const savedAccent=localStorage.getItem('flux_accent')||'#00bfff';
+  const savedRgb=localStorage.getItem('flux_accent_rgb')||'0,191,255';
+  document.documentElement.style.setProperty('--accent',savedAccent);
+  document.documentElement.style.setProperty('--accent-rgb',savedRgb);
+  // Apply logo gradient on load
+  const logoGrad=`linear-gradient(135deg,${savedAccent},${savedAccent}bb)`;
+  setTimeout(()=>{
+    document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,.topbar-left').forEach(el=>{
+      if(el){el.style.background=logoGrad;el.style.webkitBackgroundClip='text';el.style.webkitTextFillColor='transparent';el.style.backgroundClip='text';}
+    });
+  },100);
 }
 
 function applyCustomVar(varName,value){
@@ -1397,20 +1418,34 @@ function resetCustomColors(){
   const b=event?.target;if(b){b.textContent='✓ Reset!';setTimeout(()=>b.textContent='↺ Reset colors',1500);}
 }
 function setAccent(hex,rgb,el){
+  document.documentElement.style.setProperty('--accent',hex);
+  document.documentElement.style.setProperty('--accent-rgb',rgb);
+  // Also use applyCustomVar for persistence
   applyCustomVar('--accent',hex);
   applyCustomVar('--accent-rgb',rgb);
   document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
   if(el)el.classList.add('active');
-  // Update all logo/title gradients to match accent
+  // Update logo gradient to match new accent
   const logoGrad=`linear-gradient(135deg,${hex},${hex}bb)`;
-  document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,.topbar-left').forEach(el=>{
-    if(el){el.style.background=logoGrad;el.style.webkitBackgroundClip='text';el.style.webkitTextFillColor='transparent';el.style.backgroundClip='text';}
+  document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,.topbar-left,[class*="logo"]').forEach(logoEl=>{
+    if(logoEl){
+      logoEl.style.background=logoGrad;
+      logoEl.style.webkitBackgroundClip='text';
+      logoEl.style.webkitTextFillColor='transparent';
+      logoEl.style.backgroundClip='text';
+    }
   });
-  // Update task pill border color
+  // Update SVG logo if present
+  const svgLogo=document.querySelector('.sidebar-logo svg, .flux-logo-svg');
+  if(svgLogo){const stops=svgLogo.querySelectorAll('stop');stops.forEach(s=>s.setAttribute('stop-color',hex));}
   const tp=document.getElementById('topbarTaskPill');
   if(tp)tp.style.borderColor=`rgba(${rgb},.3)`;
+  // Persist to localStorage directly (fastest)
+  localStorage.setItem('flux_accent',hex);
+  localStorage.setItem('flux_accent_rgb',rgb);
   save('flux_accent',hex);
   save('flux_accent_rgb',rgb);
+  syncKey('accent',{accent:hex,accentRgb:rgb});
 }
 function applyCustomColor(){
   const hex=document.getElementById('customColor').value;
@@ -2983,21 +3018,20 @@ function initDashboardFeatures(){
 
   // Show splash only on first ever visit or fresh install
   const shownSplash = localStorage.getItem('flux_splash_shown');
+  const isFirstTimeSplash = !shownSplash;
   if(!shownSplash){
     localStorage.setItem('flux_splash_shown','1');
-    const s=document.getElementById('splash');
-    if(s)s.style.display='block';
-    setTimeout(()=>{
-      if(typeof window.runSplash==='function'){
-        window.runSplash(afterSplash);
-      }else{
-        if(s)s.style.display='none';
-        afterSplash();
-      }
-    },30);
-  }else{
-    afterSplash();
   }
+  const s=document.getElementById('splash');
+  if(s)s.style.display='block';
+  setTimeout(()=>{
+    if(typeof window.runSplash==='function'){
+      window.runSplash(afterSplash, isFirstTimeSplash);
+    }else{
+      if(s)s.style.display='none';
+      afterSplash();
+    }
+  },30);
 })();
 
 // ══ IMAGE IMPORT FEATURES ══
