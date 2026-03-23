@@ -1424,7 +1424,11 @@ function resetCustomColors(){
 }
 function updateLogoColor(hex){
   if(!hex)return;
-  // Inject a persistent <style> tag — survives ANY DOM re-render
+  const rgb=hexToRgb(hex);
+  // 1. Set on documentElement inline style (overrides stylesheet)
+  document.documentElement.style.setProperty('--accent',hex);
+  document.documentElement.style.setProperty('--accent-rgb',rgb);
+  // 2. Inject/update persistent <style> tag with !important
   let styleTag=document.getElementById('fluxAccentStyle');
   if(!styleTag){
     styleTag=document.createElement('style');
@@ -1432,18 +1436,28 @@ function updateLogoColor(hex){
     document.head.appendChild(styleTag);
   }
   styleTag.textContent=`
-    :root{--accent:${hex}!important;--accent-rgb:${hexToRgb(hex)}!important}
+    :root{--accent:${hex}!important;--accent-rgb:${rgb}!important}
+    html{--accent:${hex}!important;--accent-rgb:${rgb}!important}
     .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke]{stroke:${hex}!important}
     #fluxWG stop:nth-child(2),#fluxCG stop:nth-child(2){stop-color:${hex}!important}
     #fluxWG stop:nth-child(3){stop-color:${hex}aa!important}
-    #fabBtn{background:${hex}!important;box-shadow:0 6px 24px rgba(${hexToRgb(hex)},.45)!important}
+    #fabBtn{background:${hex}!important;box-shadow:0 6px 24px rgba(${rgb},.45)!important}
     .bottom-nav .bnav-item.active{color:${hex}!important}
-    .nav-item.active{color:${hex}!important;background:rgba(${hexToRgb(hex)},.12)!important}
+    .nav-item.active{color:${hex}!important;background:rgba(${rgb},.12)!important}
     .nav-item.active::before{background:${hex}!important}
+    button.active,a.active,[class*="active"]{--accent:${hex}!important}
   `;
-  // Also set inline on root for immediate effect
-  document.documentElement.style.setProperty('--accent',hex);
-  document.documentElement.style.setProperty('--accent-rgb',hexToRgb(hex));
+  // 3. Re-check every 100ms for 2s after any render to catch late overwrites
+  if(window._accentGuard)clearInterval(window._accentGuard);
+  let checks=0;
+  window._accentGuard=setInterval(()=>{
+    const cur=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    if(cur!==hex){
+      document.documentElement.style.setProperty('--accent',hex);
+      document.documentElement.style.setProperty('--accent-rgb',rgb);
+    }
+    if(++checks>=20)clearInterval(window._accentGuard);
+  },100);
 }
 function hexToRgb(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
