@@ -421,18 +421,19 @@
       <!-- 3. Dynamic Focus Card -->
       <div id="dynamicFocusCard"></div>
 
-      <!-- DASHBOARD TWO-COLUMN GRID -->
+      <!-- DASHBOARD: Stats full-width, then two-column below -->
+      <!-- Stats Row — full width -->
+      <div class="stats-row" id="statsRow"></div>
+
+      <!-- Two-column grid -->
       <div class="dash-grid">
+        <!-- LEFT: Focus + Energy -->
         <div class="dash-col-left">
-          <!-- 4. Stats Row -->
-          <div class="stats-row" id="statsRow"></div>
-          <!-- 5. Smart Suggestion -->
           <div class="card" id="smartSugCard" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),.08),rgba(var(--purple-rgb),.04));border-color:rgba(var(--accent-rgb),.2);display:none">
             <h3>✦ What to work on now</h3>
             <div id="smartSug" style="font-size:.9rem;font-weight:700;margin-bottom:4px"></div>
             <div id="smartSugSub" style="font-size:.75rem;color:var(--muted2);font-family:'JetBrains Mono',monospace"></div>
           </div>
-          <!-- 6. Energy -->
           <div id="dashEnergyCard" class="card" style="padding:14px 18px">
             <div style="display:flex;align-items:center;gap:12px">
               <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">Energy</div>
@@ -441,11 +442,10 @@
               <div style="font-size:.7rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;min-width:44px" id="energyLabel">Neutral</div>
             </div>
           </div>
-          <!-- Grade Buffer -->
-          <div id="gradeBufferCard" class="card"><h3>🎓 Grade Buffer</h3></div>
+          <div id="gradeBufferCard"></div>
         </div>
+        <!-- RIGHT: Intelligence -->
         <div class="dash-col-right">
-          <!-- Intelligence Card -->
           <div class="card" id="intelCard">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
               <h3 style="margin:0">✦ Intelligence</h3>
@@ -460,7 +460,6 @@
             <div id="intelPane-subjects" style="display:none"><div id="subjectHealth"></div></div>
             <div id="intelPane-gaps" style="display:none"><div id="gapFiller"></div></div>
           </div>
-          <!-- Countdown -->
           <div class="card" id="countdownCard" style="display:none">
             <h3>⏰ Test Countdown</h3>
             <div id="countdownLabel" style="font-size:.85rem;font-weight:700;margin-bottom:12px"></div>
