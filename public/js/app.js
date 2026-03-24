@@ -257,12 +257,26 @@ function getSubjects(){
   const subjs={};
   classes.forEach((c,i)=>{
     if(!c.name)return;
-    const cleanName=c.name.replace(/^(IB\s+MYP|IB\s+DP|MYP|IB|DP|AP|Honors|Honours)\s+/i,'').trim()||c.name;
+    const cleanName=cleanClassName(c.name);
     const key='CLS'+(c.id||i);
     subjs[key]={name:cleanName,short:cleanName.length>8?cleanName.slice(0,3).toUpperCase():cleanName,color:c.color||SUBJECT_COLORS[i%SUBJECT_COLORS.length]};
   });
   return subjs;
 }
+// ── CLEAN CLASS NAME — strips prefixes and grade numbers ──
+function cleanClassName(name){
+  if(!name)return name;
+  // Remove common academic prefixes (case insensitive)
+  let clean = name.trim();
+  // Remove prefixes like "IB MYP", "AP", "Honors", "Grade 10", etc.
+  clean = clean.replace(/^(IB\s+MYP|IB\s+DP|IB\s+SL|IB\s+HL|MYP|IB|DP|SL|HL|AP|Honors|Honours|Advanced|Regular|CP|College\s+Prep)\s+/gi, '');
+  // Remove trailing grade numbers like "10", "9", "11", "12" or "10th", "Grade 10"
+  clean = clean.replace(/\s+(?:Grade\s+)?\d{1,2}(?:st|nd|rd|th)?\s*$/i, '');
+  // Remove leading grade number patterns like "10 " at start
+  clean = clean.replace(/^\d{1,2}\s+/, '');
+  return clean.trim() || name.trim();
+}
+
 // SUBJECTS is a live getter — always reflects current classes
 function SUBJECTS_GET(){return getSubjects();}
 // Compat shim — returns current subjects object
@@ -921,7 +935,8 @@ function addClass(){
   const color=document.getElementById('classColor')?.value||'';
   if(!name)return;
   const COLORS=['#3b82f6','#f43f5e','#10d9a0','#fbbf24','#a78bfa','#fb923c','#e879f9','#22d3ee'];
-  classes.push({id:Date.now(),period:parseInt(period)||classes.length+1,name,teacher,room,days,timeStart,timeEnd,color:color||COLORS[classes.length%COLORS.length]});
+  const cleanedName=cleanClassName(name);
+  classes.push({id:Date.now(),period:parseInt(period)||classes.length+1,name:cleanedName,teacher,room,days,timeStart,timeEnd,color:color||COLORS[classes.length%COLORS.length]});
   classes.sort((a,b)=>a.period-b.period);
   save('flux_classes',classes);
   ['classPeriod','className','classTeacher','classRoom'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -2360,7 +2375,7 @@ async function analyzeScheduleImg(){
     const start=txt.indexOf('[');const end=txt.lastIndexOf(']');
     if(start===-1||end===-1)throw new Error('No class list found. Try a clearer photo.');
     const parsed=JSON.parse(txt.slice(start,end+1));
-    obExtractedClasses=parsed.map((c,i)=>({id:Date.now()+i,period:c.period||i+1,name:c.name||'Class '+(i+1),teacher:c.teacher||'',room:c.room||''}));
+    obExtractedClasses=parsed.map((c,i)=>({id:Date.now()+i,period:c.period||i+1,name:cleanClassName(c.name||'Class '+(i+1)),teacher:c.teacher||'',room:c.room||''}));
     if(resultEl){
       resultEl.style.display='block';
       resultEl.innerHTML='<div style="color:var(--green);font-weight:700;margin-bottom:8px;font-size:.82rem">✓ Found '+obExtractedClasses.length+' classes</div>'+
@@ -3336,7 +3351,7 @@ async function importScheduleFromPhoto(event,resultElId){
     jsonStr=jsonStr.slice(start,end+1);
     const parsed=JSON.parse(jsonStr);
     if(!Array.isArray(parsed)||!parsed.length)throw new Error('No classes detected. Try a clearer photo of your schedule.');
-    classes=parsed.map((c,i)=>({id:Date.now()+i,period:c.period||i+1,name:c.name||'Class '+(i+1),teacher:c.teacher||'',room:c.room||''}));
+    classes=parsed.map((c,i)=>({id:Date.now()+i,period:c.period||i+1,name:cleanClassName(c.name||'Class '+(i+1)),teacher:c.teacher||'',room:c.room||''}));
     save('flux_classes',classes);
     renderSchool();populateSubjectSelects();
     if(resEl)resEl.innerHTML=`<div style="color:var(--green);font-size:.82rem">✓ Imported ${classes.length} classes! Check School Info tab.</div>`;
@@ -3993,4 +4008,23 @@ function startPresentMode(){
       el.innerHTML='<div style="color:var(--muted);font-size:.82rem">Add grades and tasks to see subject overview</div>';
     }
   }
+}
+
+// ── INTELLIGENCE TAB SWITCHER ──
+function switchIntelTab(tab, btn){
+  ['workload','subjects','gaps'].forEach(t=>{
+    const pane=document.getElementById('intelPane-'+t);
+    if(pane)pane.style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('.intel-tab').forEach(b=>{
+    const isActive=b===btn;
+    b.style.background=isActive?'rgba(var(--accent-rgb),.12)':'transparent';
+    b.style.borderColor=isActive?'rgba(var(--accent-rgb),.3)':'var(--border)';
+    b.style.color=isActive?'var(--accent)':'var(--muted)';
+    b.classList.toggle('active',isActive);
+  });
+  // Render the selected tab content
+  if(tab==='workload')renderWorkloadForecast();
+  if(tab==='subjects')renderSubjectHealth();
+  if(tab==='gaps')renderGapFiller();
 }
