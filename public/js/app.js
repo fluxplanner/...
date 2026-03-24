@@ -122,7 +122,8 @@ function checkTimePoverty(){
 function renderGradeBuffer(){
   const el=document.getElementById('gradeBufferCard');if(!el)return;
   const gradeEntries=Object.entries(grades);
-  if(!gradeEntries.length){el.innerHTML='';return;}
+  if(!gradeEntries.length){el.innerHTML='';el.style.display='none';return;
+  }el.style.display='block';}
 
   const thresholds=[{grade:'A',min:90},{grade:'B',min:80},{grade:'C',min:70},{grade:'D',min:60}];
   const cards=gradeEntries.map(([subject,val])=>{
@@ -143,7 +144,7 @@ function renderGradeBuffer(){
       <div class="grade-buffer-bar"><div class="grade-buffer-fill ${cls}" style="width:${barW}%"></div></div>
     </div>`;
   }).join('');
-  el.innerHTML=cards||'<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No grades yet</div><div class="empty-sub">Add grades in the Grades tab</div></div>';
+  el.innerHTML='<div class="card"><h3>🎓 Grade Buffer</h3>'+( cards||'<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No grades yet</div></div>')+'</div>';
 }
 
 // ══ BREAK IT DOWN (AI-powered task splitter) ══
