@@ -124,7 +124,6 @@ function renderGradeBuffer(){
   const gradeEntries=Object.entries(grades);
   if(!gradeEntries.length){el.innerHTML='';el.style.display='none';return;}
   el.style.display='block';
-
   const thresholds=[{grade:'A',min:90},{grade:'B',min:80},{grade:'C',min:70},{grade:'D',min:60}];
   const cards=gradeEntries.map(([subject,val])=>{
     const pct=parseFloat(val);if(isNaN(pct))return'';
@@ -2470,45 +2469,19 @@ function initFAB(){
   const menu=document.getElementById('fabMenu');
   if(!fab||!menu)return;
   let open=false;
-
-  function closeFAB(){
-    if(!open)return;
-    open=false;
-    fab.style.transform='rotate(0) scale(1)';
-    menu.style.opacity='0';
-    menu.style.transform='translateY(8px) scale(.97)';
-    menu.style.pointerEvents='none';
-    setTimeout(()=>{if(!open){menu.style.display='none';}},180);
-  }
-
-  // Ensure menu starts fully inert
-  menu.style.display='none';
-  menu.style.pointerEvents='none';
-
   fab.addEventListener('click',e=>{
     e.stopPropagation();
     open=!open;
+    fab.style.transform=open?'rotate(45deg) scale(1.1)':'rotate(0) scale(1)';
+    menu.style.display=open?'flex':'none';
     if(open){
-      menu.style.display='flex';
-      menu.style.pointerEvents='auto';
-      fab.style.transform='rotate(45deg) scale(1.1)';
       requestAnimationFrame(()=>{
-        menu.style.opacity='1';
-        menu.style.transform='translateY(0) scale(1)';
+        menu.style.opacity='1';menu.style.transform='translateY(0) scale(1)';
       });
-    } else {
-      closeFAB();
     }
   });
-
-  document.addEventListener('click',e=>{
-    if(open&&!fab.contains(e.target)&&!menu.contains(e.target)){
-      closeFAB();
-    }
-  });
-
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'&&open)closeFAB();
+  document.addEventListener('click',()=>{
+    if(open){open=false;fab.style.transform='';menu.style.opacity='0';menu.style.transform='translateY(8px) scale(.97)';setTimeout(()=>{if(!open)menu.style.display='none';},180);}
   });
 }
 
@@ -3238,6 +3211,7 @@ function initDashboardFeatures(){
   checkTimePoverty();
   renderGradeBuffer();
   setInterval(()=>{renderDynamicFocus();checkTimePoverty();},60000);
+  initIntelligenceEngine();
 }
 
 // ══ INIT ══
@@ -4054,4 +4028,752 @@ function switchIntelTab(tab, btn){
   if(tab==='workload')renderWorkloadForecast();
   if(tab==='subjects')renderSubjectHealth();
   if(tab==='gaps')renderGapFiller();
+}
+
+// ════════════════════════════════════════════════════
+// FLUX INTELLIGENCE ENGINE v3.0
+// 10 Systems: NLP, Risk, TimeBlock, MultiView,
+// Filters, Keyboard Nav, Sessions, Resume,
+// Optimistic UI, Physics Sandbox
+// ════════════════════════════════════════════════════
+
+// ══ 1. NATURAL LANGUAGE TASK INPUT ══
+// Parses: "Physics lab due Tuesday high priority 30min"
+const NLP_DAYS={monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0,
+  mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,sun:0,today:0,tomorrow:1};
+const NLP_TYPES={test:/\btest\b/i,quiz:/\bquiz\b/i,project:/\bproject\b/i,essay:/\bessay\b/i,lab:/\blab\b/i,exam:/\bexam\b/i,hw:/\bhomework\b|\bhw\b/i};
+const NLP_PRI={high:/\bhigh\b|\burgent\b|\basap\b|\bcritical\b/i,low:/\blow\b|\beasy\b/i};
+
+function parseNLTask(text){
+  if(!text||!text.trim())return null;
+  const result={name:'',priority:'med',date:'',type:'hw',estTime:0,subject:''};
+  let t=text.trim();
+
+  // Extract priority
+  if(NLP_PRI.high.test(t)){result.priority='high';t=t.replace(NLP_PRI.high,'').trim();}
+  else if(NLP_PRI.low.test(t)){result.priority='low';t=t.replace(NLP_PRI.low,'').trim();}
+
+  // Extract type
+  for(const[type,re] of Object.entries(NLP_TYPES)){if(re.test(t)){result.type=type;break;}}
+
+  // Extract time estimate: "30min", "1h", "2 hours"
+  const timeMatch=t.match(/(\d+)\s*(min(?:utes?)?|h(?:ours?)?)/i);
+  if(timeMatch){
+    result.estTime=timeMatch[2].toLowerCase().startsWith('h')?parseInt(timeMatch[1])*60:parseInt(timeMatch[1]);
+    t=t.replace(timeMatch[0],'').trim();
+  }
+
+  // Extract due date: "due Tuesday", "by Friday", "tomorrow", "today"
+  const dateMatch=t.match(/(?:due|by|on)\s+(\w+)|^(today|tomorrow)$/i)||t.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today)\b/i);
+  if(dateMatch){
+    const dayWord=(dateMatch[1]||dateMatch[2]||dateMatch[0]).toLowerCase();
+    const offset=NLP_DAYS[dayWord];
+    if(offset!==undefined){
+      const d=new Date(TODAY);
+      if(dayWord==='today'){}
+      else if(dayWord==='tomorrow')d.setDate(d.getDate()+1);
+      else{
+        const current=d.getDay();
+        let diff=offset-current;
+        if(diff<=0)diff+=7;
+        d.setDate(d.getDate()+diff);
+      }
+      result.date=d.toISOString().slice(0,10);
+    }
+    t=t.replace(dateMatch[0],'').replace(/due|by|on/gi,'').trim();
+  }
+
+  // Match subject from classes
+  const subjs=getSubjects();
+  for(const[key,s] of Object.entries(subjs)){
+    if(t.toLowerCase().includes(s.name.toLowerCase())||t.toLowerCase().includes(key.toLowerCase())){
+      result.subject=key;
+      t=t.replace(new RegExp(s.name,'gi'),'').replace(new RegExp(key,'gi'),'').trim();
+      break;
+    }
+  }
+
+  // Remaining text = task name
+  result.name=t.replace(/\s+/g,' ').trim()||text.trim();
+  return result;
+}
+
+function addTaskFromNL(text){
+  const parsed=parseNLTask(text);
+  if(!parsed||!parsed.name)return false;
+  const task={
+    id:Date.now()+Math.random(),
+    name:parsed.name,priority:parsed.priority,
+    date:parsed.date,type:parsed.type,
+    estTime:parsed.estTime,subject:parsed.subject,
+    done:false,rescheduled:0,createdAt:Date.now(),urgencyScore:0,difficulty:3
+  };
+  task.urgencyScore=calcUrgency(task);
+  // Optimistic UI — add immediately
+  tasks.unshift(task);
+  renderStats();renderTasks();renderCalendar();renderCountdown();
+  checkAllPanic();
+  // Background sync
+  save('tasks',tasks);syncKey('tasks',tasks);
+  showToast(`✓ "${parsed.name}" added${parsed.date?' — due '+new Date(parsed.date+'T00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):''}${parsed.priority==='high'?' 🔴':''}`);
+  return true;
+}
+
+// Wire NL to quick-add (override initQuickAdd to support NL)
+function initQuickAddNL(){
+  const qa=document.getElementById('quickAddInput');if(!qa)return;
+  const hint=document.getElementById('qaHint');
+  qa.addEventListener('input',()=>{
+    if(hint){const v=qa.value.trim();hint.style.display=v?'block':'none';}
+  });
+  qa.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){
+      e.preventDefault();
+      const val=qa.value.trim();if(!val)return;
+      const ok=addTaskFromNL(val);
+      if(ok)qa.value='';
+      if(hint)hint.style.display='none';
+    }
+    if(e.key==='Escape')qa.blur();
+  });
+}
+
+// ══ 2. DEADLINE RISK PREDICTOR ══
+function calcDeadlineRisk(task){
+  if(!task.date||task.done)return 0;
+  const now=new Date();
+  const due=new Date(task.date+'T23:59:00');
+  const hoursLeft=(due-now)/3600000;
+  if(hoursLeft<0)return 1; // overdue = 100%
+  const estH=(task.estTime||30)/60;
+  const difficulty=(task.difficulty||3)/5;
+  // Risk formula: effort / time_available * difficulty weight
+  const baseRisk=Math.min(1,(estH/(hoursLeft+0.01))*difficulty*1.4);
+  // Boost risk if rescheduled multiple times
+  const reschedBoost=Math.min(0.3,(task.rescheduled||0)*0.08);
+  return Math.min(1,baseRisk+reschedBoost);
+}
+
+function getRiskLabel(r){
+  if(r>=0.8)return{label:'Critical',color:'var(--red)',bg:'rgba(255,77,109,.12)'};
+  if(r>=0.5)return{label:'At Risk',color:'var(--gold)',bg:'rgba(245,166,35,.1)'};
+  if(r>=0.25)return{label:'Watch',color:'var(--accent)',bg:'rgba(var(--accent-rgb),.08)'};
+  return null;
+}
+
+// ══ 3. SMART TIME BLOCKING ══
+function generateTimeBlocks(){
+  const today=todayStr();
+  const pending=tasks.filter(t=>!t.done&&t.estTime>0).sort((a,b)=>(b.urgencyScore||0)-(a.urgencyScore||0));
+  if(!pending.length){showToast('No tasks with time estimates to schedule.','info');return;}
+
+  // Start from current time, round up to next 30min
+  const now=new Date();
+  let cursor=new Date(now);
+  cursor.setMinutes(Math.ceil(cursor.getMinutes()/30)*30,0,0);
+
+  const blocks=[];
+  const endOfDay=new Date(cursor);endOfDay.setHours(22,0,0,0);
+
+  for(const task of pending){
+    if(cursor>=endOfDay)break;
+    const estMin=task.estTime||30;
+    const end=new Date(cursor.getTime()+estMin*60000);
+    if(end>endOfDay)break;
+    blocks.push({
+      task,
+      start:cursor.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
+      end:end.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
+      durationMin:estMin
+    });
+    // Add 10min break between tasks
+    cursor=new Date(end.getTime()+10*60000);
+  }
+
+  if(!blocks.length){showToast('No time available today for scheduling.','info');return;}
+  showTimeBlockModal(blocks);
+}
+
+function showTimeBlockModal(blocks){
+  const existing=document.getElementById('timeBlockModal');if(existing)existing.remove();
+  const modal=document.createElement('div');
+  modal.id='timeBlockModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)';
+  modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:24px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:1rem;font-weight:800">⏰ Smart Schedule — Today</div>
+        <button onclick="document.getElementById('timeBlockModal').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0;transform:none;box-shadow:none">✕</button>
+      </div>
+      <div style="font-size:.78rem;color:var(--muted2);margin-bottom:14px">Optimized by urgency · 10min breaks included</div>
+      ${blocks.map((b,i)=>`
+        <div style="display:flex;gap:12px;padding:12px;background:${i%2===0?'rgba(255,255,255,.03)':'transparent'};border-radius:10px;margin-bottom:6px;align-items:center">
+          <div style="font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--muted2);min-width:90px;flex-shrink:0">${b.start}<br>${b.end}</div>
+          <div style="flex:1">
+            <div style="font-size:.85rem;font-weight:600">${esc(b.task.name)}</div>
+            <div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${b.durationMin}min · ${b.task.priority} priority</div>
+          </div>
+          <div style="width:8px;height:8px;border-radius:50%;background:${b.task.priority==='high'?'var(--red)':b.task.priority==='low'?'var(--green)':'var(--gold)'};flex-shrink:0"></div>
+        </div>`).join('')}
+      <button onclick="document.getElementById('timeBlockModal').remove()" style="width:100%;margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px;font-weight:700;cursor:pointer">Got it — Let's work</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+}
+
+// ══ 4. MULTI-VIEW SYSTEM ══
+let currentView='list'; // list | kanban | timeline
+
+function switchView(view){
+  currentView=view;
+  save('flux_view',view);
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  renderCurrentView();
+}
+
+function renderCurrentView(){
+  if(currentView==='kanban')renderKanban();
+  else if(currentView==='timeline')renderTimeline();
+  else renderTasks();
+}
+
+function renderKanban(){
+  const el=document.getElementById('taskList');if(!el)return;
+  const cols={todo:tasks.filter(t=>!t.done&&!t.inProgress),
+    inprogress:tasks.filter(t=>t.inProgress&&!t.done),
+    done:tasks.filter(t=>t.done)};
+  el.style.display='grid';
+  el.style.gridTemplateColumns='repeat(3,1fr)';
+  el.style.gap='12px';
+  el.style.alignItems='start';
+  const subjs=getSubjects();
+  const col=(title,items,colKey,accent)=>`
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px;min-height:200px" data-kanban-col="${colKey}"
+      ondragover="event.preventDefault()" ondrop="kanbanDrop(event,'${colKey}')">
+      <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:${accent};font-family:'JetBrains Mono',monospace;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <span style="width:6px;height:6px;border-radius:50%;background:${accent};display:inline-block"></span>${title} <span style="color:var(--muted)">(${items.length})</span>
+      </div>
+      ${items.map(t=>{
+        const sub=subjs[t.subject];
+        return`<div draggable="true" data-task-id="${t.id}" ondragstart="kanbanDragStart(event,${t.id})"
+          style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;cursor:grab;transition:all .2s;position:relative;overflow:hidden"
+          onmouseenter="this.style.transform='translateY(-2px)';this.style.borderColor='rgba(var(--accent-rgb),.3)'"
+          onmouseleave="this.style.transform='';this.style.borderColor=''">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${t.priority==='high'?'var(--red)':t.priority==='low'?'var(--green)':'var(--gold)'}"></div>
+          <div style="padding-left:8px">
+            <div style="font-size:.84rem;font-weight:600;margin-bottom:4px">${esc(t.name)}</div>
+            ${sub?`<span style="font-size:.65rem;padding:2px 7px;border-radius:6px;background:${sub.color}22;color:${sub.color};font-family:'JetBrains Mono',monospace">${sub.short}</span>`:''}
+            ${t.date?`<span style="font-size:.65rem;color:var(--muted2);margin-left:4px;font-family:'JetBrains Mono',monospace">📅 ${new Date(t.date+'T00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:''}
+            <div style="display:flex;justify-content:flex-end;margin-top:6px">
+              <button onclick="toggleTask(${t.id})" style="font-size:.65rem;padding:3px 8px;background:rgba(var(--green-rgb),.1);border:1px solid rgba(var(--green-rgb),.2);color:var(--green);border-radius:6px;cursor:pointer;transform:none;box-shadow:none">Done</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  el.innerHTML=col('To Do',cols.todo,'todo','var(--accent)')+col('In Progress',cols.inprogress,'inprogress','var(--gold)')+col('Done',cols.done,'done','var(--green)');
+}
+
+let _kanbanDragId=null;
+function kanbanDragStart(e,id){_kanbanDragId=id;e.dataTransfer.effectAllowed='move';}
+function kanbanDrop(e,colKey){
+  e.preventDefault();
+  if(!_kanbanDragId)return;
+  const task=tasks.find(t=>t.id===_kanbanDragId);
+  if(!task)return;
+  if(colKey==='done'){task.done=true;task.inProgress=false;}
+  else if(colKey==='inprogress'){task.done=false;task.inProgress=true;}
+  else{task.done=false;task.inProgress=false;}
+  save('tasks',tasks);renderCurrentView();syncKey('tasks',tasks);
+  _kanbanDragId=null;
+}
+
+function renderTimeline(){
+  const el=document.getElementById('taskList');if(!el)return;
+  el.style.display='block';el.style.gridTemplateColumns='';el.style.gap='';
+  const withDates=tasks.filter(t=>t.date&&!t.done).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const noDates=tasks.filter(t=>!t.date&&!t.done);
+  if(!withDates.length&&!noDates.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-title">No upcoming tasks</div><div class="empty-sub">Add tasks with due dates to see the timeline</div></div>';
+    return;
+  }
+  // Group by date
+  const byDate={};
+  withDates.forEach(t=>{if(!byDate[t.date])byDate[t.date]=[];byDate[t.date].push(t);});
+  const subjs=getSubjects();
+  const now=new Date();now.setHours(0,0,0,0);
+  el.innerHTML=Object.entries(byDate).map(([date,dayTasks])=>{
+    const d=new Date(date+'T00:00');
+    const isToday=d.getTime()===now.getTime();
+    const isPast=d<now;
+    const diff=Math.round((d-now)/86400000);
+    const label=isToday?'Today':diff===1?'Tomorrow':d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    return`<div style="display:flex;gap:12px;margin-bottom:16px">
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+        <div style="width:10px;height:10px;border-radius:50%;background:${isPast?'var(--red)':isToday?'var(--accent)':'var(--border2)'};border:2px solid ${isPast?'var(--red)':isToday?'var(--accent)':'var(--border2)'};margin-top:14px"></div>
+        <div style="flex:1;width:1px;background:var(--border);margin-top:4px"></div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:.72rem;font-weight:700;color:${isPast?'var(--red)':isToday?'var(--accent)':'var(--muted2)'};font-family:'JetBrains Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">${label}</div>
+        ${dayTasks.map(t=>{
+          const sub=subjs[t.subject];
+          const risk=calcDeadlineRisk(t);const rl=getRiskLabel(risk);
+          return`<div style="background:var(--card);border:1px solid ${rl?rl.color+'44':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;transition:all .2s"
+            onmouseenter="this.style.transform='translateX(3px)'" onmouseleave="this.style.transform=''">
+            <div style="width:3px;height:100%;min-height:36px;border-radius:2px;background:${t.priority==='high'?'var(--red)':t.priority==='low'?'var(--green)':'var(--gold)'};flex-shrink:0;align-self:stretch;margin:-10px 0 -10px -12px;border-radius:10px 0 0 10px"></div>
+            <div onclick="toggleTask(${t.id})" style="width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s"
+              onmouseenter="this.style.borderColor='var(--green)'" onmouseleave="this.style.borderColor=''"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:600">${esc(t.name)}</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">
+                ${sub?`<span style="font-size:.65rem;padding:1px 7px;border-radius:5px;background:${sub.color}22;color:${sub.color}">${sub.short}</span>`:''}
+                ${t.estTime?`<span style="font-size:.65rem;color:var(--muted2);font-family:'JetBrains Mono',monospace">⏱${t.estTime}m</span>`:''}
+                ${rl?`<span style="font-size:.65rem;padding:1px 7px;border-radius:5px;background:${rl.bg};color:${rl.color};font-weight:700">${rl.label}</span>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('')+
+  (noDates.length?`<div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--border)">
+    <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:8px">No due date</div>
+    ${noDates.map(t=>`<div style="padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:5px;font-size:.84rem;display:flex;align-items:center;gap:8px">
+      <div onclick="toggleTask(${t.id})" style="width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0"></div>
+      ${esc(t.name)}</div>`).join('')}
+  </div>`:'');
+}
+
+// ══ 5. ADVANCED FILTERS ══
+let savedFilters=load('flux_saved_filters',[]);
+let activeFilterSet=null;
+
+function openAdvancedFilter(){
+  const existing=document.getElementById('advFilterModal');if(existing)existing.remove();
+  const modal=document.createElement('div');
+  modal.id='advFilterModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)';
+  const subjs=getSubjects();
+  modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:24px;width:100%;max-width:440px;box-shadow:0 24px 80px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="font-size:1rem;font-weight:800">🔍 Advanced Filter</div>
+        <button onclick="document.getElementById('advFilterModal').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0;transform:none;box-shadow:none">✕</button>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Priority</div>
+        <div style="display:flex;gap:6px">
+          ${['high','med','low'].map(p=>`<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer">
+            <input type="checkbox" id="af_pri_${p}" style="width:auto;margin:0"> ${p.charAt(0).toUpperCase()+p.slice(1)}</label>`).join('')}
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Type</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${['hw','test','quiz','project','essay','lab'].map(tp=>`<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer">
+            <input type="checkbox" id="af_type_${tp}" style="width:auto;margin:0"> ${tp.charAt(0).toUpperCase()+tp.slice(1)}</label>`).join('')}
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Subject</div>
+        <select id="af_subject" style="margin:0"><option value="">Any subject</option>${Object.entries(subjs).map(([k,s])=>`<option value="${k}">${s.name}</option>`).join('')}</select>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Due within</div>
+        <select id="af_due" style="margin:0">
+          <option value="">Any time</option>
+          <option value="1">Today</option>
+          <option value="3">Next 3 days</option>
+          <option value="7">Next 7 days</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="applyAdvancedFilter()" style="flex:1;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:11px;font-weight:700;cursor:pointer">Apply</button>
+        <button onclick="saveCurrentFilter()" style="background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.3);color:var(--accent);border-radius:12px;padding:11px;font-size:.8rem;cursor:pointer;transform:none;box-shadow:none">Save</button>
+        <button onclick="clearAdvancedFilter()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted2);border-radius:12px;padding:11px;font-size:.8rem;cursor:pointer;transform:none;box-shadow:none">Clear</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+}
+
+function applyAdvancedFilter(){
+  const pris=['high','med','low'].filter(p=>document.getElementById('af_pri_'+p)?.checked);
+  const types=['hw','test','quiz','project','essay','lab'].filter(tp=>document.getElementById('af_type_'+tp)?.checked);
+  const subject=document.getElementById('af_subject')?.value;
+  const due=document.getElementById('af_due')?.value;
+  activeFilterSet={pris,types,subject,due};
+  document.getElementById('advFilterModal')?.remove();
+  renderTasksFiltered();
+  const badge=document.getElementById('filterBadge');
+  if(badge){badge.style.display='inline';badge.textContent='Filtered';}
+}
+
+function clearAdvancedFilter(){
+  activeFilterSet=null;
+  document.getElementById('advFilterModal')?.remove();
+  renderTasks();
+  const badge=document.getElementById('filterBadge');
+  if(badge)badge.style.display='none';
+}
+
+function saveCurrentFilter(){
+  const f=activeFilterSet;if(!f)return;
+  const name=prompt('Name this filter:');if(!name)return;
+  savedFilters.push({name,...f});
+  save('flux_saved_filters',savedFilters);
+  showToast('Filter saved: '+name);
+}
+
+function renderTasksFiltered(){
+  if(!activeFilterSet){renderTasks();return;}
+  const {pris,types,subject,due}=activeFilterSet;
+  const now=new Date();now.setHours(0,0,0,0);
+  let list=tasks.filter(t=>{
+    if(pris.length&&!pris.includes(t.priority))return false;
+    if(types.length&&!types.includes(t.type))return false;
+    if(subject&&t.subject!==subject)return false;
+    if(due&&t.date){
+      const d=new Date(t.date+'T00:00');
+      const diff=Math.ceil((d-now)/86400000);
+      if(diff>parseInt(due)||diff<0)return false;
+    }
+    return true;
+  });
+  const el=document.getElementById('taskList');if(!el)return;
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No tasks match</div><div class="empty-sub">Try different filter conditions</div></div>';return;}
+  // Render filtered list using existing task HTML
+  const saved_tasks=tasks;tasks=list;renderTasks();tasks=saved_tasks;
+}
+
+// ══ 6. FULL KEYBOARD NAVIGATION ══
+function initFullKeyboardNav(){
+  let focusIdx=-1;
+  const getFocusable=()=>[...document.querySelectorAll('.nav-item,.bnav-item,button:not([disabled]),.task-item,.card')].filter(el=>el.offsetParent!==null&&!el.closest('#splash')&&!el.closest('#loginScreen'));
+
+  document.addEventListener('keydown',e=>{
+    const tag=document.activeElement?.tagName;
+    const inInput=['INPUT','TEXTAREA','SELECT'].includes(tag);
+    if(inInput)return;
+
+    if(e.key==='Tab'){
+      e.preventDefault();
+      const els=getFocusable();
+      if(!els.length)return;
+      focusIdx=e.shiftKey?(focusIdx-1+els.length)%els.length:(focusIdx+1)%els.length;
+      els[focusIdx]?.focus();
+      els[focusIdx]?.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
+
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      const items=[...document.querySelectorAll('.task-item')];
+      if(!items.length)return;
+      const cur=items.findIndex(el=>el===document.activeElement||el.contains(document.activeElement));
+      const next=e.key==='ArrowDown'?Math.min(cur+1,items.length-1):Math.max(cur-1,0);
+      items[next]?.focus();items[next]?.scrollIntoView({block:'nearest'});
+      e.preventDefault();
+    }
+
+    if(e.key==='Enter'&&document.activeElement?.classList.contains('task-item')){
+      const id=parseInt(document.activeElement.dataset.taskId);
+      if(id)toggleTask(id);
+    }
+
+    if(e.key==='Delete'&&document.activeElement?.classList.contains('task-item')){
+      const id=parseInt(document.activeElement.dataset.taskId);
+      if(id&&confirm('Delete this task?'))deleteTask(id);
+    }
+
+    // Number keys to navigate sections
+    if(!e.metaKey&&!e.ctrlKey&&!e.altKey){
+      const sectionKeys={'1':'dashboard','2':'calendar','3':'ai','4':'grades','5':'notes','6':'timer'};
+      if(sectionKeys[e.key])nav(sectionKeys[e.key]);
+    }
+  });
+
+  // Make task items focusable
+  document.getElementById('taskList')?.addEventListener('DOMSubtreeModified',()=>{
+    document.querySelectorAll('.task-item').forEach(el=>{
+      if(!el.hasAttribute('tabindex'))el.setAttribute('tabindex','0');
+    });
+  });
+}
+
+// ══ 7. SESSION TRACKING ══
+let _sessionStart=null,_sessionTasksDone=0;
+
+function startSession(){
+  _sessionStart=Date.now();
+  _sessionTasksDone=0;
+  save('flux_session_start',_sessionStart);
+  showToast('📍 Session started — focus up!','info');
+}
+
+function endSession(){
+  if(!_sessionStart)return;
+  const dur=Math.round((Date.now()-_sessionStart)/60000);
+  const session={start:_sessionStart,end:Date.now(),durationMin:dur,tasksDone:_sessionTasksDone};
+  const sessions=load('flux_sessions',[]);
+  sessions.push(session);if(sessions.length>50)sessions.shift();
+  save('flux_sessions',sessions);
+  _sessionStart=null;save('flux_session_start',null);
+  showToast(`✅ Session ended — ${dur}min, ${_sessionTasksDone} tasks done`);
+  renderSessionStats();
+}
+
+function renderSessionStats(){
+  const el=document.getElementById('sessionStatsCard');if(!el)return;
+  const sessions=load('flux_sessions',[]);
+  if(!sessions.length){el.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No sessions yet</div><div class="empty-sub">Start a session to track your work</div></div>';return;}
+  const totalMin=sessions.reduce((s,x)=>s+(x.durationMin||0),0);
+  const avgMin=Math.round(totalMin/sessions.length);
+  const totalDone=sessions.reduce((s,x)=>s+(x.tasksDone||0),0);
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div style="text-align:center;padding:12px 8px;background:rgba(var(--accent-rgb),.08);border-radius:10px">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace">${sessions.length}</div>
+        <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Sessions</div>
+      </div>
+      <div style="text-align:center;padding:12px 8px;background:rgba(var(--green-rgb),.08);border-radius:10px">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace">${avgMin}m</div>
+        <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Avg Length</div>
+      </div>
+      <div style="text-align:center;padding:12px 8px;background:rgba(var(--gold-rgb),.08);border-radius:10px">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--gold);font-family:'JetBrains Mono',monospace">${totalDone}</div>
+        <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Tasks Done</div>
+      </div>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted2);font-family:'JetBrains Mono',monospace">
+      ${sessions.slice(-3).reverse().map(s=>`<div style="padding:5px 0;border-bottom:1px solid var(--border)">
+        ${new Date(s.start).toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${s.durationMin}min · ${s.tasksDone} tasks
+      </div>`).join('')}
+    </div>`;
+}
+
+// Track task completions in session
+const _origToggleTask=window.toggleTask||function(){};
+
+// ══ 8. INTERRUPT RECOVERY ══
+function saveResumptionState(){
+  const active=tasks.filter(t=>!t.done&&t.inProgress)[0]||tasks.filter(t=>!t.done)[0];
+  if(active){save('flux_resume_task',active.id);save('flux_resume_time',Date.now());}
+}
+
+function checkResumption(){
+  const resumeId=load('flux_resume_task',null);
+  const resumeTime=load('flux_resume_time',null);
+  if(!resumeId||!resumeTime)return;
+  const elapsed=Date.now()-resumeTime;
+  if(elapsed<5*60*1000)return; // less than 5 min, no need to resume
+  const task=tasks.find(t=>t.id===resumeId&&!t.done);
+  if(!task)return;
+  // Show resume card
+  const el=document.getElementById('resumeCard');
+  if(el){
+    el.style.display='flex';
+    const nameEl=document.getElementById('resumeTaskName');
+    if(nameEl)nameEl.textContent=task.name;
+    el.dataset.taskId=resumeId;
+  }
+}
+
+function dismissResume(){
+  const el=document.getElementById('resumeCard');if(el)el.style.display='none';
+  save('flux_resume_task',null);
+}
+
+function resumeTask(){
+  const el=document.getElementById('resumeCard');if(!el)return;
+  const id=parseInt(el.dataset.taskId);
+  const task=tasks.find(t=>t.id===id);
+  if(task){
+    nav('dashboard');
+    setTimeout(()=>{
+      const taskEl=document.querySelector(`[data-task-id="${id}"]`);
+      if(taskEl){taskEl.scrollIntoView({behavior:'smooth',block:'center'});taskEl.style.boxShadow='0 0 0 2px var(--accent)';setTimeout(()=>taskEl.style.boxShadow='',2000);}
+    },200);
+  }
+  el.style.display='none';
+}
+
+// ══ 9. OPTIMISTIC UI ══
+function optimisticToggleTask(id){
+  const task=tasks.find(t=>t.id===id);if(!task)return;
+  // Instant UI update
+  const el=document.querySelector(`[data-task-id="${id}"]`);
+  if(el){
+    el.style.opacity=task.done?'1':'.45';
+    const check=el.querySelector('.check');
+    if(check){check.classList.toggle('done',!task.done);check.textContent=task.done?'':' ✓';}
+    const txt=el.querySelector('.task-text');
+    if(txt)txt.classList.toggle('done',!task.done);
+  }
+  // Update state
+  task.done=!task.done;
+  if(task.done){task.completedAt=Date.now();spawnConfetti();_sessionTasksDone++;}
+  // Background save + sync (non-blocking)
+  save('tasks',tasks);
+  syncKey('tasks',tasks);
+  // Deferred full render
+  setTimeout(()=>{renderStats();renderTasks();renderCalendar();renderCountdown();checkAllPanic();},300);
+}
+
+// ══ 10. PHYSICS SANDBOX ══
+const PHYSICS={g:10,G:6.674e-11,k:9e9,c:3e8};
+const PHYSICS_FORMULAS=[
+  {name:'Velocity',formula:'v = u + at',vars:['u','a','t'],solve:'v',fn:({u,a,t})=>parseFloat(u)+parseFloat(a)*parseFloat(t)},
+  {name:'Displacement',formula:'s = ut + ½at²',vars:['u','a','t'],solve:'s',fn:({u,a,t})=>parseFloat(u)*parseFloat(t)+0.5*parseFloat(a)*Math.pow(parseFloat(t),2)},
+  {name:'Force',formula:'F = ma',vars:['m','a'],solve:'F',fn:({m,a})=>parseFloat(m)*parseFloat(a)},
+  {name:'Weight',formula:'W = mg',vars:['m'],solve:'W',fn:({m})=>parseFloat(m)*PHYSICS.g},
+  {name:'Kinetic Energy',formula:'KE = ½mv²',vars:['m','v'],solve:'KE',fn:({m,v})=>0.5*parseFloat(m)*Math.pow(parseFloat(v),2)},
+  {name:'Potential Energy',formula:'PE = mgh',vars:['m','h'],solve:'PE',fn:({m,h})=>parseFloat(m)*PHYSICS.g*parseFloat(h)},
+  {name:'Momentum',formula:'p = mv',vars:['m','v'],solve:'p',fn:({m,v})=>parseFloat(m)*parseFloat(v)},
+  {name:'Power',formula:'P = W/t',vars:['W','t'],solve:'P',fn:({W,t})=>parseFloat(W)/parseFloat(t)},
+  {name:'Pressure',formula:'P = F/A',vars:['F','A'],solve:'P',fn:({F,A})=>parseFloat(F)/parseFloat(A)},
+  {name:'Ohm\'s Law',formula:'V = IR',vars:['I','R'],solve:'V',fn:({I,R})=>parseFloat(I)*parseFloat(R)},
+];
+
+let _physicsFormIdx=0;
+
+function openPhysicsSandbox(){
+  const existing=document.getElementById('physicsSandbox');if(existing)existing.remove();
+  const modal=document.createElement('div');
+  modal.id='physicsSandbox';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(12px)';
+  renderPhysicsModal(modal);
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+}
+
+function renderPhysicsModal(modal){
+  const f=PHYSICS_FORMULAS[_physicsFormIdx];
+  modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid rgba(0,180,255,.3);border-radius:22px;padding:26px;width:100%;max-width:460px;box-shadow:0 0 60px rgba(0,180,255,.15),0 24px 80px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div>
+          <div style="font-size:1rem;font-weight:800;margin-bottom:2px">⚛️ Physics Sandbox</div>
+          <div style="font-size:.65rem;color:rgba(0,180,255,.7);font-family:'JetBrains Mono',monospace">g = ${PHYSICS.g} m/s² · 4dp precision</div>
+        </div>
+        <button onclick="document.getElementById('physicsSandbox').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0;transform:none;box-shadow:none">✕</button>
+      </div>
+
+      <!-- Formula selector -->
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px">
+        ${PHYSICS_FORMULAS.map((f2,i)=>`<button onclick="_physicsFormIdx=${i};renderPhysicsModal(document.getElementById('physicsSandbox'))"
+          style="padding:4px 10px;font-size:.7rem;border-radius:8px;border:1px solid ${i===_physicsFormIdx?'rgba(0,180,255,.5)':'var(--border2)'};background:${i===_physicsFormIdx?'rgba(0,180,255,.12)':'transparent'};color:${i===_physicsFormIdx?'rgba(0,200,255,1)':'var(--muted2)'};cursor:pointer;transition:all .15s;transform:none;box-shadow:none">${f2.name}</button>`).join('')}
+      </div>
+
+      <!-- Formula display -->
+      <div style="background:rgba(0,180,255,.06);border:1px solid rgba(0,180,255,.15);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center">
+        <div style="font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:rgba(0,210,255,.9);letter-spacing:1px">${f.formula}</div>
+        <div style="font-size:.72rem;color:var(--muted2);margin-top:4px">Solving for: <strong style="color:rgba(0,200,255,.8)">${f.solve}</strong></div>
+      </div>
+
+      <!-- g override -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;background:rgba(255,255,255,.03);border-radius:10px;padding:10px 12px">
+        <span style="font-size:.75rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;min-width:80px">g (m/s²)</span>
+        <input type="number" id="physics_g" value="${PHYSICS.g}" step="0.01" style="flex:1;margin:0;font-family:'JetBrains Mono',monospace;font-size:.9rem;text-align:center"
+          oninput="PHYSICS.g=parseFloat(this.value)||10">
+        <button onclick="PHYSICS.g=10;document.getElementById('physics_g').value=10" style="font-size:.7rem;padding:4px 8px;background:rgba(0,180,255,.1);border:1px solid rgba(0,180,255,.2);color:rgba(0,200,255,.8);border-radius:7px;cursor:pointer;transform:none;box-shadow:none">Reset</button>
+      </div>
+
+      <!-- Variable inputs -->
+      ${f.vars.map(v=>`
+        <div style="margin-bottom:10px">
+          <label style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'JetBrains Mono',monospace;display:block;margin-bottom:4px">${v}</label>
+          <input type="number" id="phys_${v}" placeholder="Enter ${v}" step="any" style="margin:0;font-family:'JetBrains Mono',monospace" oninput="calcPhysics()">
+        </div>`).join('')}
+
+      <!-- Result -->
+      <div id="physicsResult" style="margin-top:16px;padding:14px;background:rgba(0,180,255,.06);border:1px solid rgba(0,180,255,.15);border-radius:12px;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center">
+        <span style="font-size:.82rem;color:var(--muted2)">Enter values above</span>
+      </div>
+    </div>`;
+}
+
+function calcPhysics(){
+  const f=PHYSICS_FORMULAS[_physicsFormIdx];
+  const vals={};
+  let valid=true;
+  f.vars.forEach(v=>{
+    const el=document.getElementById('phys_'+v);
+    const val=parseFloat(el?.value);
+    if(isNaN(val)){valid=false;}else vals[v]=val;
+  });
+  const el=document.getElementById('physicsResult');if(!el)return;
+  if(!valid){el.innerHTML='<span style="font-size:.82rem;color:var(--muted2)">Enter all values</span>';return;}
+  try{
+    const result=f.fn(vals);
+    el.innerHTML=`<div>
+      <div style="font-size:.7rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;margin-bottom:4px">${f.solve} =</div>
+      <div style="font-size:2rem;font-weight:800;color:rgba(0,210,255,.9);font-family:'JetBrains Mono',monospace;letter-spacing:-1px">${result.toFixed(4)}</div>
+      <div style="font-size:.68rem;color:rgba(0,180,255,.6);font-family:'JetBrains Mono',monospace;margin-top:2px">g = ${PHYSICS.g.toFixed(4)} m/s²</div>
+    </div>`;
+  }catch(e){
+    el.innerHTML='<span style="font-size:.82rem;color:var(--red)">Calculation error</span>';
+  }
+}
+
+// ══ WIRE INTO EXISTING SYSTEMS ══
+// Override renderTasks to add risk badges + make items focusable + show in right view
+const _baseRenderTasks=window.renderTasks;
+window.renderTasks=function(){
+  if(currentView==='kanban'){renderKanban();return;}
+  if(currentView==='timeline'){renderTimeline();return;}
+  _baseRenderTasks?.();
+  // Add risk badges after render
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('[data-task-id]').forEach(el=>{
+      el.setAttribute('tabindex','0');
+      const id=parseInt(el.dataset.taskId);
+      const task=tasks.find(t=>t.id===id);
+      if(!task||task.done)return;
+      const risk=calcDeadlineRisk(task);
+      const rl=getRiskLabel(risk);
+      if(rl){
+        const existing=el.querySelector('.risk-badge');
+        if(!existing){
+          const badge=document.createElement('span');
+          badge.className='risk-badge';
+          badge.style.cssText=`font-size:.62rem;padding:2px 7px;border-radius:6px;background:${rl.bg};color:${rl.color};font-family:'JetBrains Mono',monospace;font-weight:700;margin-left:6px;flex-shrink:0`;
+          badge.textContent=rl.label;
+          const tags=el.querySelector('.task-tags');if(tags)tags.appendChild(badge);
+        }
+      }
+      // Panic glow
+      if(rl?.label==='Critical'){
+        el.style.boxShadow=`0 0 0 1px rgba(255,77,109,.25),0 4px 20px rgba(255,77,109,.1)`;
+        el.style.borderColor='rgba(255,77,109,.25)';
+      }
+    });
+  });
+};
+
+// Add to keyboard shortcuts: physics sandbox (P key)
+const _baseKB=window.initKeyboardShortcuts;
+window.initKeyboardShortcuts=function(){
+  _baseKB?.();
+  document.addEventListener('keydown',e=>{
+    const tag=document.activeElement?.tagName;
+    if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
+    if(e.metaKey||e.ctrlKey||e.altKey)return;
+    if(e.key==='p'||e.key==='P'){e.preventDefault();openPhysicsSandbox();}
+    if(e.key==='s'||e.key==='S'){e.preventDefault();if(_sessionStart)endSession();else startSession();}
+    if(e.key==='f'||e.key==='F'){e.preventDefault();openAdvancedFilter();}
+    if(e.key==='b'||e.key==='B'){e.preventDefault();generateTimeBlocks();}
+  });
+};
+
+// Save resumption state periodically
+setInterval(saveResumptionState,60000);
+
+// Init all new systems on app start
+function initIntelligenceEngine(){
+  currentView=load('flux_view','list');
+  initQuickAddNL();
+  initFullKeyboardNav();
+  checkResumption();
+  renderSessionStats();
+  // Restore view toggle state
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===currentView));
 }
