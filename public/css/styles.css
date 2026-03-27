@@ -430,7 +430,7 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 /* ── LIGHT MODE ── */
 [data-theme="light"] body{background:#f2f3fa;color:#1a1b2e}
 [data-theme="light"] body::before{background:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(108,99,255,.06) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 85% 85%,rgba(0,217,163,.04) 0%,transparent 70%)}
-[data-theme="light"] .card,.mob-drawer,[data-theme="light"] .sidebar{background:#fff}
+[data-theme="light"] .card,[data-theme="light"] .mob-drawer,[data-theme="light"] .sidebar{background:#fff}
 [data-theme="light"] .card{box-shadow:0 2px 12px rgba(0,0,0,.07),0 1px 0 rgba(255,255,255,.9) inset}
 [data-theme="light"] .topbar{background:rgba(242,243,250,.9)}
 [data-theme="light"] .bottom-nav{background:rgba(242,243,250,.96)}
@@ -963,4 +963,32 @@ button[onclick*="generateStudyRoadmap"]:hover{
 /* Mobile: stack to single column */
 @media(max-width:900px){
   .dash-grid{grid-template-columns:1fr!important}
+}
+
+
+/* ══ WORKLOAD VIEW ══ */
+.workload-chart{display:flex;align-items:flex-end;gap:6px;height:140px;padding:0 4px}
+.workload-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.workload-bar-outer{width:100%;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);display:flex;flex-direction:column-reverse;cursor:pointer;transition:all .2s}
+.workload-bar-outer:hover{transform:scaleY(1.03);filter:brightness(1.15)}
+.workload-bar-fill{width:100%;border-radius:6px;transition:height .5s cubic-bezier(.34,1.56,.64,1)}
+.workload-day-label{font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;white-space:nowrap}
+.workload-day-mins{font-size:.6rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;text-align:center}
+
+/* ══ LIST DENSITY TOGGLE ══ */
+.task-item.compact{padding:8px 12px!important}
+.task-item.compact .task-tags{display:none!important}
+.task-item.compact .task-prog{display:none!important}
+.task-item.compact .procras-flag{display:none!important}
+
+/* ══ LIST WIDTH MODES ══ */
+#taskList.narrow{max-width:560px}
+#taskList.wide{max-width:100%}
+
+/* ── Mobile sidebar dark fix ── */
+@media(max-width:768px){
+  .mob-drawer{background:var(--card)!important}
+  .mob-drawer-nav .nav-item{color:var(--muted2)!important}
+  .mob-drawer-nav .nav-item.active{color:var(--accent)!important}
+  .mob-drawer-nav .nav-group-label{color:var(--muted)!important}
 }
