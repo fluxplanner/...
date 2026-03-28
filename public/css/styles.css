@@ -569,13 +569,18 @@ button:active:not(:disabled){transform:scale(.96) translateY(0)!important}
 #fabBtn{
   width:52px!important;height:52px!important;
   border-radius:50%!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
+  display:grid!important;place-items:center!important;
   padding:0!important;margin:0!important;
-  font-size:28px!important;font-weight:300!important;line-height:1!important;
+  font-size:0!important;
   background:var(--accent)!important;border:none!important;color:#fff!important;
   box-shadow:0 4px 20px rgba(var(--accent-rgb),.45)!important;
   cursor:pointer!important;
   transition:transform .2s,box-shadow .2s!important;
+}
+#fabBtn::after{
+  content:'+';
+  font-size:28px;font-weight:300;line-height:1;
+  display:block;
 }
 #fabBtn:hover{transform:scale(1.08) rotate(4deg)!important;box-shadow:0 8px 28px rgba(var(--accent-rgb),.55)!important}
 #fabBtn:active{transform:scale(.94)!important}
@@ -585,18 +590,6 @@ button:active:not(:disabled){transform:scale(.96) translateY(0)!important}
 
 /* ══ EMAIL AUTH FORM ══ */
 .login-email-form input{margin-top:0!important;margin-bottom:8px!important}
-
-/* ══ FAB PLUS CENTERING — final fix ══ */
-#fabBtn {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  line-height: 1 !important;
-  font-size: 1.8rem !important;
-  font-weight: 200 !important;
-  letter-spacing: 0 !important;
-}
 
 /* ══ TOPBAR PILLS ══ */
 #topbarTaskPill {
@@ -735,13 +728,7 @@ button:active:not(:disabled){transform:scale(.96) translateY(0)!important}
   .school-info-grid{grid-template-columns:1fr!important}
 }
 
-/* FAB centering */
-#fabBtn{
-  width:52px!important;height:52px!important;border-radius:50%!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  padding:0!important;line-height:1!important;
-  font-size:1.6rem!important;font-weight:300!important;
-}
+/* FAB centering — consolidated into the single #fabBtn rule above */
 
 /* ── CALENDAR TASK BARS ── */
 .cal-day{aspect-ratio:unset;min-height:52px;padding:3px 2px;flex-direction:column;align-items:stretch;justify-content:flex-start}

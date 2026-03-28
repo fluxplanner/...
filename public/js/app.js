@@ -1431,8 +1431,11 @@ function loadTheme(){
     save('flux_custom_colors',custom);
   }
   const key=localStorage.getItem('flux_theme')||'dark';
-  const acc=localStorage.getItem('flux_accent')||'#00bfff';
-  const rgb=localStorage.getItem('flux_accent_rgb')||'0,191,255';
+  // Strip stale JSON quotes from accent values (old save() bug wrote "#hex" instead of #hex)
+  let acc=(localStorage.getItem('flux_accent')||'#00bfff').replace(/^"|"$/g,'');
+  let rgb=(localStorage.getItem('flux_accent_rgb')||'0,191,255').replace(/^"|"$/g,'');
+  localStorage.setItem('flux_accent',acc);
+  localStorage.setItem('flux_accent_rgb',rgb);
   // Set accent on root BEFORE applyTheme
   document.documentElement.style.setProperty('--accent',acc);
   document.documentElement.style.setProperty('--accent-rgb',rgb);
@@ -1516,11 +1519,9 @@ function setAccent(hex,rgb,el){
   if(svgLogo){const stops=svgLogo.querySelectorAll('stop');stops.forEach(s=>s.setAttribute('stop-color',hex));}
   const tp=document.getElementById('topbarTaskPill');
   if(tp)tp.style.borderColor=`rgba(${rgb},.3)`;
-  // Persist to localStorage directly (fastest)
+  // Persist to localStorage as raw strings (NOT via save() which JSON.stringify wraps in quotes)
   localStorage.setItem('flux_accent',hex);
   localStorage.setItem('flux_accent_rgb',rgb);
-  save('flux_accent',hex);
-  save('flux_accent_rgb',rgb);
   syncKey('accent',{accent:hex,accentRgb:rgb});
   updateLogoColor(hex);
 }
