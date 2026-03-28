@@ -3129,9 +3129,7 @@ function initTopbar(){
 
 // ══ ITEM 20 — DASHBOARD SECTION REORDER ══
 function reorderDashboard(){
-  const panel=document.getElementById('dashboard');if(!panel)return;
-  const order=['panicBanner','timePovertyBanner','dynamicFocusCard','statsRow','smartSugCard','dashEnergyCard','dashQuickAdd','filterChips','taskList','countdownCard'];
-  order.forEach(id=>{const el=document.getElementById(id);if(el&&el.parentElement===panel)panel.appendChild(el);});
+  // Sections are now in fixed wrapper divs — no reordering needed.
 }
 
 // ══ ITEM 22 — QUICK-ADD TASK BAR ══
@@ -5639,19 +5637,10 @@ FluxBus.on('task_completed',function(task){
 
 // ══ SMART DASHBOARD REORDER BY TIME OF DAY ═══════════════════
 function smartReorderDashboard(){
-  const panel=document.getElementById('dashboard');if(!panel)return;
-  const h=new Date().getHours();
-  let order;
-  if(h>=6&&h<12){
-    order=['panicBanner','timePovertyBanner','dynamicFocusCard','statsRow','smartSugCard','dashQuickAdd','filterChips','taskList','countdownCard','dashEnergyCard'];
-  }else if(h>=12&&h<17){
-    order=['panicBanner','timePovertyBanner','dynamicFocusCard','dashEnergyCard','statsRow','dashQuickAdd','filterChips','taskList','smartSugCard','countdownCard'];
-  }else if(h>=17&&h<21){
-    order=['panicBanner','timePovertyBanner','statsRow','dynamicFocusCard','countdownCard','dashQuickAdd','filterChips','taskList','smartSugCard','dashEnergyCard'];
-  }else{
-    order=['panicBanner','timePovertyBanner','statsRow','countdownCard','dynamicFocusCard','dashQuickAdd','filterChips','taskList','smartSugCard','dashEnergyCard'];
-  }
-  order.forEach(id=>{const el=document.getElementById(id);if(el&&el.parentElement===panel)panel.appendChild(el);});
+  // Dashboard sections are now in fixed wrapper divs (.dash-alerts, .dash-section,
+  // .dash-row, .dash-workspace, .dash-jump-pills). No individual element reordering
+  // needed — the HTML structure defines the layout. This function now only ensures
+  // the old reorderDashboard() doesn't break anything.
 }
 
 
