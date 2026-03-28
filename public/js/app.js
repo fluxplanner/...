@@ -556,6 +556,8 @@ function toggleTask(id){
   t.done=!t.done;
   if(t.done){
     t.completedAt=Date.now();
+    const card=document.querySelector(`[data-task-id="${id}"]`);
+    if(card)card.classList.add('completing');
     spawnConfetti();
     addMomentum();
     if(t.estTime)setTimeout(()=>promptEffortTracking(id),600);
@@ -690,6 +692,7 @@ function renderTasks(){
   if(taskFilter==='overdue')list=list.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now);
   if(taskFilter==='today')list=list.filter(t=>t.date&&t.date===todayStr());
   if(taskFilter==='high')list=list.filter(t=>!t.done&&t.priority==='high');
+  if(typeof getRecoveryTasks==='function')list=getRecoveryTasks(list);
   const energy=parseInt(localStorage.getItem('flux_energy')||'3');
   list.sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
@@ -718,11 +721,15 @@ function renderTasks(){
     const stPct=t.subtasks?.length?Math.round(t.subtasks.filter(s=>s.done).length/t.subtasks.length*100):-1;
     const stBar=stPct>=0?`<div class="task-prog"><div class="task-prog-fill" style="width:${stPct}%"></div></div>`:'';
     const panicBtn=t.panic?`<button class="btn-sm" style="color:var(--red);border-color:rgba(var(--red-rgb),.3);font-size:.65rem;margin-top:4px" onclick="breakItDown(${t.id})">⚡ Break it Down</button>`:'';
-    return`<div class="task-item ${priClass} ${t.done?'task-done':''}" data-task-id="${t.id}" draggable="true">
+    const blocked=typeof isBlocked==='function'&&isBlocked(t);
+    const depBadge=typeof renderDepBadge==='function'?renderDepBadge(t):'';
+    const whyBadge=!t.done&&typeof renderWhyTooltip==='function'?renderWhyTooltip(t):'';
+    const blockedStyle=blocked?'opacity:.5;pointer-events:auto':'';
+    return`<div class="task-item ${priClass} ${t.done?'task-done':''}" data-task-id="${t.id}" draggable="true" style="${blockedStyle}">
 <div class="drag-handle" title="Drag to reorder" style="color:var(--border2);cursor:grab;font-size:.75rem;padding:2px 4px;align-self:center;flex-shrink:0">⠿</div>
-<div class="check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div>
+<div class="check ${t.done?'done':''}" onclick="${blocked?'showToast(\'🔒 Complete blockers first\',\'warning\');return':'toggleTask('+t.id+')'}">${t.done?'✓':blocked?'🔒':''}</div>
 <div class="task-body">
-<div class="task-text ${t.done?'done':''}">${esc(t.name)}</div>
+<div class="task-text ${t.done?'done':''}">${esc(t.name)} ${depBadge} ${whyBadge}</div>
 <div class="task-tags">
 ${sub?`<span class="tag" style="background:${sub.color}22;color:${sub.color}">${sub.short}</span>`:''}
 <span class="tag" style="background:rgba(255,255,255,.06);color:var(--muted2)">${ti.l}</span>
@@ -740,7 +747,14 @@ ${panicBtn}${stBar}${procras}
 function renderSmartSug(){const active=tasks.filter(t=>!t.done).sort((a,b)=>(b.urgencyScore||0)-(a.urgencyScore||0));const card=document.getElementById('smartSugCard');if(!active.length){card.style.display='none';return;}card.style.display='block';const top=active[0];const sub=getSubjects()[top.subject];const energy=parseInt(localStorage.getItem('flux_energy')||'3');const tip=energy<=2?'(low energy — try a short review)':energy>=4?'(high energy — tackle this first!)':'';document.getElementById('smartSug').textContent=top.name+(sub?' · '+sub.short:'');document.getElementById('smartSugSub').textContent=(top.type||'hw').toUpperCase()+(top.date?' · due '+new Date(top.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+' '+tip;}
 function renderCountdown(){const now=new Date();now.setHours(0,0,0,0);const next=tasks.filter(t=>!t.done&&(t.type==='test'||t.type==='quiz')&&t.date&&new Date(t.date+'T00:00:00')>=now).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];const card=document.getElementById('countdownCard');if(!next){card.style.display='none';return;}card.style.display='block';const diff=Math.max(0,Math.floor((new Date(next.date+'T00:00:00')-now)/86400000));const sub=getSubjects()[next.subject];const statusC=diff<=2?'var(--red)':diff<=5?'var(--gold)':'var(--green)';document.getElementById('countdownLabel').textContent=next.name+(sub?' · '+sub.short:'');document.getElementById('countdownGrid').innerHTML=[[diff,'Days','var(--accent)'],[Math.floor(diff/7),'Weeks','var(--accent)'],[new Date(next.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}),'Date','var(--accent)'],[diff<=2?'SOON ⚠':diff<=5?'NEAR':'OK ✓','Status',statusC]].map(([n,l,c])=>`<div style="background:var(--card2);border-radius:10px;padding:10px 6px;text-align:center"><div style="font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:${c}">${n}</div><div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px">${l}</div></div>`).join('');}
 function setEnergy(v){localStorage.setItem('flux_energy',v);const emojis=['','😴','😕','😐','😊','🚀'];const labels=['','Very Low','Low','Neutral','Good','Peak'];const el=document.getElementById('energyEmoji');if(el)el.textContent=emojis[v];const lb=document.getElementById('energyLabel');if(lb)lb.textContent=labels[v];renderSmartSug();}
-function openEdit(id){const t=tasks.find(x=>x.id===id);if(!t)return;editingId=id;document.getElementById('editText').value=t.name;document.getElementById('editSubject').value=t.subject||'';document.getElementById('editPriority').value=t.priority||'med';document.getElementById('editType').value=t.type||'hw';document.getElementById('editDue').value=t.date||'';document.getElementById('editEstTime').value=t.estTime||'';document.getElementById('editDifficulty').value=t.difficulty||3;document.getElementById('editSubtasks').value=(t.subtasks||[]).map(s=>s.text).join('\n');document.getElementById('editNotes').value=t.notes||'';document.getElementById('editModal').style.display='flex';}
+function openEdit(id){const t=tasks.find(x=>x.id===id);if(!t)return;editingId=id;document.getElementById('editText').value=t.name;document.getElementById('editSubject').value=t.subject||'';document.getElementById('editPriority').value=t.priority||'med';document.getElementById('editType').value=t.type||'hw';document.getElementById('editDue').value=t.date||'';document.getElementById('editEstTime').value=t.estTime||'';document.getElementById('editDifficulty').value=t.difficulty||3;document.getElementById('editSubtasks').value=(t.subtasks||[]).map(s=>s.text).join('\n');document.getElementById('editNotes').value=t.notes||'';
+  const depEl=document.getElementById('editDeps');
+  if(depEl){
+    const current=(t.blockedBy||[]).map(bid=>tasks.find(x=>x.id===bid)).filter(Boolean);
+    const currentHtml=current.map(b=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.15);border-radius:6px;margin-bottom:3px;font-size:.78rem"><span style="flex:1">${b.done?'✓ ':'🔒 '}${esc(b.name)}</span><button onclick="removeDependency(${id},${b.id});openEdit(${id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.8rem;padding:0;transform:none;box-shadow:none">✕</button></div>`).join('');
+    depEl.innerHTML=(currentHtml||'<div style="font-size:.72rem;color:var(--muted);margin-bottom:6px">No dependencies</div>')+'<details style="margin-top:6px"><summary style="font-size:.72rem;color:var(--accent);cursor:pointer;font-weight:600">+ Add dependency</summary><div style="margin-top:6px">'+renderDepSelector(id)+'</div></details>';
+  }
+  document.getElementById('editModal').style.display='flex';}
 function closeEdit(){document.getElementById('editModal').style.display='none';editingId=null;}
 function saveEdit(){const t=tasks.find(x=>x.id===editingId);if(!t)return;const oldDate=t.date;t.name=document.getElementById('editText').value.trim()||t.name;t.subject=document.getElementById('editSubject').value;t.priority=document.getElementById('editPriority').value;t.type=document.getElementById('editType').value;t.date=document.getElementById('editDue').value;t.estTime=parseInt(document.getElementById('editEstTime').value)||0;t.difficulty=parseInt(document.getElementById('editDifficulty').value)||3;t.notes=document.getElementById('editNotes').value.trim();const stLines=document.getElementById('editSubtasks').value.split('\n').map(s=>s.trim()).filter(Boolean);t.subtasks=stLines.map((s,i)=>({text:s,done:t.subtasks?.[i]?.done||false}));if(oldDate&&t.date!==oldDate)t.rescheduled=(t.rescheduled||0)+1;t.urgencyScore=calcUrgency(t);save('tasks',tasks);closeEdit();renderStats();renderTasks();renderCalendar();renderCountdown();syncKey('tasks',tasks);setTimeout(()=>checkFrictionIntervention(t),500);}
 function spawnConfetti(){const colors=['#6366f1','#10d9a0','#fbbf24','#c084fc','#f43f5e','#fb923c'];for(let i=0;i<22;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.left=Math.random()*100+'vw';p.style.animationDelay=Math.random()*.5+'s';p.style.background=colors[Math.floor(Math.random()*colors.length)];document.body.appendChild(p);setTimeout(()=>p.remove(),1500);}}
@@ -2532,6 +2546,11 @@ function initKeyboardShortcuts(){
     if((e.metaKey||e.ctrlKey)&&e.key==='d'){e.preventDefault();startDeepWork();return;}
     // Cmd+P — Present Mode
     if((e.metaKey||e.ctrlKey)&&e.key==='p'){e.preventDefault();startPresentMode();return;}
+    // Ctrl+Z / Cmd+Z — Undo
+    if((e.metaKey||e.ctrlKey)&&e.key==='z'){
+      const tag=document.activeElement?.tagName;
+      if(!['INPUT','TEXTAREA','SELECT'].includes(tag)){e.preventDefault();undoLastChange();return;}
+    }
     // Don't fire letter shortcuts when typing in inputs
     const tag=document.activeElement?.tagName;
     if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
@@ -3243,7 +3262,7 @@ function initDashboardFeatures(){
   initQuickAdd();
   initTaskDrag();
   initMobileNav();
-  reorderDashboard();
+  smartReorderDashboard();
   renderDynamicFocus();
   checkTimePoverty();
   renderGradeBuffer();
@@ -3259,6 +3278,7 @@ function initDashboardFeatures(){
   updateCognitiveLoadMeter();setInterval(updateCognitiveLoadMeter,5*60*1000);
   renderEffortReport();
   renderSubjectEfficiencyHeatmap();
+  initV4Systems();
   // First-time tour (delayed so app renders first)
   setTimeout(startOnboardingTour,2000);
 }
@@ -5555,4 +5575,289 @@ function initListControls(){
   viewRow.appendChild(ctrl);
   // Style active buttons
   ctrl.querySelectorAll('button.active').forEach(b=>{b.style.background='rgba(var(--accent-rgb),.15)';b.style.color='var(--accent)';});
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// ══ FLUX V4 — NEURO-PREDICTIVE SYSTEMS ══════════════════════
+// ══════════════════════════════════════════════════════════════
+
+// ══ EVENT BUS ════════════════════════════════════════════════
+const FluxBus={_h:{},on(e,fn){(this._h[e]=this._h[e]||[]).push(fn);},off(e,fn){this._h[e]=(this._h[e]||[]).filter(f=>f!==fn);},emit(e,d){(this._h[e]||[]).forEach(fn=>{try{fn(d);}catch(err){console.warn('FluxBus error on '+e,err);}});}};
+
+// ══ TASK DEPENDENCY SYSTEM ═══════════════════════════════════
+function addDependency(taskId,blockedById){
+  const t=tasks.find(x=>x.id===taskId);
+  const blocker=tasks.find(x=>x.id===blockedById);
+  if(!t||!blocker||taskId===blockedById)return;
+  if(!t.blockedBy)t.blockedBy=[];
+  if(t.blockedBy.includes(blockedById))return;
+  t.blockedBy.push(blockedById);
+  save('tasks',tasks);renderTasks();syncKey('tasks',tasks);
+  showToast('🔗 Dependency added','info');
+}
+function removeDependency(taskId,blockedById){
+  const t=tasks.find(x=>x.id===taskId);if(!t||!t.blockedBy)return;
+  t.blockedBy=t.blockedBy.filter(id=>id!==blockedById);
+  save('tasks',tasks);renderTasks();syncKey('tasks',tasks);
+}
+function isBlocked(task){
+  if(!task.blockedBy||!task.blockedBy.length)return false;
+  return task.blockedBy.some(id=>{const b=tasks.find(x=>x.id===id);return b&&!b.done;});
+}
+function getBlockerNames(task){
+  if(!task.blockedBy)return[];
+  return task.blockedBy.map(id=>tasks.find(x=>x.id===id)).filter(b=>b&&!b.done).map(b=>b.name);
+}
+function getDependentTasks(taskId){
+  return tasks.filter(t=>t.blockedBy&&t.blockedBy.includes(taskId)&&!t.done);
+}
+function renderDepBadge(task){
+  if(!isBlocked(task))return'';
+  const blockers=getBlockerNames(task);
+  return `<span class="dep-badge" title="Blocked by: ${blockers.map(esc).join(', ')}" style="display:inline-flex;align-items:center;gap:3px;font-size:.6rem;padding:2px 6px;border-radius:6px;background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.2);color:var(--red);font-weight:600;cursor:help">🔒 ${blockers.length}</span>`;
+}
+function renderDepSelector(taskId){
+  const t=tasks.find(x=>x.id===taskId);if(!t)return'';
+  const available=tasks.filter(x=>x.id!==taskId&&!x.done&&!(t.blockedBy||[]).includes(x.id));
+  if(!available.length)return'<div style="font-size:.75rem;color:var(--muted)">No available tasks to depend on</div>';
+  return available.slice(0,8).map(a=>`<button onclick="addDependency(${taskId},${a.id})" style="display:block;width:100%;text-align:left;padding:6px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.78rem;cursor:pointer;margin-bottom:4px;transition:all .15s;transform:none;box-shadow:none" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${esc(a.name)}</button>`).join('');
+}
+
+// Wire dependency unlock into task completion
+FluxBus.on('task_completed',function(task){
+  const unlocked=getDependentTasks(task.id);
+  if(unlocked.length){
+    const names=unlocked.map(t=>t.name).slice(0,3);
+    showToast('🔓 Unlocked: '+names.join(', '),'success');
+    const allChainDone=unlocked.every(t=>!isBlocked(t));
+    if(allChainDone&&unlocked.length>=2){
+      setTimeout(()=>{spawnConfetti();showToast('⚡ Chain Reaction! '+unlocked.length+' tasks unlocked','success');},600);
+    }
+  }
+});
+
+
+// ══ SMART DASHBOARD REORDER BY TIME OF DAY ═══════════════════
+function smartReorderDashboard(){
+  const panel=document.getElementById('dashboard');if(!panel)return;
+  const h=new Date().getHours();
+  let order;
+  if(h>=6&&h<12){
+    order=['panicBanner','timePovertyBanner','dynamicFocusCard','statsRow','smartSugCard','dashQuickAdd','filterChips','taskList','countdownCard','dashEnergyCard'];
+  }else if(h>=12&&h<17){
+    order=['panicBanner','timePovertyBanner','dynamicFocusCard','dashEnergyCard','statsRow','dashQuickAdd','filterChips','taskList','smartSugCard','countdownCard'];
+  }else if(h>=17&&h<21){
+    order=['panicBanner','timePovertyBanner','statsRow','dynamicFocusCard','countdownCard','dashQuickAdd','filterChips','taskList','smartSugCard','dashEnergyCard'];
+  }else{
+    order=['panicBanner','timePovertyBanner','statsRow','countdownCard','dynamicFocusCard','dashQuickAdd','filterChips','taskList','smartSugCard','dashEnergyCard'];
+  }
+  order.forEach(id=>{const el=document.getElementById(id);if(el&&el.parentElement===panel)panel.appendChild(el);});
+}
+
+
+// ══ RECOVERY MODE ════════════════════════════════════════════
+let _recoveryMode=false;
+function toggleRecoveryMode(){
+  _recoveryMode=!_recoveryMode;
+  save('flux_recovery',_recoveryMode);
+  const btn=document.getElementById('recoveryModeBtn');
+  if(btn){
+    btn.textContent=_recoveryMode?'🩹 Exit Recovery':'🩹 Recovery Mode';
+    btn.style.background=_recoveryMode?'rgba(0,217,163,.15)':'';
+    btn.style.borderColor=_recoveryMode?'rgba(0,217,163,.3)':'';
+  }
+  renderTasks();
+  showToast(_recoveryMode?'🩹 Recovery Mode — showing only critical + quick wins':'Recovery mode off','info');
+}
+function getRecoveryTasks(taskList){
+  if(!_recoveryMode)return taskList;
+  return taskList.filter(t=>{
+    if(t.done)return true;
+    const isOverdue=t.date&&new Date(t.date+'T00:00:00')<new Date(new Date().toDateString());
+    const isHigh=t.priority==='high';
+    const isQuickWin=(t.estTime||30)<=15;
+    const isDueToday=t.date===todayStr();
+    return isOverdue||isHigh||isQuickWin||isDueToday;
+  });
+}
+
+
+// ══ TRANSPARENCY LAYER ("Why this?") ═════════════════════════
+function explainTaskRanking(task){
+  const reasons=[];
+  const now=new Date();now.setHours(0,0,0,0);
+  if(task.date){
+    const due=new Date(task.date+'T00:00:00');
+    const days=Math.floor((due-now)/86400000);
+    if(days<0)reasons.push('⚠ Overdue by '+Math.abs(days)+' day'+(Math.abs(days)>1?'s':''));
+    else if(days===0)reasons.push('📅 Due today');
+    else if(days<=2)reasons.push('⏰ Due in '+days+' day'+(days>1?'s':''));
+  }
+  if(task.priority==='high')reasons.push('🔴 High priority');
+  const energy=parseInt(localStorage.getItem('flux_energy')||'3');
+  if(energy<=2&&(task.difficulty||3)<=2)reasons.push('💡 Easy task fits low energy');
+  if(energy>=4&&['project','essay'].includes(task.type))reasons.push('🚀 Complex task fits high energy');
+  if(task.estTime&&task.estTime<=15)reasons.push('⚡ Quick win (~'+task.estTime+'min)');
+  if(isBlocked(task))reasons.push('🔒 Blocked by '+getBlockerNames(task).length+' task(s)');
+  if((task.rescheduled||0)>=2)reasons.push('🔄 Rescheduled '+task.rescheduled+'× — needs attention');
+  return reasons;
+}
+function renderWhyTooltip(task){
+  const reasons=explainTaskRanking(task);
+  if(!reasons.length)return'';
+  return `<span class="why-badge" onclick="event.stopPropagation();showWhyPopup(${task.id})" title="${reasons.join(' · ')}" style="font-size:.55rem;padding:1px 5px;border-radius:4px;background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.15);color:var(--accent);cursor:help;font-weight:600;font-family:'JetBrains Mono',monospace;vertical-align:middle;margin-left:4px">why?</span>`;
+}
+function showWhyPopup(taskId){
+  const task=tasks.find(t=>t.id===taskId);if(!task)return;
+  const reasons=explainTaskRanking(task);
+  const existing=document.getElementById('whyPopup');if(existing)existing.remove();
+  const popup=document.createElement('div');
+  popup.id='whyPopup';
+  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:8000;background:var(--card);border:1px solid rgba(var(--accent-rgb),.25);border-radius:16px;padding:20px;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);backdrop-filter:blur(20px);animation:fadeScale .2s ease';
+  popup.innerHTML=`
+    <div style="font-size:.7rem;color:var(--accent);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Why This Task?</div>
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:12px">${esc(task.name)}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${reasons.map(r=>`<div style="font-size:.8rem;color:var(--text2);padding:6px 10px;background:var(--card2);border-radius:8px;border:1px solid var(--border)">${r}</div>`).join('')}</div>
+    <button onclick="document.getElementById('whyPopup').remove()" style="margin-top:14px;width:100%;padding:10px;border-radius:10px;background:rgba(var(--accent-rgb),.1);border:1px solid rgba(var(--accent-rgb),.2);color:var(--accent);font-weight:600;font-size:.82rem;cursor:pointer">Got it</button>`;
+  document.body.appendChild(popup);
+  popup.addEventListener('click',e=>{if(e.target===popup)popup.remove();});
+}
+
+
+// ══ MICRO-COACHING PROMPTS ═══════════════════════════════════
+let _lastCoachTime=0;
+function checkMicroCoaching(){
+  const now=Date.now();
+  if(now-_lastCoachTime<5*60*1000)return;
+  const h=new Date().getHours();
+  if(h<6||h>23)return;
+
+  if(_momentum>=3&&_momentum<6){
+    _lastCoachTime=now;
+    showCoachPrompt("You're in flow — keep the momentum going! 🔥");
+    return;
+  }
+  const quickWins=tasks.filter(t=>!t.done&&(t.estTime||30)<=10&&t.date===todayStr());
+  if(quickWins.length&&_momentum<2){
+    _lastCoachTime=now;
+    showCoachPrompt('⚡ Quick win available: "'+quickWins[0].name+'" (~'+( quickWins[0].estTime||10)+'min)');
+    return;
+  }
+  const overdue=tasks.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<new Date(new Date().toDateString()));
+  if(overdue.length>=3){
+    _lastCoachTime=now;
+    showCoachPrompt('📋 '+overdue.length+' overdue tasks. Try Recovery Mode to focus on what matters.');
+    return;
+  }
+}
+function showCoachPrompt(msg){
+  const existing=document.getElementById('coachPrompt');if(existing)existing.remove();
+  const el=document.createElement('div');
+  el.id='coachPrompt';
+  el.style.cssText='position:fixed;top:70px;right:20px;z-index:3000;max-width:300px;padding:12px 16px;background:var(--card);border:1px solid rgba(var(--accent-rgb),.2);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.4);font-size:.8rem;color:var(--text2);animation:slideDown .3s var(--ease-spring);backdrop-filter:blur(12px);cursor:pointer';
+  el.innerHTML=`<div style="display:flex;align-items:flex-start;gap:8px"><div style="flex:1">${esc(msg)}</div><button onclick="this.closest('#coachPrompt').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0;flex-shrink:0;transform:none;box-shadow:none">✕</button></div>`;
+  el.onclick=e=>{if(e.target===el||e.target.closest('#coachPrompt'))el.remove();};
+  document.body.appendChild(el);
+  setTimeout(()=>{const c=document.getElementById('coachPrompt');if(c){c.style.opacity='0';c.style.transition='opacity .4s';setTimeout(()=>c.remove(),400);}},8000);
+}
+
+
+// ══ SILENT ACHIEVEMENTS ══════════════════════════════════════
+const ACHIEVEMENTS={
+  first_task:{title:'First Step',desc:'Created your first task',icon:'🌱'},
+  ten_tasks:{title:'Productive',desc:'Completed 10 tasks',icon:'📋'},
+  fifty_tasks:{title:'Machine',desc:'Completed 50 tasks',icon:'⚙️'},
+  streak_3:{title:'On Fire',desc:'3× momentum streak',icon:'🔥'},
+  streak_7:{title:'Unstoppable',desc:'7× momentum streak',icon:'💥'},
+  first_session:{title:'Focus Starter',desc:'Completed a focus session',icon:'⏱'},
+  ten_sessions:{title:'Deep Worker',desc:'10 focus sessions',icon:'🧠'},
+  chain_unlock:{title:'Chain Reaction',desc:'Unlocked 3+ tasks at once',icon:'⚡'},
+  recovery_used:{title:'Resilient',desc:'Used Recovery Mode',icon:'🩹'},
+  all_done_today:{title:'Clean Slate',desc:'Finished all tasks for today',icon:'✨'},
+};
+let _achievements=load('flux_achievements',[]);
+function checkAchievement(id){
+  if(_achievements.includes(id))return;
+  const a=ACHIEVEMENTS[id];if(!a)return;
+  _achievements.push(id);
+  save('flux_achievements',_achievements);
+  syncKey('achievements',_achievements);
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:3500;padding:10px 18px;background:var(--card);border:1px solid rgba(var(--accent-rgb),.25);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);font-size:.8rem;display:flex;align-items:center;gap:10px;animation:slideUp .3s var(--ease-spring);backdrop-filter:blur(12px)';
+  el.innerHTML=`<span style="font-size:1.2rem">${a.icon}</span><div><div style="font-weight:700;font-size:.78rem;color:var(--accent)">${a.title}</div><div style="font-size:.68rem;color:var(--muted2)">${a.desc}</div></div>`;
+  document.body.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .5s';setTimeout(()=>el.remove(),500);},3500);
+}
+
+// Wire achievements to events
+FluxBus.on('task_completed',function(){
+  const done=tasks.filter(t=>t.done).length;
+  if(done>=1)checkAchievement('first_task');
+  if(done>=10)checkAchievement('ten_tasks');
+  if(done>=50)checkAchievement('fifty_tasks');
+  const todayDone=tasks.filter(t=>!t.done&&t.date===todayStr()).length===0&&tasks.filter(t=>t.done&&t.date===todayStr()).length>0;
+  if(todayDone)checkAchievement('all_done_today');
+});
+FluxBus.on('momentum_update',function(m){
+  if(m>=3)checkAchievement('streak_3');
+  if(m>=7)checkAchievement('streak_7');
+});
+FluxBus.on('session_ended',function(){
+  const total=sessionLog.length;
+  if(total>=1)checkAchievement('first_session');
+  if(total>=10)checkAchievement('ten_sessions');
+});
+
+
+// ══ MOMENTUM ZONES — UI REACTS TO PRODUCTIVITY LEVEL ═════════
+let _currentZone='idle';
+function updateMomentumZone(){
+  const load=calcCognitiveLoad();
+  let zone='idle';
+  if(_momentum>=5)zone='fire';
+  else if(_momentum>=3)zone='flow';
+  else if(_momentum>=1)zone='warm';
+  if(zone===_currentZone)return;
+  _currentZone=zone;
+  const root=document.documentElement;
+  root.setAttribute('data-zone',zone);
+  const zoneStyles={
+    idle:{glow:'none',border:'var(--border)'},
+    warm:{glow:'0 0 40px rgba(var(--accent-rgb),.04)',border:'rgba(var(--accent-rgb),.08)'},
+    flow:{glow:'0 0 60px rgba(var(--accent-rgb),.07)',border:'rgba(var(--accent-rgb),.12)'},
+    fire:{glow:'0 0 80px rgba(255,77,109,.06)',border:'rgba(255,77,109,.1)'}
+  };
+  const s=zoneStyles[zone];
+  root.style.setProperty('--zone-glow',s.glow);
+  root.style.setProperty('--zone-border',s.border);
+}
+
+
+// ══ V4 INITIALIZATION ════════════════════════════════════════
+function initV4Systems(){
+  _recoveryMode=load('flux_recovery',false);
+  _achievements=load('flux_achievements',[]);
+
+  smartReorderDashboard();
+
+  // Wire event bus into existing toggleTask
+  const _origToggle=window.toggleTask;
+  window.toggleTask=function(id){
+    _origToggle(id);
+    const t=tasks.find(x=>x.id===id);
+    if(t&&t.done){
+      FluxBus.emit('task_completed',t);
+      FluxBus.emit('momentum_update',_momentum);
+    }
+  };
+
+  // Periodic checks
+  setInterval(()=>{
+    checkMicroCoaching();
+    updateMomentumZone();
+  },60000);
+
+  updateMomentumZone();
+  checkMicroCoaching();
 }

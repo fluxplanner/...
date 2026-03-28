@@ -507,6 +507,7 @@
         <button onclick="setFilter('overdue',this)" class="tmode-btn">Overdue</button>
         <button onclick="setFilter('today',this)" class="tmode-btn">Today</button>
         <button onclick="setFilter('high',this)" class="tmode-btn">High Pri</button>
+        <button onclick="toggleRecoveryMode()" id="recoveryModeBtn" class="tmode-btn" style="margin-left:auto">🩹 Recovery</button>
       </div>
 
       <!-- Task List -->
@@ -1382,6 +1383,7 @@
     </div>
     <div class="mrow"><label>Sub-tasks (one per line)</label><textarea id="editSubtasks" style="min-height:70px" placeholder="Sub-task 1&#10;Sub-task 2"></textarea></div>
     <div class="mrow"><label>Notes</label><textarea id="editNotes" style="min-height:60px"></textarea></div>
+    <div class="mrow"><label>Blocked By</label><div id="editDeps" style="max-height:140px;overflow-y:auto"></div></div>
     <div class="mactions"><button onclick="closeEdit()" class="btn-sec">Cancel</button><button onclick="saveEdit()">Save</button></div>
   </div>
 </div>

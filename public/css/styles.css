@@ -7,7 +7,7 @@
   --bg:#07080f; --bg2:#0c0d17; --bg3:#11121e;
   --card:#13141f; --card2:#1a1b28; --card3:#1f2133; --card-solid:#13141f;
   --border:rgba(255,255,255,.055); --border2:rgba(255,255,255,.09); --border3:rgba(255,255,255,.13);
-  --accent:#6c63ff; --accent-rgb:108,99,255; --accent2:#818cf8; --accent-glow:rgba(108,99,255,.25);
+  --accent:#00bfff; --accent-rgb:0,191,255; --accent2:#38d6ff; --accent-glow:rgba(0,191,255,.25);
   --green:#00d9a3; --green-rgb:0,217,163;
   --red:#ff4d6d; --red-rgb:255,77,109;
   --gold:#f5a623; --gold-rgb:245,166,35;
@@ -1177,3 +1177,93 @@ body.high-contrast .nav-item{
   cursor:pointer;
 }
 .physics-badge:hover{background:rgba(var(--accent-rgb),.18);}
+
+/* ══════════════════════════════════════════════════════════════
+   FLUX V4 — NEURO-PREDICTIVE UI SYSTEMS
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Momentum Zone Ambient ── */
+[data-zone="warm"] .panel.active{box-shadow:var(--zone-glow)}
+[data-zone="flow"] .panel.active{box-shadow:var(--zone-glow);border-color:var(--zone-border)}
+[data-zone="fire"] .panel.active{box-shadow:var(--zone-glow);border-color:var(--zone-border)}
+[data-zone="fire"] #momentumPill{animation:flamePulse 1s ease infinite}
+[data-zone="flow"] #momentumPill{animation:flamePulse 2s ease infinite}
+@keyframes flamePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+/* ── Glassmorphism Cards ── */
+.card,.task-item,.focus-card{
+  backdrop-filter:blur(12px) saturate(140%);
+  -webkit-backdrop-filter:blur(12px) saturate(140%);
+  border:1px solid rgba(255,255,255,.06);
+  transition:transform .2s ease,box-shadow .2s ease,opacity .2s ease,border-color .2s ease;
+}
+
+/* ── Animated Task Completion ── */
+.task-item.completing{
+  animation:taskComplete .45s ease forwards;
+}
+@keyframes taskComplete{
+  0%{transform:scale(1);box-shadow:none}
+  40%{transform:scale(1.02);box-shadow:0 0 20px rgba(var(--accent-rgb),.25)}
+  100%{transform:scale(1);box-shadow:none}
+}
+.check.done{
+  animation:checkPop .3s ease;
+}
+@keyframes checkPop{
+  0%{transform:scale(.7)}
+  50%{transform:scale(1.25)}
+  100%{transform:scale(1)}
+}
+
+/* ── View Transitions ── */
+.panel{
+  animation:panelIn .25s ease both;
+}
+@keyframes panelIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:none}
+}
+
+/* ── Recovery Mode Badge ── */
+[data-recovery="true"] .task-item{opacity:.4;transition:opacity .2s}
+[data-recovery="true"] .task-item.recovery-visible{opacity:1}
+
+/* ── Dependency Badge ── */
+.dep-badge{transition:background .15s ease}
+.dep-badge:hover{background:rgba(255,77,109,.2)!important}
+
+/* ── Why Tooltip ── */
+.why-badge{transition:all .15s ease}
+.why-badge:hover{background:rgba(var(--accent-rgb),.18)!important;transform:scale(1.05)}
+
+/* ── Coach Prompt ── */
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+#coachPrompt{transition:opacity .4s ease}
+
+/* ── Achievement Toast ── */
+@keyframes slideUp{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ── Why Popup ── */
+@keyframes fadeScale{from{opacity:0;transform:translate(-50%,-50%) scale(.95)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* ── Task Hover Enhancement ── */
+.task-item:not(.task-done):hover{
+  border-color:rgba(var(--accent-rgb),.15);
+  box-shadow:0 4px 20px rgba(0,0,0,.15);
+}
+.task-item:not(.task-done):hover .btn-sm{opacity:1}
+.task-item .btn-sm{opacity:.5;transition:opacity .15s ease}
+
+/* ── Smooth Microinteractions ── */
+button,a,.nav-item,.bnav-item,.swatch,.tag,.badge{
+  transition:transform .15s ease,background .15s ease,box-shadow .15s ease,color .15s ease,border-color .15s ease,opacity .15s ease;
+}
+.swatch:hover,.tag:hover{transform:scale(1.05)}
+.nav-item:hover,.bnav-item:hover{transform:translateX(2px)}
+
+/* ── Blocked Task Visual ── */
+.task-item[style*="opacity:.5"] .check{
+  background:rgba(255,77,109,.08)!important;
+  border-color:rgba(255,77,109,.2)!important;
+}
