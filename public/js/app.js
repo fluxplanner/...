@@ -684,6 +684,8 @@ function renderStats(){const now=new Date();now.setHours(0,0,0,0);const dueToday
   if(typeof updateTopbarStats==='function')updateTopbarStats();
 }
 function renderTasks(){
+  const el0=document.getElementById('taskList');
+  if(el0){el0.style.display='';el0.style.gridTemplateColumns='';el0.style.gap='';el0.style.alignItems='';}
   const now=new Date();now.setHours(0,0,0,0);
   let list=[...tasks];
   if(taskFilter==='active')list=list.filter(t=>!t.done);
@@ -5143,7 +5145,7 @@ function kanbanDrop(e,colKey){
 
 function renderTimeline(){
   const el=document.getElementById('taskList');if(!el)return;
-  el.style.display='block';el.style.gridTemplateColumns='';el.style.gap='';
+  el.style.display='block';el.style.gridTemplateColumns='';el.style.gap='';el.style.alignItems='';
   const withDates=tasks.filter(t=>t.date&&!t.done).sort((a,b)=>new Date(a.date)-new Date(b.date));
   const noDates=tasks.filter(t=>!t.date&&!t.done);
   if(!withDates.length&&!noDates.length){
@@ -5634,7 +5636,7 @@ function initIntelligenceEngine(){
 // ══ WORKLOAD VIEW ══
 function renderWorkloadView(){
   const el=document.getElementById('taskList');if(!el)return;
-  el.style.display='block';el.style.gridTemplateColumns='';el.style.gap='';
+  el.style.display='block';el.style.gridTemplateColumns='';el.style.gap='';el.style.alignItems='';
   const now=new Date();now.setHours(0,0,0,0);
   const days=[];
   for(let i=0;i<7;i++){
