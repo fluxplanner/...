@@ -680,7 +680,7 @@ function renderAboutStats(){
     </div>`).join('');
 }
 
-function renderStats(){const now=new Date();now.setHours(0,0,0,0);const total=tasks.length,done=tasks.filter(t=>t.done).length,over=tasks.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now).length,high=tasks.filter(t=>!t.done&&t.priority==='high').length;document.getElementById('statsRow').innerHTML=`<div class="stat"><div class="stat-n" style="color:var(--accent)">${total}</div><div class="stat-l">Total</div></div><div class="stat"><div class="stat-n" style="color:var(--green)">${done}</div><div class="stat-l">Done</div></div><div class="stat"><div class="stat-n" style="color:var(--red)">${over}</div><div class="stat-l">Overdue</div></div><div class="stat"><div class="stat-n" style="color:var(--gold)">${high}</div><div class="stat-l">High Pri</div></div>`;
+function renderStats(){const now=new Date();now.setHours(0,0,0,0);const dueToday=tasks.filter(t=>!t.done&&t.date&&t.date===todayStr()).length,done=tasks.filter(t=>t.done).length,over=tasks.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now).length,active=tasks.filter(t=>!t.done).length;document.getElementById('statsRow').innerHTML=`<div class="stat" onclick="setFilter('today',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:var(--accent)">${dueToday}</div><div class="stat-l">Due Today</div></div><div class="stat" onclick="setFilter('active',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:var(--text)">${active}</div><div class="stat-l">Active</div></div><div class="stat" onclick="setFilter('overdue',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:${over>0?'var(--red)':'var(--muted)'}">${over}</div><div class="stat-l">Overdue</div></div><div class="stat" onclick="setFilter('done',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:var(--green)">${done}</div><div class="stat-l">Completed</div></div>`;
   if(typeof updateTopbarStats==='function')updateTopbarStats();
 }
 function renderTasks(){
@@ -704,7 +704,7 @@ function renderTasks(){
   const el=document.getElementById('taskList');
   if(!list.length){
     const msgs={active:'No active tasks — you\'re on top of it! 🎉',done:'No completed tasks yet.',overdue:'No overdue tasks! Great work.',today:'Nothing due today.',high:'No high-priority tasks.',all:'Add your first task to get started.'};
-    el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">${msgs[taskFilter]||msgs.all}</div><div class="empty-sub">Use the + button to add a task</div></div>`;
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">${msgs[taskFilter]||msgs.all}</div><div class="empty-sub">Press + or ⌘K to add a task</div></div>`;
     return;
   }
   const tm={hw:{l:'HW',c:'var(--muted)'},test:{l:'Test',c:'var(--red)'},quiz:{l:'Quiz',c:'var(--gold)'},project:{l:'Project',c:'var(--purple)'},essay:{l:'Essay',c:'var(--blue)'},lab:{l:'Lab',c:'var(--green)'},other:{l:'Other',c:'var(--muted)'}};
@@ -716,29 +716,28 @@ function renderTasks(){
     const ti=tm[t.type]||tm.other;
     const priClass=t.priority==='high'?'priority-high':t.priority==='med'?'priority-med':'priority-low';
     const procras=(t.rescheduled||0)>=3?`<div class="procras-flag">⚠ Rescheduled ${t.rescheduled}×</div>`:'';
-    const estTag=t.estTime?`<span class="tag est-tag">⏱ ${t.estTime}m</span>`:'';
     const stPct=t.subtasks?.length?Math.round(t.subtasks.filter(s=>s.done).length/t.subtasks.length*100):-1;
     const stBar=stPct>=0?`<div class="task-prog"><div class="task-prog-fill" style="width:${stPct}%"></div></div>`:'';
-    const panicBtn=t.panic?`<button class="btn-sm" style="color:var(--red);border-color:rgba(var(--red-rgb),.3);font-size:.65rem;margin-top:4px" onclick="breakItDown(${t.id})">⚡ Break it Down</button>`:'';
     const blocked=typeof isBlocked==='function'&&isBlocked(t);
     const depBadge=typeof renderDepBadge==='function'?renderDepBadge(t):'';
-    const whyBadge=!t.done&&typeof renderWhyTooltip==='function'?renderWhyTooltip(t):'';
     const blockedStyle=blocked?'opacity:.5;pointer-events:auto':'';
+    const priChip=t.priority?`<span class="task-chip task-chip-priority ${t.priority}">${t.priority}</span>`:'';
     return`<div class="task-item ${priClass} ${t.done?'task-done':''}" data-task-id="${t.id}" draggable="true" style="${blockedStyle}">
-<div class="drag-handle" title="Drag to reorder" style="color:var(--border2);cursor:grab;font-size:.75rem;padding:2px 4px;align-self:center;flex-shrink:0">⠿</div>
 <div class="check ${t.done?'done':''}" onclick="${blocked?'showToast(\'🔒 Complete blockers first\',\'warning\');return':'toggleTask('+t.id+')'}">${t.done?'✓':blocked?'🔒':''}</div>
 <div class="task-body">
-<div class="task-text ${t.done?'done':''}">${esc(t.name)} ${depBadge} ${whyBadge}</div>
+<div class="task-text ${t.done?'done':''}">${esc(t.name)} ${depBadge}</div>
 <div class="task-tags">
-${sub?`<span class="tag" style="background:${sub.color}22;color:${sub.color}">${sub.short}</span>`:''}
-<span class="tag" style="background:rgba(255,255,255,.06);color:var(--muted2)">${ti.l}</span>
-${estTag}${ds?`<span class="tag due-tag ${isOver?'over':''}">📅 ${ds}${isNP?' 📵':''}</span>`:''}
+${sub?`<span class="task-chip task-chip-subject">${sub.short}</span>`:''}
+${priChip}
+${ds?`<span class="task-chip task-chip-due ${isOver?'overdue':''}">${ds}${isNP?' 📵':''}</span>`:''}
+${t.estTime?`<span class="task-chip task-chip-time">${t.estTime}m</span>`:''}
+<span class="task-chip" style="background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)">${ti.l}</span>
 </div>
-${panicBtn}${stBar}${procras}
+${stBar}${procras}
 </div>
-<div style="display:flex;flex-direction:column;gap:3px">
-<button class="btn-sm btn-del" onclick="deleteTask(${t.id})" style="padding:4px 8px">✕</button>
-<button class="btn-sm" onclick="openEdit(${t.id})" style="padding:4px 8px">✎</button>
+<div class="task-actions">
+<button class="task-action-btn" onclick="openEdit(${t.id})" title="Edit">✎</button>
+<button class="task-action-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button>
 </div>
 </div>`;
   }).join('');
@@ -811,7 +810,7 @@ function renderCalendar(){
   for(let d=1;d<=days;d++){const dt=new Date(calYear,calMonth,d),ds=dt.toISOString().slice(0,10);const isToday=dt.getTime()===now.getTime(),isNP=isBreak(ds),ab=AB_MAP[ds];const tlist=tMap[d]||[];const elist=evMap[d]||[];// Task bars with names
 const taskBars=tlist.slice(0,3).map(t=>{const s=getSubjects()[t.subject];const c=s?s.color:'var(--accent)';return`<div class="cal-task-bar" style="background:${c}22;border-left:2px solid ${c};opacity:${t.done?.5:1};text-decoration:${t.done?'line-through':'none'}">${esc(t.name)}</div>`;}).join('');
 const eventBars=elist.slice(0,1).map(e=>`<div class="cal-task-bar" style="background:rgba(192,132,252,.15);border-left:2px solid var(--purple)">${esc(e.title||'Event')}</div>`).join('');
-const dots=taskBars+eventBars;const abLabel=ab?`<div style="font-size:.45rem;font-family:'JetBrains Mono',monospace;color:${ab==='A'?'var(--accent)':'var(--green)'};line-height:1;margin-top:1px">${ab}</div>`:'';const overFlag=tlist.some(t=>!t.done&&new Date(t.date+'T00:00:00')<now)?'<div style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--red)"></div>':'';html+=`<div class="cal-day ${isToday?'today ':''}${d===calSelected?'selected ':''}${isNP?'no-hw':''}" onclick="selectDay(${d})" style="position:relative">${overFlag}<div class="cal-dn">${d}</div>${abLabel}<div class="cal-dots">${dots}</div></div>`;}
+const allCount=tlist.length+elist.length;const dots=taskBars+eventBars;const abLabel=ab?`<div style="font-size:.45rem;font-family:'JetBrains Mono',monospace;color:${ab==='A'?'var(--accent)':'var(--green)'};line-height:1;margin-top:1px">${ab}</div>`:'';const overFlag=tlist.some(t=>!t.done&&new Date(t.date+'T00:00:00')<now)?'<div style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--red)"></div>':'';const countBadge=allCount>3?`<div class="cal-day-count">+${allCount-3}</div>`:'';html+=`<div class="cal-day ${isToday?'today ':''}${d===calSelected?'selected ':''}${isNP?'no-hw':''}" onclick="selectDay(${d})" style="position:relative">${overFlag}<div class="cal-dn">${d}</div>${abLabel}<div class="cal-dots">${dots}</div>${countBadge}</div>`;}
   document.getElementById('calGrid').innerHTML=html;
   renderCalDay();
   renderCalToday();
@@ -5909,3 +5908,158 @@ function initV4Systems(){
   updateMomentumZone();
   checkMicroCoaching();
 }
+
+// ══════════════════════════════════════════════════════════════
+// ══ FLUX V5 — PREMIUM POLISH SYSTEMS ════════════════════════
+// ══════════════════════════════════════════════════════════════
+
+// ── GLOBAL SEARCH ──
+function openGlobalSearch(){
+  const overlay=document.getElementById('searchOverlay');
+  if(!overlay)return;
+  overlay.classList.add('open');
+  const input=document.getElementById('globalSearchInput');
+  if(input){input.value='';input.focus();}
+  document.getElementById('globalSearchResults').innerHTML='';
+}
+function closeGlobalSearch(){
+  const overlay=document.getElementById('searchOverlay');
+  if(overlay)overlay.classList.remove('open');
+}
+function handleGlobalSearch(q){
+  const el=document.getElementById('globalSearchResults');if(!el)return;
+  q=q.trim().toLowerCase();
+  if(!q){el.innerHTML='';return;}
+  let results=[];
+  tasks.forEach(t=>{
+    if(t.name.toLowerCase().includes(q)){
+      const sub=getSubjects()[t.subject];
+      results.push({type:'task',label:t.name,sub:sub?sub.short:'',id:t.id,done:t.done,
+        action:()=>{closeGlobalSearch();nav('dashboard');setTimeout(()=>{const te=document.querySelector(`[data-task-id="${t.id}"]`);if(te)te.scrollIntoView({behavior:'smooth',block:'center'});},200);}});
+    }
+  });
+  (notes||[]).forEach(n=>{
+    if((n.title||'').toLowerCase().includes(q)||(strip(n.body||'')).toLowerCase().includes(q)){
+      results.push({type:'note',label:n.title||'Untitled',sub:'',
+        action:()=>{closeGlobalSearch();nav('notes');setTimeout(()=>openNote(n.id),100);}});
+    }
+  });
+  const subs=getSubjects();
+  Object.entries(subs).forEach(([k,v])=>{
+    if(v.name.toLowerCase().includes(q)||v.short.toLowerCase().includes(q)){
+      results.push({type:'class',label:v.name,sub:v.short,
+        action:()=>{closeGlobalSearch();nav('school');}});
+    }
+  });
+  if(!results.length){el.innerHTML='<div class="search-empty">No results for "'+esc(q)+'"</div>';return;}
+  el.innerHTML=results.slice(0,12).map((r,i)=>`<div class="search-result-item" onclick="globalSearchResults[${i}]()" tabindex="0">
+    <span class="search-result-type">${r.type}</span>
+    <span style="flex:1;${r.done?'text-decoration:line-through;opacity:.5':''}">${esc(r.label)}</span>
+    ${r.sub?`<span style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(r.sub)}</span>`:''}
+  </div>`).join('');
+  window.globalSearchResults=results.map(r=>r.action);
+}
+
+// ── QUICK-ADD PANEL ──
+function openQuickAdd(){
+  const panel=document.getElementById('quickAddPanel');
+  if(!panel)return;
+  panel.classList.add('open');
+  const input=document.getElementById('quickAddInput');
+  if(input){input.value='';input.focus();}
+}
+function closeQuickAdd(){
+  const panel=document.getElementById('quickAddPanel');
+  if(panel)panel.classList.remove('open');
+}
+function submitQuickAdd(){
+  const input=document.getElementById('quickAddInput');
+  if(!input)return;
+  const raw=input.value.trim();
+  if(!raw)return;
+  const parsed=parseNaturalTask(raw);
+  const t={
+    id:Date.now()+Math.random(),name:parsed.name,
+    subject:parsed.subject||'',priority:parsed.priority||'med',
+    date:parsed.date||'',type:parsed.type||'hw',
+    done:false,rescheduled:0,createdAt:Date.now()
+  };
+  t.urgencyScore=calcUrgency(t);
+  tasks.unshift(t);save('tasks',tasks);
+  input.value='';input.focus();
+  renderStats();renderTasks();
+  showToast('✓ Added: '+t.name,'success');
+  syncKey('tasks',tasks);
+}
+function parseNaturalTask(raw){
+  let name=raw,date='',priority='med',type='hw',subject='';
+  const days={monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0,
+    mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,sun:0};
+  const today=new Date();
+  const words=raw.split(/\s+/);
+  const cleaned=[];
+  for(const w of words){
+    const lower=w.toLowerCase().replace(/[.,!?]/g,'');
+    if(lower==='tomorrow'&&!date){
+      const d=new Date(today);d.setDate(d.getDate()+1);
+      date=d.toISOString().slice(0,10);
+    }else if(lower==='today'&&!date){
+      date=todayStr();
+    }else if(days[lower]!==undefined&&!date){
+      const target=days[lower];const curr=today.getDay();
+      let diff=target-curr;if(diff<=0)diff+=7;
+      const d=new Date(today);d.setDate(d.getDate()+diff);
+      date=d.toISOString().slice(0,10);
+    }else if((lower==='high'||lower==='urgent'||lower==='important')&&priority==='med'){
+      priority='high';
+    }else if(lower==='low'){
+      priority='low';
+    }else if(lower==='priority'){
+      // skip "priority" word
+    }else if(['test','quiz','project','essay','lab'].includes(lower)){
+      type=lower;
+    }else{
+      const subs=getSubjects();
+      let matched=false;
+      for(const[k,v]of Object.entries(subs)){
+        if(v.short.toLowerCase()===lower||v.name.toLowerCase()===lower){
+          subject=k;matched=true;break;
+        }
+      }
+      if(!matched)cleaned.push(w);
+    }
+  }
+  name=cleaned.join(' ')||raw;
+  return{name,date,priority,type,subject};
+}
+
+// ── KEYBOARD SHORTCUTS FOR SEARCH + QUICK-ADD ──
+document.addEventListener('keydown',function(e){
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){
+    e.preventDefault();
+    const overlay=document.getElementById('searchOverlay');
+    if(overlay?.classList.contains('open'))closeGlobalSearch();
+    else openGlobalSearch();
+    return;
+  }
+  if(e.key==='Escape'){
+    closeGlobalSearch();closeQuickAdd();return;
+  }
+});
+
+// ── HOOK FAB TO QUICK-ADD ──
+const _origInitFAB=typeof initFAB==='function'?initFAB:null;
+if(typeof fabAddTask==='function'){
+  const _origFabAddTask=fabAddTask;
+  window.fabAddTask=function(){openQuickAdd();};
+}
+
+// Quick-add Enter key
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&document.activeElement?.id==='quickAddInput'){
+    e.preventDefault();submitQuickAdd();
+  }
+  if(e.key==='Escape'&&document.getElementById('quickAddPanel')?.classList.contains('open')){
+    e.preventDefault();closeQuickAdd();
+  }
+});

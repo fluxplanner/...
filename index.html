@@ -394,21 +394,20 @@
         <span class="topbar-left" id="topbarTitle">Dashboard</span>
       </div>
       <div class="topbar-right">
-        <div id="panicPill" style="display:none;padding:4px 10px;border-radius:20px;background:rgba(220,38,38,.2);border:1px solid #ef4444;font-size:.68rem;color:#f87171;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:pointer" onclick="nav('dashboard')">🚨 PANIC</div>
-        <div id="momentumPill" style="display:none;padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:700;font-family:'JetBrains Mono',monospace;align-items:center;cursor:default"></div>
-        <div id="cogLoadWrap" style="display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--border)" title="Cognitive load">
-          <div style="width:44px;height:5px;border-radius:3px;background:var(--border2);overflow:hidden"><div id="cogLoadBar" style="height:100%;width:0%;border-radius:3px;transition:width .5s ease,background .4s"></div></div>
-          <span id="cogLoadLabel" style="font-size:.6rem;font-family:'JetBrains Mono',monospace;color:var(--muted);white-space:nowrap">—</span>
-        </div>
-        <div id="topbarTaskPill" style="display:none;padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:700;font-family:'JetBrains Mono',monospace;cursor:pointer" onclick="nav('dashboard')"></div>
-        <div id="topbarNextClass" style="display:none;padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:600;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--muted2)"></div>
-        <div id="topbarEnergy" style="font-size:1.1rem;line-height:1;cursor:pointer" onclick="nav('dashboard')" title="Energy level">😐</div>
-        <div class="ab-pill" id="abPill"></div>
+        <button class="btn-icon" onclick="openGlobalSearch()" title="Search (⌘K)">🔍</button>
         <div class="date-pill" id="datePill"></div>
-        <div class="date-pill" id="topbarClock" style="font-weight:600"></div>
-        <button onclick="dailyShutdown()" title="Daily Shutdown" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:4px 6px;border-radius:8px;color:var(--muted);transition:all .2s" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--muted)'">🌙</button>
         <div id="syncIndicator" class="sync-badge offline" style="display:none">○ Local</div>
+        <button class="btn-icon" onclick="dailyShutdown()" title="Daily Shutdown">🌙</button>
       </div>
+      <!-- Hidden elements still needed by JS -->
+      <div id="panicPill" style="display:none"></div>
+      <div id="momentumPill" style="display:none"></div>
+      <div id="cogLoadWrap" style="display:none"><div id="cogLoadBar"></div><span id="cogLoadLabel"></span></div>
+      <div id="topbarTaskPill" style="display:none"></div>
+      <div id="topbarNextClass" style="display:none"></div>
+      <div id="topbarEnergy" style="display:none">😐</div>
+      <div id="abPill" style="display:none"></div>
+      <div id="topbarClock" style="display:none"></div>
     </div>
 
     <!-- ─── DASHBOARD ─── -->
@@ -1394,6 +1393,23 @@
   </div>
 </div>
 
+</div>
+
+<!-- Global Search -->
+<div class="search-overlay" id="searchOverlay" onclick="if(event.target===this)closeGlobalSearch()">
+  <div class="search-box">
+    <input class="search-input" id="globalSearchInput" type="text" placeholder="Search tasks, notes, classes..." autocomplete="off" oninput="handleGlobalSearch(this.value)">
+    <div class="search-results" id="globalSearchResults"></div>
+  </div>
+</div>
+
+<!-- Quick Add Panel -->
+<div class="quick-add-panel" id="quickAddPanel">
+  <div class="quick-add-panel-inner">
+    <input type="text" id="quickAddInput" placeholder="Add a task... (e.g. &quot;Math HW Friday high&quot;)" autocomplete="off">
+    <button onclick="submitQuickAdd()" id="quickAddSubmit">Add</button>
+  </div>
+  <div class="quick-add-hint">Enter to add · Esc to close · Try: &quot;Essay due Monday high priority&quot;</div>
 </div>
 
 <!-- Load scripts -->

@@ -1371,3 +1371,295 @@ button,a,.nav-item,.bnav-item,.swatch,.tag,.badge{
   background:rgba(255,77,109,.08)!important;
   border-color:rgba(255,77,109,.2)!important;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   FLUX V5 — PREMIUM POLISH PASS
+   Density · Hierarchy · Motion · Accessibility
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 1. REDUCED MOTION ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;
+  }
+}
+
+/* ── 2. FOCUS VISIBLE ── */
+:focus-visible{
+  outline:2px solid rgba(var(--accent-rgb),.6);
+  outline-offset:2px;
+  border-radius:4px;
+}
+button:focus-visible,.nav-item:focus-visible,.tmode-btn:focus-visible,.check:focus-visible{
+  outline:2px solid rgba(var(--accent-rgb),.5);outline-offset:2px;
+}
+
+/* ── 3. MAX-WIDTH CONTENT AREA ── */
+.panel{max-width:920px;margin-left:auto;margin-right:auto;width:100%}
+#ai.active{max-width:none}
+
+/* ── 4. SLIMMER TOPBAR ── */
+.topbar{
+  padding:8px 20px!important;gap:10px!important;
+  border-bottom:1px solid rgba(255,255,255,.04)!important;
+}
+.topbar-left{font-size:.95rem!important;font-weight:700!important}
+.topbar-right{gap:6px!important}
+.topbar-right>.date-pill{padding:3px 10px;font-size:.62rem}
+#topbarClock{font-size:.62rem!important;opacity:.7}
+
+/* ── 5. TIGHTER SIDEBAR ── */
+.sidebar{width:220px;min-width:220px;--sidebar-w:220px}
+.sidebar-header{padding:14px 14px 12px!important}
+.sidebar-nav{padding:6px 8px!important}
+.nav-group{margin-bottom:2px!important}
+.nav-group-label{padding:8px 10px 3px!important;font-size:.52rem!important;letter-spacing:2.5px!important;opacity:.5}
+.nav-item{padding:7px 10px!important;font-size:.82rem!important;gap:8px!important;border-radius:9px!important;margin-bottom:0!important}
+.nav-item:hover{transform:none!important;background:rgba(255,255,255,.04)!important}
+.nav-item.active{background:rgba(var(--accent-rgb),.1)!important;font-weight:600!important}
+.nav-item.active::before{height:16px!important;width:2.5px!important}
+.nav-item .ni{font-size:.85rem!important;width:18px!important}
+.sidebar-footer{padding:8px 10px!important}
+.user-card{padding:8px 10px!important;border-radius:10px!important}
+.uc-av{width:28px!important;height:28px!important;font-size:.7rem!important}
+.uc-name{font-size:.76rem!important}
+.uc-email{font-size:.58rem!important}
+
+/* ── 6. DENSER TASK CARDS ── */
+.task-item{
+  padding:10px 12px!important;gap:10px!important;
+  margin-bottom:4px!important;border-radius:8px!important;
+  border:1px solid rgba(255,255,255,.04)!important;
+}
+.task-item::before{width:2.5px!important}
+.task-item:hover{
+  transform:none!important;
+  border-color:rgba(var(--accent-rgb),.12)!important;
+  box-shadow:0 2px 12px rgba(0,0,0,.15)!important;
+}
+.task-text{font-size:.84rem!important;font-weight:600!important;margin-bottom:4px!important;line-height:1.35!important}
+.task-tags{gap:4px!important}
+.tag{font-size:.58rem!important;padding:1px 6px!important;border-radius:4px!important}
+.check{width:20px!important;height:20px!important;border-radius:6px!important;font-size:10px!important}
+
+/* Task quick-actions on hover */
+.task-actions{
+  display:flex;gap:2px;opacity:0;transition:opacity .15s ease;
+  position:absolute;top:8px;right:8px;
+}
+.task-item:hover .task-actions{opacity:1}
+.task-action-btn{
+  width:26px;height:26px;border-radius:6px;border:none;
+  background:rgba(255,255,255,.06);color:var(--muted);
+  cursor:pointer;font-size:.72rem;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s ease;
+}
+.task-action-btn:hover{background:rgba(var(--accent-rgb),.12);color:var(--accent);transform:none!important;box-shadow:none!important}
+
+/* Chip-style metadata */
+.task-chip{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:1px 7px;border-radius:4px;
+  font-size:.58rem;font-weight:600;font-family:'JetBrains Mono',monospace;
+  white-space:nowrap;
+}
+.task-chip-subject{background:rgba(var(--accent-rgb),.08);color:var(--accent);border:1px solid rgba(var(--accent-rgb),.12)}
+.task-chip-due{background:rgba(255,255,255,.04);color:var(--muted2);border:1px solid var(--border)}
+.task-chip-due.overdue{background:rgba(var(--red-rgb),.08);color:var(--red);border-color:rgba(var(--red-rgb),.15)}
+.task-chip-priority{font-size:.52rem;padding:1px 5px;border-radius:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.task-chip-priority.high{background:rgba(var(--red-rgb),.1);color:var(--red)}
+.task-chip-priority.med{background:rgba(var(--gold-rgb),.1);color:var(--gold)}
+.task-chip-priority.low{background:rgba(var(--green-rgb),.1);color:var(--green)}
+.task-chip-time{background:rgba(var(--purple-rgb),.08);color:var(--purple);border:1px solid rgba(var(--purple-rgb),.12)}
+
+/* ── 7. DENSER STAT CARDS ── */
+.stat{padding:12px 8px!important;border-radius:10px!important}
+.stat-n{font-size:1.3rem!important;margin-bottom:2px!important}
+.stat-l{font-size:.52rem!important;letter-spacing:1px!important}
+.stat:hover{transform:none!important;box-shadow:none!important;cursor:pointer}
+
+/* ── 8. CARD POLISH ── */
+.card{padding:16px!important;margin-bottom:10px!important;border-radius:12px!important}
+.card:hover{transform:none!important;box-shadow:var(--shadow-card)!important}
+.card h3{font-size:.58rem!important;letter-spacing:2.5px!important;margin-bottom:12px!important}
+
+/* ── 9. TIGHTER DASHBOARD ── */
+.dash-section{margin-bottom:12px!important}
+.dash-row{gap:10px!important;margin-bottom:12px!important}
+.dash-workspace{padding:12px!important;border-radius:10px!important}
+.dash-toolbar{margin-bottom:8px!important}
+.dash-filters{margin-bottom:8px!important;gap:4px!important}
+.dash-filters .tmode-btn{padding:5px 12px!important;font-size:.72rem!important;border-radius:16px!important}
+.dash-energy{padding:6px 12px!important;border-radius:8px!important;margin-top:8px!important}
+
+/* ── 10. TODAY VIEW ── */
+.today-section{margin-bottom:16px}
+.today-section-header{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:8px;cursor:pointer;
+  user-select:none;
+}
+.today-section-title{
+  font-size:.6rem;text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);font-family:'JetBrains Mono',monospace;font-weight:600;
+}
+.today-section-count{
+  font-size:.58rem;font-family:'JetBrains Mono',monospace;
+  color:var(--muted);background:rgba(255,255,255,.04);
+  padding:1px 6px;border-radius:8px;
+}
+.today-section-toggle{
+  margin-left:auto;font-size:.6rem;color:var(--muted);
+  transition:transform .2s ease;
+}
+.today-section.collapsed .today-section-toggle{transform:rotate(-90deg)}
+.today-section.collapsed .today-section-body{display:none}
+.today-focus-card{
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),.06),rgba(var(--purple-rgb),.03));
+  border:1px solid rgba(var(--accent-rgb),.12);
+  border-radius:10px;padding:14px 16px;margin-bottom:12px;
+}
+.today-focus-label{
+  font-size:.55rem;text-transform:uppercase;letter-spacing:2px;
+  color:var(--accent);font-family:'JetBrains Mono',monospace;
+  font-weight:700;margin-bottom:6px;
+}
+.today-focus-task{font-size:.95rem;font-weight:700;margin-bottom:4px}
+.today-focus-meta{
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  font-size:.72rem;color:var(--muted2);
+}
+
+/* ── 11. QUICK-ADD PANEL ── */
+.quick-add-panel{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--card);border-top:1px solid var(--border2);
+  padding:14px 20px;z-index:400;
+  transform:translateY(100%);transition:transform .25s var(--ease);
+  box-shadow:0 -8px 40px rgba(0,0,0,.4);
+}
+.quick-add-panel.open{transform:translateY(0)}
+.quick-add-panel-inner{
+  max-width:640px;margin:0 auto;
+  display:flex;gap:8px;align-items:center;
+}
+.quick-add-panel-inner input{
+  flex:1;background:transparent;border:none;padding:8px 0;
+  font-size:.92rem;color:var(--text);margin:0;
+}
+.quick-add-panel-inner input:focus{box-shadow:none;border:none;background:transparent}
+.quick-add-panel-inner button{
+  padding:8px 16px;border-radius:8px;font-size:.78rem;font-weight:700;
+}
+.quick-add-hint{
+  font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;
+  margin-top:6px;max-width:640px;margin-left:auto;margin-right:auto;
+}
+
+/* ── 12. GLOBAL SEARCH OVERLAY ── */
+.search-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:600;display:none;align-items:flex-start;justify-content:center;
+  padding-top:15vh;backdrop-filter:blur(8px);
+}
+.search-overlay.open{display:flex;animation:fadeIn .15s ease}
+.search-box{
+  width:100%;max-width:520px;background:var(--card);
+  border:1px solid var(--border2);border-radius:14px;
+  box-shadow:var(--shadow-float);overflow:hidden;
+  animation:cmdIn .2s var(--ease);
+}
+.search-input{
+  width:100%;padding:14px 18px;background:transparent;border:none;
+  font-size:.95rem;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;
+}
+.search-input:focus{box-shadow:none;border:none;outline:none}
+.search-results{max-height:320px;overflow-y:auto;border-top:1px solid var(--border)}
+.search-result-item{
+  display:flex;align-items:center;gap:10px;padding:10px 18px;
+  cursor:pointer;transition:background .08s ease;font-size:.84rem;
+}
+.search-result-item:hover,.search-result-item.active{background:rgba(var(--accent-rgb),.08)}
+.search-result-type{
+  font-size:.55rem;text-transform:uppercase;letter-spacing:1px;
+  color:var(--muted);font-family:'JetBrains Mono',monospace;min-width:40px;
+}
+.search-empty{padding:24px;text-align:center;color:var(--muted);font-size:.82rem}
+
+/* ── 13. CALENDAR POLISH ── */
+.cal-day{border-radius:8px!important;transition:all .15s ease!important}
+.cal-day.today{
+  background:rgba(var(--accent-rgb),.15)!important;
+  border:1.5px solid rgba(var(--accent-rgb),.4)!important;
+  font-weight:700!important;
+}
+.cal-day.today .cal-dn{color:var(--accent)!important}
+.cal-day:hover{background:rgba(255,255,255,.06)!important}
+.cal-day-count{
+  font-size:.5rem;font-family:'JetBrains Mono',monospace;
+  color:var(--muted);background:rgba(255,255,255,.06);
+  padding:0 4px;border-radius:3px;margin-top:2px;
+  line-height:1.4;
+}
+.cal-day-add{
+  opacity:0;font-size:.6rem;color:var(--muted);cursor:pointer;
+  margin-top:auto;transition:opacity .12s;
+}
+.cal-day:hover .cal-day-add{opacity:1}
+
+/* ── 14. INPUTS TIGHTER ── */
+input[type=text],input[type=date],input[type=email],input[type=password],input[type=time],input[type=number],select,textarea{
+  padding:8px 12px!important;margin-top:4px!important;margin-bottom:8px!important;
+  border-radius:8px!important;font-size:.84rem!important;
+}
+
+/* ── 15. BUTTON VARIANTS ── */
+.btn-ghost{
+  background:transparent;border:none;color:var(--muted2);
+  padding:6px 10px;font-size:.78rem;font-weight:600;
+  cursor:pointer;border-radius:6px;
+  transition:color .12s,background .12s;
+}
+.btn-ghost:hover{color:var(--text);background:rgba(255,255,255,.05);transform:none;box-shadow:none}
+.btn-icon{
+  width:32px;height:32px;border-radius:8px;border:none;
+  background:rgba(255,255,255,.04);color:var(--muted);
+  cursor:pointer;font-size:.85rem;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s ease;
+}
+.btn-icon:hover{background:rgba(255,255,255,.08);color:var(--text);transform:none!important;box-shadow:none!important}
+
+/* ── 16. MODAL POLISH ── */
+.modal-card{padding:24px!important;border-radius:16px!important}
+.modal-title{font-size:1rem!important;margin-bottom:16px!important}
+.mrow{margin-bottom:10px!important}
+
+/* ── 17. SMOOTH EVERYTHING ── */
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+::selection{background:rgba(var(--accent-rgb),.25);color:var(--text)}
+
+/* ── 18. KEYBOARD SHORTCUT HINT ── */
+.kbd-hint{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 6px;border-radius:4px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);
+  font-size:.58rem;font-family:'JetBrains Mono',monospace;
+  color:var(--muted);white-space:nowrap;
+}
+
+/* ── 19. EMPTY STATES V2 ── */
+.empty{padding:32px 20px!important}
+.empty-icon{font-size:2rem!important;opacity:.25!important}
+.empty-title{font-size:.88rem!important}
+
+/* ── 20. MOBILE REFINEMENTS ── */
+@media(max-width:768px){
+  .panel{max-width:none;padding:12px 12px 90px!important}
+  .card{padding:14px!important}
+  .task-actions{opacity:1}
+  .quick-add-panel{padding:12px 16px}
+  .search-box{margin:0 12px;max-width:none}
+}
