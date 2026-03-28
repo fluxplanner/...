@@ -1152,17 +1152,44 @@ function toggleECType(id){
 }
 
 function addExtra(){
+  const editId = parseInt(document.getElementById('extraEditId')?.value);
   const name = document.getElementById('extraName')?.value.trim();
   const types = _selectedECTypes.size ? [..._selectedECTypes] : ['activity'];
   const hours = parseInt(document.getElementById('extraHours')?.value) || 0;
   const desc = document.getElementById('extraDesc')?.value.trim() || '';
   if(!name) return;
-  extras.push({id: Date.now(), name, types, hours, desc, createdAt: Date.now()});
+  if(editId){
+    const idx = extras.findIndex(e => e.id === editId);
+    if(idx !== -1) Object.assign(extras[idx], {name, types, hours, desc});
+  } else {
+    extras.push({id: Date.now(), name, types, hours, desc, createdAt: Date.now()});
+  }
   save('flux_extras', extras);
-  ['extraName','extraHours','extraDesc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  _selectedECTypes.clear();
-  renderECTypeChips();
+  _clearExtraForm();
   renderExtrasList();
+}
+function editExtra(id){
+  const e = extras.find(x => x.id === id); if(!e) return;
+  document.getElementById('extraEditId').value = id;
+  document.getElementById('extraName').value = e.name || '';
+  document.getElementById('extraHours').value = e.hours || '';
+  document.getElementById('extraDesc').value = e.desc || '';
+  const typeArr = Array.isArray(e.types) ? e.types : (e.type ? [e.type] : ['activity']);
+  _selectedECTypes = new Set(typeArr);
+  renderECTypeChips();
+  const btn = document.getElementById('extraSubmitBtn'); if(btn){ btn.textContent = '✓ Save'; }
+  const cancel = document.getElementById('extraCancelBtn'); if(cancel) cancel.style.display = '';
+  document.getElementById('extraName')?.focus();
+}
+function cancelEditExtra(){
+  _clearExtraForm();
+  renderECTypeChips();
+}
+function _clearExtraForm(){
+  ['extraName','extraHours','extraDesc','extraEditId'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  _selectedECTypes.clear();
+  const btn = document.getElementById('extraSubmitBtn'); if(btn) btn.textContent = '+';
+  const cancel = document.getElementById('extraCancelBtn'); if(cancel) cancel.style.display = 'none';
 }
 function removeExtra(id){
   extras = extras.filter(e => e.id !== id);
@@ -1187,7 +1214,8 @@ function renderExtrasList(){
         </div>
         ${e.desc ? `<div style="font-size:.75rem;color:var(--muted2);margin-top:3px;line-height:1.4">${esc(e.desc)}</div>` : ''}
       </div>
-      <button onclick="removeExtra(${e.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px;flex-shrink:0">✕</button>
+      <button onclick="editExtra(${e.id})" title="Edit" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.82rem;padding:4px;flex-shrink:0;opacity:.6;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">✎</button>
+      <button onclick="removeExtra(${e.id})" title="Delete" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px;flex-shrink:0;opacity:.6;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">✕</button>
     </div>`;
   }).join('');
   renderECTypeChips();

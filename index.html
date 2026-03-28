@@ -980,10 +980,12 @@
       <div class="card">
         <h3>🏆 My Activities</h3>
         <div id="extrasList" style="margin-bottom:10px"></div>
+        <input type="hidden" id="extraEditId" value="">
         <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
           <div style="flex:1;min-width:160px"><label style="font-size:.7rem;color:var(--muted)">Activity name</label><input type="text" id="extraName" placeholder="e.g. Varsity Soccer, Debate Club..." style="margin:0"></div>
           <div><label style="font-size:.7rem;color:var(--muted)">Hours/wk</label><input type="number" id="extraHours" placeholder="5" min="0" max="40" style="margin:0;width:64px"></div>
-          <button onclick="addExtra()" style="align-self:end;padding:10px 14px">+</button>
+          <button id="extraSubmitBtn" onclick="addExtra()" style="align-self:end;padding:10px 14px">+</button>
+          <button id="extraCancelBtn" onclick="cancelEditExtra()" style="align-self:end;padding:10px 14px;display:none;background:transparent;border:1px solid var(--border);color:var(--muted)">Cancel</button>
         </div>
         <div style="margin-top:8px">
           <label style="font-size:.7rem;color:var(--muted)">Type (select all that apply)</label>
