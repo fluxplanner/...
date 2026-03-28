@@ -2502,38 +2502,37 @@ function initFAB(){
   const menu=document.getElementById('fabMenu');
   if(!fab||!menu)return;
   let open=false;
+  function setOpen(v){
+    open=v;
+    fab.classList.toggle('open',open);
+    menu.classList.toggle('open',open);
+  }
   fab.addEventListener('click',e=>{
     e.stopPropagation();
-    open=!open;
-    fab.style.transform=open?'rotate(45deg) scale(1.1)':'rotate(0) scale(1)';
-    menu.style.display=open?'flex':'none';
-    if(open){
-      requestAnimationFrame(()=>{
-        menu.style.opacity='1';menu.style.transform='translateY(0) scale(1)';
-      });
-    }
+    setOpen(!open);
   });
-  document.addEventListener('click',()=>{
-    if(open){open=false;fab.style.transform='';menu.style.opacity='0';menu.style.transform='translateY(8px) scale(.97)';setTimeout(()=>{if(!open)menu.style.display='none';},180);}
+  menu.addEventListener('click',()=>setOpen(false));
+  document.addEventListener('click',e=>{
+    if(open&&!fab.contains(e.target)&&!menu.contains(e.target))setOpen(false);
   });
 }
 
+function closeFAB(){
+  document.getElementById('fabMenu')?.classList.remove('open');
+  document.getElementById('fabBtn')?.classList.remove('open');
+}
 function fabAddTask(){
-  document.getElementById('fabMenu').style.display='none';
-  document.getElementById('fabBtn').style.transform='';
-  // Focus quick add
+  closeFAB();
   const qa=document.getElementById('quickAddInput');
   if(qa){nav('dashboard');setTimeout(()=>{qa.focus();qa.scrollIntoView({behavior:'smooth',block:'center'});},120);}
 }
 function fabAddGrade(){
-  document.getElementById('fabMenu').style.display='none';
-  document.getElementById('fabBtn').style.transform='';
+  closeFAB();
   nav('grades');
   setTimeout(()=>{document.getElementById('newSubject')?.focus();},150);
 }
 function fabFocus(){
-  document.getElementById('fabMenu').style.display='none';
-  document.getElementById('fabBtn').style.transform='';
+  closeFAB();
   nav('timer');
 }
 

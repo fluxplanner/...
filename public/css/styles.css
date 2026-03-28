@@ -564,26 +564,66 @@ button:active:not(:disabled){transform:scale(.96) translateY(0)!important}
 
 
 /* FAB */
-#fabContainer{position:fixed!important;bottom:86px!important;right:20px!important;z-index:300!important}
-@media(max-width:768px){#fabContainer{bottom:80px!important}}
-#fabBtn{
-  width:52px!important;height:52px!important;
-  border-radius:50%!important;
-  display:grid!important;place-items:center!important;
-  padding:0!important;margin:0!important;
-  font-size:0!important;
-  background:var(--accent)!important;border:none!important;color:#fff!important;
-  box-shadow:0 4px 20px rgba(var(--accent-rgb),.45)!important;
-  cursor:pointer!important;
-  transition:transform .2s,box-shadow .2s!important;
+/* ══ FAB — FLOATING ACTION BUTTON ══ */
+.fab-container{
+  position:fixed;bottom:86px;right:20px;z-index:300;
+  display:flex;flex-direction:column;align-items:flex-end;gap:10px;
 }
-#fabBtn::after{
-  content:'+';
-  font-size:28px;font-weight:300;line-height:1;
-  display:block;
+@media(max-width:768px){.fab-container{bottom:80px;right:16px}}
+
+.fab-trigger{
+  width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),rgba(var(--accent-rgb),.75));
+  box-shadow:0 6px 24px rgba(var(--accent-rgb),.4),0 0 0 0 rgba(var(--accent-rgb),0);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease;
+  position:relative;overflow:hidden;
 }
-#fabBtn:hover{transform:scale(1.08) rotate(4deg)!important;box-shadow:0 8px 28px rgba(var(--accent-rgb),.55)!important}
-#fabBtn:active{transform:scale(.94)!important}
+.fab-trigger::before,.fab-trigger::after{
+  content:'';position:absolute;
+  top:50%;left:50%;
+  background:#fff;border-radius:2px;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.fab-trigger::before{width:22px;height:2.5px;transform:translate(-50%,-50%)}
+.fab-trigger::after{width:2.5px;height:22px;transform:translate(-50%,-50%)}
+.fab-trigger:hover{
+  transform:scale(1.08);
+  box-shadow:0 8px 32px rgba(var(--accent-rgb),.5),0 0 0 4px rgba(var(--accent-rgb),.12);
+}
+.fab-trigger:active{transform:scale(.92)}
+.fab-trigger.open{transform:rotate(45deg)}
+.fab-trigger.open:hover{transform:rotate(45deg) scale(1.08)}
+.fab-trigger.open::before,.fab-trigger.open::after{border-radius:1.5px}
+
+.fab-menu{
+  display:none;flex-direction:column;gap:6px;align-items:flex-end;
+  opacity:0;transform:translateY(10px) scale(.95);
+  transition:opacity .2s ease,transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.fab-menu.open{display:flex;opacity:1;transform:none;pointer-events:auto}
+
+.fab-action{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 18px;border-radius:28px;
+  background:var(--card);border:1px solid var(--border2);
+  color:var(--text);font-size:.8rem;font-weight:600;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  white-space:nowrap;cursor:pointer;
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+  backdrop-filter:blur(12px);
+}
+.fab-action:hover{
+  transform:translateX(-4px);
+  border-color:rgba(var(--accent-rgb),.25);
+  box-shadow:0 6px 24px rgba(0,0,0,.4);
+}
+.fab-action-icon{font-size:.9rem;flex-shrink:0}
+.fab-action-primary{
+  background:linear-gradient(135deg,var(--accent),rgba(var(--accent-rgb),.8));
+  border:none;color:#fff;font-weight:700;
+  box-shadow:0 4px 20px rgba(var(--accent-rgb),.35);
+}
+.fab-action-primary:hover{box-shadow:0 6px 24px rgba(var(--accent-rgb),.45)}
 
 /* ══ KEYBOARD HINT ══ */
 #keyHint{animation:slideUp .3s var(--ease-spring)}
@@ -728,7 +768,7 @@ button:active:not(:disabled){transform:scale(.96) translateY(0)!important}
   .school-info-grid{grid-template-columns:1fr!important}
 }
 
-/* FAB centering — consolidated into the single #fabBtn rule above */
+/* FAB centering — moved to .fab-trigger above */
 
 /* ── CALENDAR TASK BARS ── */
 .cal-day{aspect-ratio:unset;min-height:52px;padding:3px 2px;flex-direction:column;align-items:stretch;justify-content:flex-start}
