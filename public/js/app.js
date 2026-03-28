@@ -329,7 +329,7 @@ let tabConfig=load('flux_tabs',DEFAULT_TABS);
 DEFAULT_TABS.forEach(dt=>{if(!tabConfig.find(t=>t.id===dt.id))tabConfig.push({...dt});});
 save('flux_tabs',tabConfig);
 
-let taskFilter='all',editingId=null,editingGoalId=null;
+let taskFilter='active',editingId=null,editingGoalId=null;
 let aiHistory=[],aiPendingImg=null;
 // Canvas + Gmail — declared here so renderProfile/renderCanvasStatus can access them at init time
 let canvasToken=load('flux_canvas_token','');
@@ -568,6 +568,14 @@ function toggleTask(id){
 }
 function deleteTask(id){tasks=tasks.filter(x=>x.id!==id);save('tasks',tasks);renderStats();renderTasks();renderCalendar();renderCountdown();syncKey('tasks',tasks);}
 function setFilter(f,el){taskFilter=f;document.querySelectorAll('#filterChips .tmode-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderTasks();}
+function toggleCompletedTasks(){
+  const show=!load('flux_show_completed',false);
+  save('flux_show_completed',show);
+  const wrap=document.getElementById('completedTasksWrap');
+  const toggle=document.querySelector('.completed-toggle');
+  if(wrap)wrap.style.display=show?'':'none';
+  if(toggle)toggle.classList.toggle('collapsed',!show);
+}
 // ── TOPBAR TASK COUNT PILL ──────────────────────────────────
 function updateTopbarStats(){
   const pill=document.getElementById('topbarTaskPill');
@@ -705,35 +713,40 @@ function renderTasks(){
   });
   const el=document.getElementById('taskList');
   if(!list.length){
-    const msgs={active:'No active tasks — you\'re on top of it! 🎉',done:'No completed tasks yet.',overdue:'No overdue tasks! Great work.',today:'Nothing due today.',high:'No high-priority tasks.',all:'Add your first task to get started.'};
-    el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">${msgs[taskFilter]||msgs.all}</div><div class="empty-sub">Press + or ⌘K to add a task</div></div>`;
+    const msgs={active:'All clear — nothing to do right now',done:'No completed tasks yet',overdue:'No overdue tasks',today:'Nothing due today',high:'No high-priority tasks',all:'No tasks yet'};
+    el.innerHTML=`<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">${msgs[taskFilter]||msgs.all}</div><div class="empty-sub">Press <span class="kbd-hint">+</span> or <span class="kbd-hint">⌘K</span> to add a task</div></div>`;
     return;
   }
   const tm={hw:{l:'HW',c:'var(--muted)'},test:{l:'Test',c:'var(--red)'},quiz:{l:'Quiz',c:'var(--gold)'},project:{l:'Project',c:'var(--purple)'},essay:{l:'Essay',c:'var(--blue)'},lab:{l:'Lab',c:'var(--green)'},other:{l:'Other',c:'var(--muted)'}};
-  el.innerHTML=list.map(t=>{
+  const todayS=todayStr();
+  const active=list.filter(t=>!t.done);
+  const done=list.filter(t=>t.done);
+  const renderCard=t=>{
     const sub=getSubjects()[t.subject];
     const isOver=t.date&&new Date(t.date+'T00:00:00')<now&&!t.done;
+    const isToday=t.date&&t.date===todayS&&!t.done;
     const isNP=t.date&&isBreak(t.date);
     const ds=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
     const ti=tm[t.type]||tm.other;
     const priClass=t.priority==='high'?'priority-high':t.priority==='med'?'priority-med':'priority-low';
-    const procras=(t.rescheduled||0)>=3?`<div class="procras-flag">⚠ Rescheduled ${t.rescheduled}×</div>`:'';
+    const procras=(t.rescheduled||0)>=3?`<div class="procras-flag">Rescheduled ${t.rescheduled}×</div>`:'';
     const stPct=t.subtasks?.length?Math.round(t.subtasks.filter(s=>s.done).length/t.subtasks.length*100):-1;
     const stBar=stPct>=0?`<div class="task-prog"><div class="task-prog-fill" style="width:${stPct}%"></div></div>`:'';
     const blocked=typeof isBlocked==='function'&&isBlocked(t);
     const depBadge=typeof renderDepBadge==='function'?renderDepBadge(t):'';
-    const blockedStyle=blocked?'opacity:.5;pointer-events:auto':'';
+    const blockedStyle=blocked?'opacity:.45;pointer-events:auto':'';
     const priChip=t.priority?`<span class="task-chip task-chip-priority ${t.priority}">${t.priority}</span>`:'';
-    return`<div class="task-item ${priClass} ${t.done?'task-done':''}" data-task-id="${t.id}" draggable="true" style="${blockedStyle}">
-<div class="check ${t.done?'done':''}" onclick="${blocked?'showToast(\'🔒 Complete blockers first\',\'warning\');return':'toggleTask('+t.id+')'}">${t.done?'✓':blocked?'🔒':''}</div>
+    const extraCls=(isOver?' task-overdue':'')+(isToday?' due-today':'');
+    return`<div class="task-item ${priClass}${extraCls} ${t.done?'task-done':''}" data-task-id="${t.id}" draggable="true" style="${blockedStyle}">
+<div class="check ${t.done?'done':''}" onclick="${blocked?'showToast(\'Complete blockers first\',\'warning\');return':'toggleTask('+t.id+')'}">${t.done?'✓':blocked?'🔒':''}</div>
 <div class="task-body">
 <div class="task-text ${t.done?'done':''}">${esc(t.name)} ${depBadge}</div>
 <div class="task-tags">
 ${sub?`<span class="task-chip task-chip-subject">${sub.short}</span>`:''}
 ${priChip}
-${ds?`<span class="task-chip task-chip-due ${isOver?'overdue':''}">${ds}${isNP?' 📵':''}</span>`:''}
+${ds?`<span class="task-chip task-chip-due ${isOver?'overdue':''}${isToday?' due-today':''}">${ds}${isNP?' 📵':''}</span>`:''}
 ${t.estTime?`<span class="task-chip task-chip-time">${t.estTime}m</span>`:''}
-<span class="task-chip" style="background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)">${ti.l}</span>
+<span class="task-chip" style="background:rgba(255,255,255,.02);color:var(--muted);border:1px solid rgba(255,255,255,.04)">${ti.l}</span>
 </div>
 ${stBar}${procras}
 </div>
@@ -742,7 +755,18 @@ ${stBar}${procras}
 <button class="task-action-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button>
 </div>
 </div>`;
-  }).join('');
+  };
+  let html=active.map(renderCard).join('');
+  if(done.length){
+    const showDone=load('flux_show_completed',false);
+    html+=`<div class="completed-toggle ${showDone?'':'collapsed'}" onclick="toggleCompletedTasks()">
+      <span class="completed-toggle-label">Completed</span>
+      <span class="completed-toggle-count">${done.length}</span>
+      <span class="completed-toggle-chevron">▾</span>
+    </div>`;
+    html+=`<div id="completedTasksWrap" style="${showDone?'':'display:none'}">${done.map(renderCard).join('')}</div>`;
+  }
+  el.innerHTML=html;
 }
 function renderSmartSug(){const active=tasks.filter(t=>!t.done).sort((a,b)=>(b.urgencyScore||0)-(a.urgencyScore||0));const card=document.getElementById('smartSugCard');if(!active.length){card.style.display='none';return;}card.style.display='block';const top=active[0];const sub=getSubjects()[top.subject];const energy=parseInt(localStorage.getItem('flux_energy')||'3');const tip=energy<=2?'(low energy — try a short review)':energy>=4?'(high energy — tackle this first!)':'';document.getElementById('smartSug').textContent=top.name+(sub?' · '+sub.short:'');document.getElementById('smartSugSub').textContent=(top.type||'hw').toUpperCase()+(top.date?' · due '+new Date(top.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+' '+tip;}
 function renderCountdown(){const now=new Date();now.setHours(0,0,0,0);const next=tasks.filter(t=>!t.done&&(t.type==='test'||t.type==='quiz')&&t.date&&new Date(t.date+'T00:00:00')>=now).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];const card=document.getElementById('countdownCard');if(!next){card.style.display='none';return;}card.style.display='block';const diff=Math.max(0,Math.floor((new Date(next.date+'T00:00:00')-now)/86400000));const sub=getSubjects()[next.subject];const statusC=diff<=2?'var(--red)':diff<=5?'var(--gold)':'var(--green)';document.getElementById('countdownLabel').textContent=next.name+(sub?' · '+sub.short:'');document.getElementById('countdownGrid').innerHTML=[[diff,'Days','var(--accent)'],[Math.floor(diff/7),'Weeks','var(--accent)'],[new Date(next.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}),'Date','var(--accent)'],[diff<=2?'SOON ⚠':diff<=5?'NEAR':'OK ✓','Status',statusC]].map(([n,l,c])=>`<div style="background:var(--card2);border-radius:10px;padding:10px 6px;text-align:center"><div style="font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:${c}">${n}</div><div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px">${l}</div></div>`).join('');}
@@ -6035,10 +6059,24 @@ function openQuickAdd(){
   panel.classList.add('open');
   const input=document.getElementById('quickAddInput');
   if(input){input.value='';input.focus();}
+  updateQuickAddPreview('');
 }
 function closeQuickAdd(){
   const panel=document.getElementById('quickAddPanel');
   if(panel)panel.classList.remove('open');
+  updateQuickAddPreview('');
+}
+function updateQuickAddPreview(raw){
+  const el=document.getElementById('quickAddParsed');
+  if(!el)return;
+  if(!raw.trim()){el.innerHTML='';return;}
+  const p=parseNaturalTask(raw);
+  let chips='';
+  if(p.subject){const s=getSubjects()[p.subject];chips+=`<span class="task-chip task-chip-subject">${s?s.short:p.subject}</span>`;}
+  if(p.priority!=='med')chips+=`<span class="task-chip task-chip-priority ${p.priority}">${p.priority}</span>`;
+  if(p.date)chips+=`<span class="task-chip task-chip-due">${new Date(p.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
+  if(p.type!=='hw')chips+=`<span class="task-chip" style="background:rgba(255,255,255,.03);color:var(--muted);border:1px solid rgba(255,255,255,.05)">${p.type}</span>`;
+  el.innerHTML=chips;
 }
 function submitQuickAdd(){
   const input=document.getElementById('quickAddInput');
@@ -6055,8 +6093,9 @@ function submitQuickAdd(){
   t.urgencyScore=calcUrgency(t);
   tasks.unshift(t);save('tasks',tasks);
   input.value='';input.focus();
+  updateQuickAddPreview('');
   renderStats();renderTasks();
-  showToast('✓ Added: '+t.name,'success');
+  showToast('Added: '+t.name,'success');
   syncKey('tasks',tasks);
 }
 function parseNaturalTask(raw){
