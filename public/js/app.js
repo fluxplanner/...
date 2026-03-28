@@ -1119,15 +1119,49 @@ let extras = load('flux_extras', []);
 let ecSchools = load('flux_ec_schools', []);
 let ecGoals = load('flux_ec_goals', []);
 
+const EC_TYPES = [
+  {id:'activity',label:'Activity'},
+  {id:'award',label:'Award'},
+  {id:'achievement',label:'Achievement'},
+  {id:'leadership',label:'Leadership'},
+  {id:'sport',label:'Sport'},
+  {id:'art',label:'Art / Music'},
+  {id:'volunteer',label:'Volunteer'},
+  {id:'research',label:'Research'},
+  {id:'work',label:'Work / Internship'}
+];
+const EC_COLORS = {activity:'var(--accent)',award:'var(--gold)',achievement:'var(--green)',leadership:'var(--purple)',sport:'var(--red)',art:'#e879f9',volunteer:'#10d9a0',research:'var(--accent)',work:'var(--orange)'};
+let _selectedECTypes = new Set();
+
+function renderECTypeChips(){
+  const el = document.getElementById('extraTypeChips'); if(!el) return;
+  el.innerHTML = EC_TYPES.map(t => {
+    const sel = _selectedECTypes.has(t.id);
+    const c = EC_COLORS[t.id] || 'var(--accent)';
+    return `<button onclick="toggleECType('${t.id}')" style="
+      padding:4px 10px;border-radius:14px;font-size:.68rem;font-weight:600;cursor:pointer;
+      white-space:nowrap;transition:all .15s;border:1px solid ${sel?c+'55':'var(--border)'};
+      background:${sel?c+'18':'transparent'};color:${sel?c:'var(--muted2)'};
+    ">${t.label}</button>`;
+  }).join('');
+}
+function toggleECType(id){
+  if(_selectedECTypes.has(id)) _selectedECTypes.delete(id);
+  else _selectedECTypes.add(id);
+  renderECTypeChips();
+}
+
 function addExtra(){
   const name = document.getElementById('extraName')?.value.trim();
-  const type = document.getElementById('extraType')?.value || 'activity';
+  const types = _selectedECTypes.size ? [..._selectedECTypes] : ['activity'];
   const hours = parseInt(document.getElementById('extraHours')?.value) || 0;
   const desc = document.getElementById('extraDesc')?.value.trim() || '';
   if(!name) return;
-  extras.push({id: Date.now(), name, type, hours, desc, createdAt: Date.now()});
+  extras.push({id: Date.now(), name, types, hours, desc, createdAt: Date.now()});
   save('flux_extras', extras);
   ['extraName','extraHours','extraDesc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  _selectedECTypes.clear();
+  renderECTypeChips();
   renderExtrasList();
 }
 function removeExtra(id){
@@ -1138,14 +1172,17 @@ function removeExtra(id){
 function renderExtrasList(){
   const el = document.getElementById('extrasList'); if(!el) return;
   if(!extras.length){ el.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px 0">No activities added yet. Add your first one below!</div>'; return; }
-  const tc = {activity:'var(--accent)',award:'var(--gold)',achievement:'var(--green)',leadership:'var(--purple)',sport:'var(--red)',art:'#e879f9',volunteer:'#10d9a0',research:'var(--accent)',work:'var(--orange)'};
   el.innerHTML = extras.map(e => {
-    const c = tc[e.type] || 'var(--accent)';
+    const typeArr = Array.isArray(e.types) ? e.types : (e.type ? [e.type] : ['activity']);
+    const badges = typeArr.map(t => {
+      const c = EC_COLORS[t] || 'var(--accent)';
+      return `<span style="font-size:.6rem;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.5px;background:${c}18;padding:2px 7px;border-radius:10px;border:1px solid ${c}33">${t}</span>`;
+    }).join('');
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="font-size:.88rem;font-weight:600">${esc(e.name)}</div>
-        <div style="display:flex;gap:6px;margin-top:3px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:.6rem;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.5px;background:${c}18;padding:2px 7px;border-radius:10px;border:1px solid ${c}33">${e.type}</span>
+        <div style="display:flex;gap:5px;margin-top:3px;align-items:center;flex-wrap:wrap">
+          ${badges}
           ${e.hours ? `<span style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.hours} hrs/wk</span>` : ''}
         </div>
         ${e.desc ? `<div style="font-size:.75rem;color:var(--muted2);margin-top:3px;line-height:1.4">${esc(e.desc)}</div>` : ''}
@@ -1153,6 +1190,7 @@ function renderExtrasList(){
       <button onclick="removeExtra(${e.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px;flex-shrink:0">✕</button>
     </div>`;
   }).join('');
+  renderECTypeChips();
 }
 
 // ══ TARGET SCHOOLS ══
@@ -1227,7 +1265,7 @@ async function ecAISuggest(){
   const resEl = document.getElementById('ecAIResult');
   resEl.style.display = 'block';
   resEl.innerHTML = '<div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';
-  const activitiesList = extras.map(e=>`${e.name} (${e.type}${e.hours?' '+e.hours+'hrs/wk':''})`).join(', ') || 'None added yet';
+  const activitiesList = extras.map(e=>{const t=Array.isArray(e.types)?e.types.join(', '):(e.type||'activity');return`${e.name} (${t}${e.hours?' '+e.hours+'hrs/wk':''})`;}).join(', ') || 'None added yet';
   const schoolsList = ecSchools.map(s=>`${s.name} (${s.tier})`).join(', ') || 'None added yet';
   const prompt = `I'm a high school student. Here are my current extracurricular activities: ${activitiesList}.\n\nMy target schools: ${schoolsList}.\n\nBased on these, suggest 5-8 additional extracurricular activities I should consider. For each, explain WHY it would strengthen my profile (e.g. shows leadership, fills a gap, aligns with likely major). Be specific and actionable — not generic. Format each as a bullet with the activity name in bold.`;
   try {
@@ -1250,7 +1288,7 @@ async function ecAIAnalyze(){
   }
   resEl.style.display = 'block';
   resEl.innerHTML = '<div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';
-  const activitiesList = extras.map(e=>`${e.name} (${e.type}${e.hours?' '+e.hours+'hrs/wk':''}${e.desc?': '+e.desc:''})`).join('\n- ') || 'None';
+  const activitiesList = extras.map(e=>{const t=Array.isArray(e.types)?e.types.join(', '):(e.type||'activity');return`${e.name} (${t}${e.hours?' '+e.hours+'hrs/wk':''}${e.desc?': '+e.desc:''})`;}).join('\n- ') || 'None';
   const schoolsList = ecSchools.map(s=>`${s.name} (${s.tier})`).join(', ');
   const prompt = `Analyze my extracurricular profile for college admissions.\n\nMy activities:\n- ${activitiesList}\n\nTarget schools: ${schoolsList}\n\nFor EACH school, give:\n1. A fit score (Weak / Moderate / Strong / Excellent)\n2. What my profile is missing for that school specifically\n3. One concrete activity I should add to improve my chances\n\nAlso give an overall assessment of my profile's strengths and gaps. Be honest but constructive.`;
   try {
