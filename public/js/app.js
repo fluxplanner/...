@@ -5657,7 +5657,7 @@ function smartReorderDashboard(){
 
 
 // ══ RECOVERY MODE ════════════════════════════════════════════
-let _recoveryMode=false;
+var _recoveryMode=false;
 function toggleRecoveryMode(){
   _recoveryMode=!_recoveryMode;
   save('flux_recovery',_recoveryMode);
