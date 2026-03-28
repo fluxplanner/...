@@ -626,11 +626,12 @@ button:active:not(:disabled){transform:scale(.97)!important}
 .fab-trigger.open::before,.fab-trigger.open::after{border-radius:1.5px}
 
 .fab-menu{
-  display:none;flex-direction:column;gap:6px;align-items:flex-end;
+  display:flex;flex-direction:column;gap:6px;align-items:flex-end;
   opacity:0;transform:translateY(10px) scale(.95);
-  transition:opacity .2s ease,transform .25s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;visibility:hidden;
+  transition:opacity .2s ease,transform .25s cubic-bezier(.34,1.56,.64,1),visibility 0s .25s;
 }
-.fab-menu.open{display:flex;opacity:1;transform:none;pointer-events:auto}
+.fab-menu.open{opacity:1;transform:none;pointer-events:auto;visibility:visible;transition:opacity .2s ease,transform .25s cubic-bezier(.34,1.56,.64,1),visibility 0s 0s}
 
 .fab-action{
   display:flex;align-items:center;gap:8px;
@@ -1900,18 +1901,22 @@ body::before{opacity:.5!important}
 }
 
 /* ── FAB MENU ITEMS: STAGGER IN ── */
-.fab-menu.open .fab-action{animation:fabItemIn .25s var(--ease-spring) both}
-.fab-menu.open .fab-action:nth-child(1){animation-delay:0s}
-.fab-menu.open .fab-action:nth-child(2){animation-delay:.05s}
-.fab-menu.open .fab-action:nth-child(3){animation-delay:.1s}
-.fab-menu.open .fab-action:nth-child(4){animation-delay:.15s}
-@keyframes fabItemIn{
-  from{opacity:0;transform:translateX(12px) scale(.9)}
-  to{opacity:1;transform:none}
+.fab-menu .fab-action{
+  opacity:0;transform:translateY(8px) translateX(12px) scale(.85);
+  transition:opacity .25s ease,transform .3s cubic-bezier(.34,1.56,.64,1),border-color .15s ease,box-shadow .2s ease,background .15s ease!important;
 }
-.fab-action{transition:transform .15s var(--ease-spring),border-color .15s ease,box-shadow .15s ease!important}
-.fab-action:hover{transform:translateX(-6px) scale(1.02)!important}
-.fab-action:active{transform:translateX(-2px) scale(.96)!important}
+.fab-menu.open .fab-action{opacity:1;transform:translateY(0) translateX(0) scale(1)}
+.fab-menu.open .fab-action:nth-child(1){transition-delay:.03s}
+.fab-menu.open .fab-action:nth-child(2){transition-delay:.07s}
+.fab-menu.open .fab-action:nth-child(3){transition-delay:.11s}
+.fab-menu.open .fab-action:nth-child(4){transition-delay:.15s}
+.fab-menu.open .fab-action:nth-child(5){transition-delay:.19s}
+.fab-menu.open .fab-action:hover{
+  transform:translateX(-8px) scale(1.04)!important;
+  border-color:rgba(var(--accent-rgb),.35);
+  box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 12px rgba(var(--accent-rgb),.15);
+}
+.fab-menu.open .fab-action:active{transform:translateX(-3px) scale(.95)!important}
 
 /* ── FILTER CHIPS: PRESS EFFECT ── */
 .dash-filters .tmode-btn{transition:all .15s var(--ease-spring)!important}
