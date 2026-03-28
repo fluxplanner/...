@@ -992,3 +992,201 @@ button[onclick*="generateStudyRoadmap"]:hover{
   .mob-drawer-nav .nav-item.active{color:var(--accent)!important}
   .mob-drawer-nav .nav-group-label{color:var(--muted)!important}
 }
+
+/* ══════════════════════════════════════════════════════════════
+   NEW SYSTEMS CSS
+   ══════════════════════════════════════════════════════════════ */
+
+/* Cognitive load bar */
+#cogLoadWrap{transition:opacity .3s;cursor:help}
+#cogLoadBar{transition:width .6s var(--ease-spring,ease),background .4s}
+
+/* Momentum pill */
+#momentumPill{
+  padding:3px 10px;border-radius:20px;
+  font-size:.65rem;font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+  display:none;align-items:center;
+  transition:all .3s;cursor:default;
+}
+
+/* Ambient visualizer bars */
+.amb-bar{
+  flex:1;min-width:3px;
+  background:rgba(var(--accent-rgb),.35);
+  border-radius:2px 2px 0 0;
+  transition:height .08s linear;
+}
+
+/* Tour tooltip */
+.tour-tooltip{
+  position:fixed;z-index:9000;
+  background:var(--card,#1a1b2e);
+  border:1px solid rgba(var(--accent-rgb),.4);
+  border-radius:14px;padding:16px;
+  max-width:260px;
+  box-shadow:0 12px 40px rgba(0,0,0,.5);
+  animation:slideUp .3s ease both;
+}
+
+/* Friction glow on rescheduled tasks */
+.task-item[data-reschedule="1"]{
+  border-left-width:3px!important;
+  border-left-color:rgba(251,191,36,.55)!important;
+}
+.task-item[data-reschedule="2"]{
+  border-left-width:3px!important;
+  border-left-color:rgba(251,146,60,.75)!important;
+  box-shadow:0 0 8px rgba(251,146,60,.2)!important;
+}
+.task-item[data-reschedule="3"]{
+  border-left-width:4px!important;
+  border-left-color:rgba(244,63,94,.85)!important;
+  box-shadow:0 0 14px rgba(244,63,94,.25)!important;
+}
+
+/* SRS review task styling */
+.task-item.srs-review{
+  opacity:.85;
+  border-left-color:rgba(var(--accent-rgb),.4)!important;
+}
+
+/* Auto-next bar */
+#autoNextBar{
+  animation:slideUp .3s var(--ease-spring,ease);
+}
+
+/* Undo snackbar */
+#undoSnackbar{
+  animation:slideUp .25s var(--ease-spring,ease);
+}
+
+/* Quick-jump pills */
+#quickJumpPills button:hover{
+  background:rgba(var(--accent-rgb),.12)!important;
+  border-color:rgba(var(--accent-rgb),.3)!important;
+  color:var(--accent)!important;
+}
+
+/* Saved views section */
+#savedViewsSection{
+  animation:fadeIn .2s ease;
+}
+
+/* Task form voice + templates */
+#voiceBtn:hover,#voiceBtn:focus{
+  border-color:rgba(var(--accent-rgb),.4)!important;
+  background:rgba(var(--accent-rgb),.1)!important;
+}
+#voiceBtn.listening{
+  color:var(--red)!important;
+  border-color:rgba(244,63,94,.5)!important;
+  animation:pulse 1s infinite;
+}
+
+/* Just Start active state */
+#justStartBtn.active{
+  background:rgba(var(--accent-rgb),.2)!important;
+  border-color:rgba(var(--accent-rgb),.4)!important;
+  color:var(--accent)!important;
+}
+
+/* High contrast adjustments */
+body.high-contrast .card{
+  border-color:rgba(255,255,255,.3)!important;
+}
+body.high-contrast .nav-item{
+  color:#ddd!important;
+}
+
+/* Collapsible section chevron */
+.section-chevron{
+  font-size:.7rem;color:var(--muted);
+  transition:transform .2s ease;
+  cursor:pointer;margin-left:auto;
+}
+
+/* Ghost draft section on task card */
+.ghost-draft{
+  margin-top:8px;
+  padding:8px 10px;
+  background:rgba(var(--accent-rgb),.06);
+  border:1px solid rgba(var(--accent-rgb),.15);
+  border-radius:8px;
+  font-size:.72rem;
+  color:var(--muted2);
+  line-height:1.7;
+}
+.ghost-draft-title{
+  font-size:.62rem;
+  text-transform:uppercase;
+  letter-spacing:1.5px;
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  margin-bottom:4px;
+  font-weight:600;
+}
+
+/* Distraction count */
+#distractionCount{
+  font-size:.62rem;
+  color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+  text-align:center;
+  min-height:14px;
+  margin-top:4px;
+}
+
+/* Effort report */
+#effortReport div{line-height:1.5}
+
+/* Subject efficiency heatmap table */
+#subjectEffHeatmap table td div:hover{
+  transform:scale(1.3);
+  transition:transform .15s;
+}
+
+/* Shutdown panel slide-in */
+#shutdownPanel{
+  animation:fadeIn .3s ease;
+}
+
+/* Template menu cards hover */
+#templateMenu button:hover{
+  border-color:rgba(var(--accent-rgb),.3)!important;
+  background:rgba(var(--accent-rgb),.08)!important;
+  transform:translateY(-2px)!important;
+}
+
+/* Physics modal polish */
+#physicsModal input[type="number"]{
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* Shimmer animation for skeletons */
+@keyframes shimmer{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
+
+/* Session recap */
+#sessionRecap{
+  animation:slideUp .3s var(--ease-spring,ease);
+}
+
+/* Mobile: task swipe visual feedback */
+[data-task-id]{
+  will-change:transform;
+}
+
+/* Physics toolbox badge on task cards */
+.physics-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 6px;border-radius:6px;
+  background:rgba(var(--accent-rgb),.1);
+  border:1px solid rgba(var(--accent-rgb),.2);
+  color:var(--accent);font-size:.6rem;
+  font-family:'JetBrains Mono',monospace;
+  cursor:pointer;
+}
+.physics-badge:hover{background:rgba(var(--accent-rgb),.18);}
