@@ -69,7 +69,8 @@ self.addEventListener('fetch', e => {
       if (cached) return cached;
       return fetch(e.request).then(res => {
         if (res && res.status === 200) {
-          caches.open(STATIC).then(c => c.put(e.request, res.clone()));
+          const clone = res.clone();
+          caches.open(STATIC).then(c => c.put(e.request, clone));
         }
         return res;
       }).catch(() => caches.match('/Fluxplanner/index.html'));

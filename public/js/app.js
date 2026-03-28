@@ -360,10 +360,10 @@ function getSB(){
   if(!_sb&&window.supabase?.createClient){
     _sb=window.supabase.createClient(SB_URL,SB_ANON,{
       auth:{
-        detectSessionInUrl:true,   // picks up OAuth callback from URL on page load
-        persistSession:true,       // keeps session in localStorage
-        autoRefreshToken:true,     // refresh tokens automatically
-        flowType:'implicit',       // use implicit flow (no PKCE server needed)
+        detectSessionInUrl:true, // OAuth: exchange ?code= / parse hash before session exists
+        persistSession:true,
+        autoRefreshToken:true,
+        // PKCE (default) — required for Google OAuth + ?code= callback; implicit breaks session exchange
       }
     });
   }
@@ -2859,6 +2859,22 @@ function confirmGuestLogin(){
   setSyncStatus('offline');
 }
 
+// Wait for PKCE code exchange / hash parsing — getSession() can briefly return null on redirect
+async function getSessionAfterOAuth(sb){
+  let{data:{session}}=await sb.auth.getSession();
+  const hash=window.location.hash;
+  const params=new URLSearchParams(window.location.search);
+  const oauthPending=hash.includes('access_token')||hash.includes('error')||params.has('code');
+  if(session||!oauthPending)return session;
+  for(let i=0;i<150;i++){
+    await new Promise(r=>setTimeout(r,100));
+    ({data:{session}}=await sb.auth.getSession());
+    if(session)return session;
+    if(window.location.hash.includes('error='))return null;
+  }
+  return(await sb.auth.getSession()).data.session;
+}
+
 async function initAuth(){
   const sb=getSB();
   if(!sb){
@@ -2866,17 +2882,15 @@ async function initAuth(){
     return;
   }
   try{
-    // Check if this is an OAuth callback (URL has access_token or code param)
     const hash=window.location.hash;
     const params=new URLSearchParams(window.location.search);
     const isOAuthCallback=hash.includes('access_token')||hash.includes('error')||params.has('code');
 
-    // STEP 1: getSession() FIRST — reads tokens from URL before we clean it
-    const{data:{session},error}=await sb.auth.getSession();
-    
-    // Clean URL AFTER Supabase has read the tokens
+    const session=await getSessionAfterOAuth(sb);
+
     if(isOAuthCallback){
-      window.history.replaceState(null,'',window.location.pathname);
+      const cleanPath=window.location.pathname;
+      window.history.replaceState(null,'',cleanPath);
     }
     
     // STEP 2: Sign in or show login
@@ -2953,11 +2967,15 @@ async function handleSignedIn(user,session){
   // ── ACCOUNT SWITCH: wipe previous user's data ──────────────
   const lastId = localStorage.getItem('flux_last_user_id');
   if(lastId && lastId !== user.id){
-    // Different account — clear EVERYTHING personal from localStorage
-    // Device prefs (splash flag) survive; everything else goes
-    const survivingKeys = ['flux_splash_shown','flux_theme'];
-    const survived = {};
+    // Different account — clear app data but NEVER clear sb-* keys (Supabase auth session)
+    // localStorage.clear() was wiping the new OAuth tokens → immediate SIGNED_OUT
+    const survivingKeys=['flux_splash_shown','flux_theme'];
+    const survived={};
     survivingKeys.forEach(k=>{const v=localStorage.getItem(k);if(v!==null)survived[k]=v;});
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&(k.startsWith('sb-')||k.includes('supabase')))survived[k]=localStorage.getItem(k);
+    }
     localStorage.clear();
     Object.entries(survived).forEach(([k,v])=>localStorage.setItem(k,v));
     // Reset all in-memory state
@@ -3044,8 +3062,7 @@ function handleSignedOut(){
   keysToKeep.forEach(k=>{const v=localStorage.getItem(k);if(v!==null)kept[k]=v;});
   localStorage.clear();
   Object.entries(kept).forEach(([k,v])=>localStorage.setItem(k,v));
-  // Hard reload back to exact GitHub Pages URL — guarantees login screen on restart
-  window.location.replace('https://azfermohammed.github.io/Fluxplanner/');
+  window.location.replace(getRedirectURL());
 }
 
 // ══ FEATURE PILLS — injected into login screen ══
@@ -3293,6 +3310,7 @@ function initDashboardFeatures(){
       afterSplash();
     }
   },30);
+})();
 
 // ══ SPACED REPETITION SYSTEM ══════════════════════════════════
 function generateSRSReviews(originalTask){
@@ -3918,8 +3936,6 @@ function initQuickJumpPills(){
       ${j.label}
     </button>`).join('');
 }
-
-})();
 
 // ══ IMAGE IMPORT FEATURES ══
 
