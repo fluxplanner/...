@@ -2406,15 +2406,16 @@ async function analyzeScheduleImg(){
 }
 
 // ══ AUTH ══
-// getRedirectURL works for GitHub Pages (/Fluxplanner/ path) and any other host
+// OAuth redirect must match this URL exactly in Supabase Dashboard → Authentication → URL Configuration
 function getRedirectURL(){
-  // Use origin + pathname base for GitHub Pages subdirectory support
   const loc=window.location;
-  // If on github.io/Fluxplanner, redirect back to that exact path
-  if(loc.pathname.includes('/Fluxplanner')){
-    return loc.origin+'/Fluxplanner/';
+  let path=loc.pathname;
+  if(path.endsWith('.html')){
+    path=path.replace(/[^/]+\.html$/,'');
   }
-  return loc.origin+'/';
+  if(path&&!path.endsWith('/'))path+='/';
+  if(path==='/'||path==='')return loc.origin+'/';
+  return loc.origin+path;
 }
 
 // Sign in with Google while keeping all existing guest data
@@ -2796,7 +2797,8 @@ async function signInWithGoogle(){
     const{error}=await sb.auth.signInWithOAuth({
       provider:'google',
       options:{
-        redirectTo:'https://azfermohammed.github.io/Fluxplanner/',
+        // Must match current origin/path (local dev, GitHub Pages, etc.) and Supabase Auth redirect allowlist
+        redirectTo:getRedirectURL(),
         scopes:'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly',
         queryParams:{access_type:'offline',prompt:'select_account'},
       }
