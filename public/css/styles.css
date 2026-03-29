@@ -318,8 +318,27 @@ details.dash-new-task-compact .dash-nt-body{padding:0 10px 12px}
 .grade-buffer-fill.warning{background:linear-gradient(90deg,var(--gold),#ffb347)}
 .grade-buffer-fill.danger{background:linear-gradient(90deg,var(--red),#ff6b6b)}
 
-.cal-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
-@media(max-width:900px){.cal-layout{grid-template-columns:1fr}}
+.cal-layout{display:flex;flex-direction:column;gap:20px;width:100%;align-items:stretch}
+.cal-hero-card{padding:20px 22px 22px;width:100%}
+.cal-nav-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px}
+.cal-nav-btn{padding:8px 18px;font-size:1.05rem;min-width:44px}
+.cal-month-label{font-size:clamp(1rem,2.2vw,1.25rem);font-weight:800;text-align:center;flex:1}
+.cal-hero-card .cal-grid{gap:8px}
+.cal-hero-card .cal-dow{font-size:.72rem;padding:10px 4px}
+.cal-hero-card .cal-day{min-height:clamp(64px,9.5vw,104px);padding:7px 6px;border-radius:12px}
+.cal-hero-card .cal-dn{font-size:clamp(.78rem,1.5vw,.95rem)}
+.cal-hero-card .cal-task-bar{font-size:.56rem;padding:2px 5px}
+.cal-legend-bar{font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:14px;display:flex;gap:12px;flex-wrap:wrap}
+.cal-selected-integrated{margin-top:18px;padding-top:18px;border-top:1px solid var(--border2)}
+.cal-selected-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.cal-day-title{font-size:clamp(.95rem,2vw,1.12rem);font-weight:700}
+.cal-selected-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cal-add-btn{display:inline-flex;align-items:center;padding:6px 14px;font-size:.8rem}
+.cal-add-event-btn{display:inline-flex;align-items:center;padding:6px 14px;font-size:.8rem;background:rgba(var(--accent-rgb),.15);border:1px solid rgba(var(--accent-rgb),.3);color:var(--accent)}
+.cal-bottom-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:100%}
+.cal-bottom-card{min-height:0}
+@media(max-width:1000px){.cal-bottom-row{grid-template-columns:1fr}}
+@media(max-width:480px){.cal-hero-card .cal-day{min-height:44px}.cal-hero-card .cal-task-bar{display:none}}
 .cal-today-col{display:flex;flex-direction:column;gap:12px}
 .cal-today-header{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:8px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
