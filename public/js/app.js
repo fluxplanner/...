@@ -2294,6 +2294,24 @@ async function sendAI(){
   btn.disabled=false;input.focus();
 }
 
+// ══ ONBOARDING TOUR (once per account; synced) ══
+function isTourCompleted(){
+  if(load('flux_tour_completed',false))return true;
+  if(load('flux_tour_done',false)){
+    save('flux_tour_completed',true);
+    return true;
+  }
+  return false;
+}
+function markTourCompleted(){
+  save('flux_tour_completed',true);
+  save('flux_tour_done',true);
+  if(currentUser){
+    clearTimeout(window._tourSyncT);
+    window._tourSyncT=setTimeout(()=>syncToCloud(),400);
+  }
+}
+
 // ══ SUPABASE SYNC ══
 const SYNC_KEYS=['tasks','grades','notes','habits','goals','colleges','moodHistory','schoolInfo','classes','teacherNotes','profile','flux_extras','flux_ec_schools','flux_ec_goals'];
 function setSyncStatus(status){
@@ -2335,6 +2353,7 @@ function getCloudPayload(){
     noHWDays:load('flux_no_hw_days',[]),
     events:load('flux_events',[]),
     settings:settings,
+    tourCompleted:isTourCompleted(),
     extras,
     ecSchools,
     ecGoals,
@@ -2411,6 +2430,10 @@ async function syncFromCloud(){
     if(d.settings){
       settings={...settings,...d.settings};
       save('flux_settings',settings);
+    }
+    if(d.tourCompleted){
+      save('flux_tour_completed',true);
+      save('flux_tour_done',true);
     }
     // Restore synced colors — write to localStorage FIRST so applyTheme reads correct values
     const syncAccent=d.accent||'#00bfff';
@@ -2542,6 +2565,9 @@ function obFinish(){
   spawnConfetti();
   renderProfile();renderSchool();renderSidebars();populateSubjectSelects();
   if(currentUser)syncToCloud();
+  if(currentUser&&!isTourCompleted()){
+    setTimeout(()=>startOnboardingTour(),1600);
+  }
 }
 function _updateSidebarName(name){
   const sn=document.getElementById('sidebarName');if(sn)sn.textContent=name;
@@ -3046,7 +3072,8 @@ function confirmGuestLogin(){
   if(!onboarded&&!hasData){
     showOnboarding();
   }else{
-    if(!load('flux_tour_done',false))save('flux_tour_done',true);
+    save('flux_tour_completed',true);
+    save('flux_tour_done',true);
     document.getElementById('app').classList.add('visible');
     renderSidebars();
   }
@@ -3136,7 +3163,8 @@ function showLoginScreen(){
   const app=document.getElementById('app');
   if(ls){ls.style.display='block';ls.classList.add('visible');}
   if(app)app.classList.remove('visible');
-  initLoginFeaturePills();
+  initFeaturePills();
+  initLoginFeatureCards();
 }
 function showApp(){
   const ls=document.getElementById('loginScreen');
@@ -3215,8 +3243,6 @@ async function handleSignedIn(user,session){
   if(isFirstTime){
     if(ob)ob.classList.add('visible');
   }else{
-    // Returning user — skip the tour
-    if(!load('flux_tour_done',false))save('flux_tour_done',true);
     if(ob)ob.classList.remove('visible');
     showApp();
     // Call _updateUserUI AFTER showApp() so DOM elements are visible
@@ -3468,8 +3494,6 @@ function initDashboardFeatures(){
   renderEffortReport();
   renderSubjectEfficiencyHeatmap();
   initV4Systems();
-  // First-time tour (delayed so app renders first)
-  setTimeout(startOnboardingTour,2000);
 }
 
 // ══ INIT ══
@@ -3998,7 +4022,7 @@ function applyCollapsedSections(){
 
 // ══ PROGRESSIVE ONBOARDING TOUR ══════════════════════════════
 function startOnboardingTour(){
-  if(load('flux_tour_done',false))return;
+  if(isTourCompleted())return;
   const steps=[
     {sel:'[data-tab="school"]',title:'Import Your Schedule',body:'Upload a photo of your schedule and AI will extract all your classes automatically.',side:'right'},
     {sel:'[data-tab="timer"]',title:'Focus Timer',body:'Use the Pomodoro timer to study in focused 25-minute sessions with breaks.',side:'right'},
@@ -4008,7 +4032,7 @@ function startOnboardingTour(){
   let step=0;
   function showStep(){
     document.querySelectorAll('.tour-tooltip').forEach(e=>e.remove());
-    if(step>=steps.length){save('flux_tour_done',true);return;}
+    if(step>=steps.length){markTourCompleted();return;}
     const s=steps[step];
     const target=document.querySelector(s.sel);
     if(!target){step++;showStep();return;}
@@ -4021,7 +4045,7 @@ function startOnboardingTour(){
     tip.innerHTML=`<div style="font-size:.82rem;font-weight:800;margin-bottom:4px">${step+1}/${steps.length} · ${s.title}</div>
       <div style="font-size:.75rem;color:var(--muted2);line-height:1.6;margin-bottom:10px">${s.body}</div>
       <div style="display:flex;gap:6px">
-        <button onclick="document.querySelectorAll('.tour-tooltip').forEach(e=>e.remove());save('flux_tour_done',true)" style="flex:1;padding:5px;font-size:.72rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Skip tour</button>
+        <button onclick="document.querySelectorAll('.tour-tooltip').forEach(e=>e.remove());markTourCompleted()" style="flex:1;padding:5px;font-size:.72rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Skip tour</button>
         <button onclick="window._tourStep();this.closest('.tour-tooltip').remove()" style="flex:1;padding:5px;font-size:.72rem;background:var(--accent);border:none;color:#fff;border-radius:8px;cursor:pointer">${step<steps.length-1?'Next →':'Done ✓'}</button>
       </div>`;
     document.body.appendChild(tip);
