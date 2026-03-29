@@ -338,7 +338,7 @@ let gmailEmails=[];
 let gmailToken=sessionStorage.getItem('flux_gmail_token')||null;
 let calYear=TODAY.getFullYear(),calMonth=TODAY.getMonth(),calSelected=TODAY.getDate();
 let currentNoteId=null,noteFilter='all',flashcards=[],fcIndex=0,fcFlipped=false;
-let ambientCtx=null,breathingActive=false,breathTimer=null;
+let ambientCtx=null,ambientBufferSource=null,ambientGainNode=null,breathingActive=false,breathTimer=null;
 let sidebarCollapsed=load('flux_sidebar_collapsed',false);
 
 // ══ SUPABASE + API ══
@@ -347,7 +347,8 @@ const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
 const API={
   ai:`${SB_URL}/functions/v1/ai-proxy`,
   gemini:`${SB_URL}/functions/v1/gemini-proxy`,
-  canvas:`${SB_URL}/functions/v1/canvas-proxy`
+  canvas:`${SB_URL}/functions/v1/canvas-proxy`,
+  ecCollegeChat:`${SB_URL}/functions/v1/ec-college-chat`,
 };
 // Headers for Supabase Edge Functions (AI + Canvas)
 const API_HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`};
@@ -408,14 +409,18 @@ function nav(id,btn){
   // Check if tab is visible
   const tc=tabConfig.find(t=>t.id===id);
   if(tc&&!tc.visible){nav('dashboard');return;}
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  const panel=document.getElementById(id);if(panel)panel.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active','flux-panel-enter'));
+  const panel=document.getElementById(id);
+  if(panel){
+    panel.classList.add('active','flux-panel-enter');
+    setTimeout(()=>panel.classList.remove('flux-panel-enter'),560);
+  }
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll(`[data-tab="${id}"]`).forEach(b=>b.classList.add('active'));
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
   const bni=document.querySelector(`.bnav-item[data-tab="${id}"]`);if(bni)bni.classList.add('active');
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();renderDynamicFocus();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();},calendar:()=>{renderCalendar();renderCalToday();renderCalUpcoming();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();},mood:()=>{renderMoodHistory();renderAffirmation();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();},gmail:()=>loadGmail()};
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();renderDynamicFocus();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();},calendar:()=>{renderCalendar();renderCalToday();renderCalUpcoming();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();},gmail:()=>loadGmail()};
   fns[id]?.();
 }
 function navMob(id){closeDrawer();nav(id);}
@@ -533,7 +538,12 @@ function toggleTask(id){
   if(t.done){
     t.completedAt=Date.now();
     const card=document.querySelector(`[data-task-id="${id}"]`);
-    if(card)card.classList.add('completing');
+    if(card){
+      card.classList.add('completing');
+      setTimeout(()=>card.classList.remove('completing'),620);
+      const chk=card.querySelector('.check');
+      if(chk)spawnTaskBurstFromEl(chk);
+    }
     spawnConfetti();
     addMomentum();
     if(t.estTime)setTimeout(()=>promptEffortTracking(id),600);
@@ -665,8 +675,68 @@ function renderAboutStats(){
     </div>`).join('');
 }
 
+function computeTaskCompletionStreak(){
+  const days=new Set();
+  tasks.forEach(t=>{
+    if(t.done&&t.completedAt)days.add(new Date(t.completedAt).toISOString().slice(0,10));
+  });
+  let d=new Date(TODAY);
+  if(!days.has(todayStr()))d.setDate(d.getDate()-1);
+  let streak=0;
+  for(;;){
+    const k=d.toISOString().slice(0,10);
+    if(days.has(k)){streak++;d.setDate(d.getDate()-1);}else break;
+  }
+  return streak;
+}
+function updateDashHero(){
+  const greet=document.getElementById('dashGreeting');
+  const sub=document.getElementById('dashGreetingSub');
+  const nEl=document.getElementById('dashStreakN');
+  const arc=document.getElementById('dashStreakArc');
+  if(!greet)return;
+  const raw=(localStorage.getItem('flux_user_name')||'there').trim()||'there';
+  const first=raw.split(/\s+/)[0];
+  const h=new Date().getHours();
+  const part=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  greet.textContent=`${part}, ${first} 👋`;
+  if(sub){
+    const left=tasks.filter(t=>!t.done).length;
+    sub.textContent=left?`${left} open task${left===1?'':'s'} · Stay on your streak`:'All caught up — momentum looks great';
+  }
+  const streak=computeTaskCompletionStreak();
+  if(nEl)nEl.textContent=String(Math.min(streak,999));
+  if(arc){
+    const p=Math.min(streak/21,1);
+    const a=p*100;
+    arc.style.strokeDasharray=`${a} ${100-a}`;
+  }
+}
+function spawnTaskBurstFromEl(el){
+  if(!el||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const r=el.getBoundingClientRect();
+  const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  const colors=['#00C2FF','#7C5CFF','#22FF88'];
+  const n=12;
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    p.className='task-burst-particle';
+    p.style.left=cx+'px';p.style.top=cy+'px';
+    p.style.background=colors[i%colors.length];
+    document.body.appendChild(p);
+    const ang=(Math.PI*2*i)/n+Math.random()*.35;
+    const dist=40+Math.random()*48;
+    const tx=Math.cos(ang)*dist,ty=Math.sin(ang)*dist;
+    p.animate(
+      [{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(calc(-50% + ${tx}px),calc(-50% + ${ty}px)) scale(.35)`,opacity:0}],
+      {duration:480,easing:'cubic-bezier(.22,1,.36,1)'}
+    );
+    setTimeout(()=>p.remove(),500);
+  }
+}
 function renderStats(){const now=new Date();now.setHours(0,0,0,0);const dueToday=tasks.filter(t=>!t.done&&t.date&&t.date===todayStr()).length,done=tasks.filter(t=>t.done).length,over=tasks.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now).length,active=tasks.filter(t=>!t.done).length;document.getElementById('statsRow').innerHTML=`<div class="stat" onclick="setFilter('today',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:var(--accent)">${dueToday}</div><div class="stat-l">Due Today</div></div><div class="stat" onclick="setFilter('active',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:var(--text)">${active}</div><div class="stat-l">Active</div></div><div class="stat" onclick="setFilter('overdue',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:${over>0?'var(--red)':'var(--muted)'}">${over}</div><div class="stat-l">Overdue</div></div><div class="stat" onclick="setFilter('done',document.querySelector('#filterChips .tmode-btn'))" title="Click to filter"><div class="stat-n" style="color:var(--green)">${done}</div><div class="stat-l">Completed</div></div>`;
   if(typeof updateTopbarStats==='function')updateTopbarStats();
+  updateDashHero();
 }
 function renderTasks(){
   const el0=document.getElementById('taskList');
@@ -678,7 +748,6 @@ function renderTasks(){
   if(taskFilter==='overdue')list=list.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now);
   if(taskFilter==='today')list=list.filter(t=>t.date&&t.date===todayStr());
   if(taskFilter==='high')list=list.filter(t=>!t.done&&t.priority==='high');
-  if(typeof getRecoveryTasks==='function')list=getRecoveryTasks(list);
   const energy=parseInt(localStorage.getItem('flux_energy')||'3');
   list.sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
@@ -758,7 +827,7 @@ function openEdit(id){const t=tasks.find(x=>x.id===id);if(!t)return;editingId=id
   document.getElementById('editModal').style.display='flex';}
 function closeEdit(){document.getElementById('editModal').style.display='none';editingId=null;}
 function saveEdit(){const t=tasks.find(x=>x.id===editingId);if(!t)return;const oldDate=t.date;t.name=document.getElementById('editText').value.trim()||t.name;t.subject=document.getElementById('editSubject').value;t.priority=document.getElementById('editPriority').value;t.type=document.getElementById('editType').value;t.date=document.getElementById('editDue').value;t.estTime=parseInt(document.getElementById('editEstTime').value)||0;t.difficulty=parseInt(document.getElementById('editDifficulty').value)||3;t.notes=document.getElementById('editNotes').value.trim();const stLines=document.getElementById('editSubtasks').value.split('\n').map(s=>s.trim()).filter(Boolean);t.subtasks=stLines.map((s,i)=>({text:s,done:t.subtasks?.[i]?.done||false}));if(oldDate&&t.date!==oldDate)t.rescheduled=(t.rescheduled||0)+1;t.urgencyScore=calcUrgency(t);save('tasks',tasks);closeEdit();renderStats();renderTasks();renderCalendar();renderCountdown();syncKey('tasks',tasks);setTimeout(()=>checkFrictionIntervention(t),500);}
-function spawnConfetti(){const colors=['#6366f1','#10d9a0','#fbbf24','#c084fc','#f43f5e','#fb923c'];for(let i=0;i<22;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.left=Math.random()*100+'vw';p.style.animationDelay=Math.random()*.5+'s';p.style.background=colors[Math.floor(Math.random()*colors.length)];document.body.appendChild(p);setTimeout(()=>p.remove(),1500);}}
+function spawnConfetti(){const colors=['#00C2FF','#7C5CFF','#22FF88','#4ddbff','#fbbf24','#a78bfa'];for(let i=0;i<22;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.left=Math.random()*100+'vw';p.style.animationDelay=Math.random()*.5+'s';p.style.background=colors[Math.floor(Math.random()*colors.length)];document.body.appendChild(p);setTimeout(()=>p.remove(),1500);}}
 
 // ══ CALENDAR ══
 function changeMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
@@ -1251,6 +1320,7 @@ function renderSchoolsList(){
       <button onclick="removeSchool(${s.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px">✕</button>
     </div>`;
   }).join('');
+  initEcCollegeChatSelect();
 }
 
 // ══ EC GOALS ══
@@ -1333,6 +1403,119 @@ async function ecAIAnalyze(){
   }
 }
 
+// ══ EC COLLEGE CHAT (server researches college per message) ══
+let _ecCollegeChatBusy=false;
+function loadEcCollegeChat(){return load('flux_ec_college_chat',{messages:[]});}
+function saveEcCollegeChat(state){save('flux_ec_college_chat',state);}
+function _ecActivitiesSummary(){
+  return extras.map(e=>{
+    const t=Array.isArray(e.types)?e.types.join(', '):(e.type||'activity');
+    return `${e.name} (${t}${e.hours?' '+e.hours+'hrs/wk':''})`;
+  }).join('; ')||'none listed yet';
+}
+function initEcCollegeChatSelect(){
+  const sel=document.getElementById('ecChatCollegeSelect');if(!sel)return;
+  const prev=sel.value;
+  let html='<option value="__all__">All my target schools</option>';
+  ecSchools.forEach(s=>{html+=`<option value="${s.id}">${esc(s.name)} (${esc(s.tier)})</option>`;});
+  sel.innerHTML=html;
+  if(prev&&[...sel.options].some(o=>o.value===prev))sel.value=prev;
+}
+function initEcCollegeChatListeners(){
+  const ta=document.getElementById('ecChatInput');if(!ta||ta.dataset.ecBound)return;
+  ta.dataset.ecBound='1';
+  ta.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendEcCollegeChat();}
+  });
+}
+function renderEcChatMessages(){
+  const box=document.getElementById('ecChatMessages');if(!box)return;
+  const {messages}=loadEcCollegeChat();
+  if(!messages.length){
+    box.innerHTML='<div style="color:var(--muted);font-size:.8rem;line-height:1.5">Ask about extracurriculars, how a school weighs activities, or what to build before you apply. Flux loads web + forum context for the college you pick before answering.</div>';
+    return;
+  }
+  box.innerHTML=messages.map(m=>{
+    const isUser=m.role==='user';
+    return`<div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;background:${isUser?'rgba(var(--accent-rgb),.1)':'var(--card)'};border:1px solid var(--border2)">
+      <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:5px;font-weight:700">${isUser?'You':'Flux'}</div>
+      <div style="color:var(--text);word-break:break-word">${isUser?esc(m.content):fmtAI(m.content)}</div>
+    </div>`;
+  }).join('')+(_ecCollegeChatBusy?'<div class="ai-bub bot" style="margin-top:4px"><div class="ai-think"><span></span><span></span><span></span></div><div style="font-size:.72rem;color:var(--muted2);margin-top:8px">Researching college context…</div></div>':'');
+  box.scrollTop=box.scrollHeight;
+}
+function _resolveEcCollegeFocus(){
+  const custom=(document.getElementById('ecChatCollegeCustom')?.value||'').trim();
+  if(custom)return custom;
+  const sel=document.getElementById('ecChatCollegeSelect');
+  if(!ecSchools.length)return '';
+  if(sel?.value==='__all__')return ecSchools.map(s=>s.name).join('; ');
+  const id=parseInt(sel?.value,10);
+  const one=ecSchools.find(s=>s.id===id);
+  return one?one.name:ecSchools[0].name;
+}
+async function sendEcCollegeChat(){
+  if(_ecCollegeChatBusy)return;
+  const inp=document.getElementById('ecChatInput');
+  const text=(inp?.value||'').trim();
+  if(!text)return;
+  const collegeName=_resolveEcCollegeFocus();
+  if(!collegeName){
+    showToast('Add target schools or type a college name in the field.','warning');
+    return;
+  }
+  const state=loadEcCollegeChat();
+  state.messages.push({role:'user',content:text});
+  saveEcCollegeChat(state);
+  inp.value='';
+  const meta=document.getElementById('ecChatMeta');
+  if(meta)meta.textContent='';
+  const btn=document.getElementById('ecChatSendBtn');
+  _ecCollegeChatBusy=true;
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  renderEcChatMessages();
+  const apiMsgs=state.messages.filter(m=>m.role==='user'||m.role==='assistant').slice(-20).map(m=>({role:m.role,content:m.content}));
+  try{
+    const res=await fetch(API.ecCollegeChat,{
+      method:'POST',
+      headers:API_HEADERS,
+      body:JSON.stringify({
+        collegeName,
+        messages:apiMsgs,
+        profile:{
+          activities:_ecActivitiesSummary(),
+          schools:ecSchools.map(s=>`${s.name} (${s.tier})`).join('; ')||'none',
+        },
+        plannerDigest:buildFullPlannerContextForAI({maxTotalChars:14000}),
+      }),
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||data.error)throw new Error(data.error||'HTTP '+res.status);
+    const reply=data.content?.[0]?.text||'No response.';
+    const st=loadEcCollegeChat();
+    st.messages.push({role:'assistant',content:reply});
+    saveEcCollegeChat(st);
+    if(meta&&data.meta?.sourcesUsed){
+      const u=data.meta.sourcesUsed;
+      const bits=[];
+      if(u.wikipedia)bits.push('Wikipedia');
+      if(u.webSearch)bits.push('Web search');
+      if(u.applyingToCollegeReddit)bits.push('r/ApplyingToCollege');
+      meta.textContent=bits.length?`Last reply grounded with: ${bits.join(' · ')}`:'Limited external context — verify on official sites.';
+    }
+  }catch(e){
+    const st=loadEcCollegeChat();
+    st.messages.push({role:'assistant',content:'**Could not reach Flux.** '+(e.message||'')+' Deploy the `ec-college-chat` Edge Function and ensure `GROQ_API_KEY` is set. Optional: `BRAVE_SEARCH_API_KEY` for richer official-page coverage.'});
+    saveEcCollegeChat(st);
+    if(meta)meta.textContent='';
+    showToast('College chat failed — check deployment','error');
+  }finally{
+    _ecCollegeChatBusy=false;
+    if(btn){btn.disabled=false;btn.textContent='Send';}
+    renderEcChatMessages();
+  }
+}
+
 function renderNotesList(){const el=document.getElementById('notesList');if(!el)return;const q=(document.getElementById('noteSearch').value||'').toLowerCase();let list=[...notes];if(noteFilter==='starred')list=list.filter(n=>n.starred);if(noteFilter==='flashcards')list=list.filter(n=>n.flashcards?.length);if(q)list=list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q));if(!list.length){el.innerHTML='<div class="empty">No notes yet. Tap + New to create one.</div>';return;}el.innerHTML=list.sort((a,b)=>b.updatedAt-a.updatedAt).map(n=>{const sub=getSubjects()[n.subject];return`<div class="note-card" onclick="openNote(${n.id})"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div class="note-title">${esc(n.title||'Untitled')}</div>${n.starred?'<span style="color:var(--gold)">⭐</span>':''}${n.flashcards?.length?`<span class="badge badge-purple" style="padding:2px 6px;font-size:.6rem">🃏 ${n.flashcards.length}</span>`:''}</div>${sub?`<span class="badge badge-blue" style="padding:2px 6px;font-size:.62rem;margin-bottom:4px">${sub.short}</span>`:''}<div class="note-preview">${strip(n.body||'')}</div><div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:5px">${new Date(n.updatedAt||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></div>`;}).join('');}
 function openNewNote(){currentNoteId=null;document.getElementById('noteTitleInput').value='';document.getElementById('noteEditor').innerHTML='';document.getElementById('noteSubjectTag').value='';document.getElementById('starBtn').textContent='☆';document.getElementById('aiNoteResult').style.display='none';document.getElementById('notesListView').style.display='none';document.getElementById('notesEditorView').style.display='block';}
 function openNote(id){const n=notes.find(x=>x.id===id);if(!n)return;currentNoteId=id;document.getElementById('noteTitleInput').value=n.title||'';document.getElementById('noteEditor').innerHTML=n.body||'';document.getElementById('noteSubjectTag').value=n.subject||'';document.getElementById('starBtn').textContent=n.starred?'⭐':'☆';document.getElementById('aiNoteResult').style.display='none';document.getElementById('notesListView').style.display='none';document.getElementById('notesEditorView').style.display='block';}
@@ -1394,8 +1577,91 @@ function renderSubjectBudget(){
   }).join('');
 }
 function renderFocusHeatmap(){const el=document.getElementById('focusHeatmap');if(!el)return;const weekStart=new Date(TODAY);weekStart.setDate(TODAY.getDate()-TODAY.getDay()+1);const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];el.innerHTML=days.map((day,i)=>{const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);const ds=d.toISOString().slice(0,10);const mins=sessionLog.filter(s=>s.date===ds).reduce((sum,s)=>sum+s.mins,0);const intensity=Math.min(mins/120,1);const isToday=ds===todayStr();return`<div style="flex:1;text-align:center"><div style="height:40px;border-radius:8px;background:rgba(var(--accent-rgb),${intensity.toFixed(2)});border:1px solid ${isToday?'var(--accent)':'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:'JetBrains Mono',monospace;color:var(--text);font-weight:700">${mins>0?mins+'m':''}</div><div style="font-size:.58rem;color:var(--muted);margin-top:3px;font-family:'JetBrains Mono',monospace">${day}</div></div>`;}).join('');}
-function playAmbient(type,btn){stopAmbient();startAmbientVisualizer();document.querySelectorAll('#timer .tmode-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');try{ambientCtx=new(window.AudioContext||window.webkitAudioContext)();const buf=ambientCtx.createBuffer(1,ambientCtx.sampleRate*2,ambientCtx.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(type==='white'?0.15:0.08);const src=ambientCtx.createBufferSource();src.buffer=buf;src.loop=true;const g=ambientCtx.createGain();g.gain.value=0.4;if(type==='rain'){const f=ambientCtx.createBiquadFilter();f.type='bandpass';f.frequency.value=1200;src.connect(f);f.connect(g);}else src.connect(g);g.connect(ambientCtx.destination);src.start();}catch(e){}}
-function stopAmbient(){stopAmbientVisualizer();if(ambientCtx){try{ambientCtx.close();}catch(e){}ambientCtx=null;}document.querySelectorAll('#timer .card .tmode-btn').forEach(b=>b.classList.remove('active'));}
+function ambientSoundUrl(name){
+  try{return new URL(`public/audio/ambient/${name}.wav`,window.location.href).href;}
+  catch(_){return`public/audio/ambient/${name}.wav`;}
+}
+function playAmbientSynthFallback(type,btn){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    const amp=type==='white'?0.12:0.07;
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*amp;
+    const src=ctx.createBufferSource();
+    src.buffer=buf;
+    src.loop=true;
+    const g=ctx.createGain();
+    g.gain.value=type==='white'?0.35:0.38;
+    if(type==='rain'){
+      const f=ctx.createBiquadFilter();
+      f.type='bandpass';
+      f.frequency.value=1200;
+      f.Q.value=0.55;
+      src.connect(f);
+      f.connect(g);
+    }else src.connect(g);
+    g.connect(ctx.destination);
+    src.start(0);
+    ambientCtx=ctx;
+    ambientBufferSource=src;
+    ambientGainNode=g;
+  }catch(e){showToast('Audio unavailable in this browser','warning');}
+}
+async function playAmbient(type,btn){
+  stopAmbient();
+  startAmbientVisualizer();
+  document.querySelectorAll('#timer .tmode-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const allowed=new Set(['rain','cafe','ocean','fire','white']);
+  if(!allowed.has(type))return;
+  let ctx=null;
+  try{
+    ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state==='suspended')await ctx.resume();
+    const res=await fetch(ambientSoundUrl(type));
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const arr=await res.arrayBuffer();
+    const decoded=await ctx.decodeAudioData(arr.slice(0));
+    const src=ctx.createBufferSource();
+    src.buffer=decoded;
+    src.loop=true;
+    const g=ctx.createGain();
+    g.gain.value=type==='white'?0.28:0.36;
+    src.connect(g);
+    g.connect(ctx.destination);
+    src.start(0);
+    ambientCtx=ctx;
+    ambientBufferSource=src;
+    ambientGainNode=g;
+  }catch(e){
+    console.warn('Ambient sample failed, synth fallback',e);
+    try{if(ctx){await ctx.close();}}catch(_){}
+    ambientCtx=null;
+    ambientBufferSource=null;
+    ambientGainNode=null;
+    playAmbientSynthFallback(type,btn);
+  }
+}
+function stopAmbient(){
+  stopAmbientVisualizer();
+  try{
+    if(ambientBufferSource){
+      try{ambientBufferSource.stop(0);}catch(_){}
+      try{ambientBufferSource.disconnect();}catch(_){}
+      ambientBufferSource=null;
+    }
+    if(ambientGainNode){
+      try{ambientGainNode.disconnect();}catch(_){}
+      ambientGainNode=null;
+    }
+    if(ambientCtx){
+      try{ambientCtx.close();}catch(_){}
+      ambientCtx=null;
+    }
+  }catch(_){}
+  document.querySelectorAll('#timer .card .tmode-btn').forEach(b=>b.classList.remove('active'));
+}
 
 // ══ PROFILE ══
 function saveProfile(){
@@ -1517,13 +1783,15 @@ function renderProgramTracker(p){
     </div>
     ${items.map(item=>`
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <button onclick="togglePT('${item.key}')" style="width:22px;height:22px;border-radius:7px;padding:0;flex-shrink:0;background:${item.done?'var(--green)':'transparent'};border:2px solid ${item.done?'var(--green)':'var(--border2)'};color:#080a0f;font-size:11px">${item.done?'✓':''}</button>
+        <button type="button" onclick="togglePT('${item.key}')" style="width:22px;height:22px;border-radius:7px;padding:0;flex-shrink:0;background:${item.done?'var(--green)':'transparent'};border:2px solid ${item.done?'var(--green)':'var(--border2)'};color:#080a0f;font-size:11px">${item.done?'✓':''}</button>
         <div style="flex:1"><div style="font-size:.87rem;font-weight:600;${item.done?'text-decoration:line-through;opacity:.6':''}">${item.label}</div><div style="font-size:.7rem;color:var(--muted)">${item.desc}</div></div>
       </div>`).join('')}`;
 }
 function togglePT(key){
-  const current=load('flux_pt_'+key,false);
-  save('flux_pt_'+key,!current);
+  const sk='flux_pt_'+key;
+  const current=!!load(sk,false);
+  save(sk,!current);
+  syncKey('ibProgram',!current);
   renderProfile();
 }
 function handlePicUpload(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{localStorage.setItem('flux_profile_pic',ev.target.result);const av=document.getElementById('pAvatar');if(av)av.innerHTML=`<img src="${ev.target.result}"><input type="file" id="picUpload" accept="image/*" style="display:none" onchange="handlePicUpload(event)">`;};r.readAsDataURL(file);}
@@ -1855,7 +2123,10 @@ function initModFeatures(){
   const isOwnerAcc=role==='owner';
   badge.style.cssText=`padding:6px 10px;margin-bottom:6px;background:${isOwnerAcc?'linear-gradient(135deg,rgba(251,191,36,.2),rgba(249,115,22,.15))':'linear-gradient(135deg,rgba(var(--accent-rgb),.15),rgba(192,132,252,.1))'};border:1px solid ${isOwnerAcc?'rgba(251,191,36,.4)':'rgba(var(--accent-rgb),.3)'};border-radius:10px;font-size:.68rem;font-family:JetBrains Mono,monospace;color:${isOwnerAcc?'var(--gold)':'var(--accent)'};display:flex;align-items:center;gap:6px;cursor:pointer`;
   badge.innerHTML=`<span>${isOwnerAcc?'👑':'⚡'}</span><span>${isOwnerAcc?'Owner':'Dev Account'}</span><span style="margin-left:auto;opacity:.6">${isDevMode()?'DEV':'LIVE'}</span>`;
-  badge.onclick=()=>openModPanel();
+  badge.onclick=()=>{
+    if(isOwnerAcc&&typeof openOwnerSuite==='function')openOwnerSuite();
+    else openModPanel();
+  };
   footer.insertBefore(badge,footer.firstChild);
 }
 
@@ -1935,15 +2206,20 @@ function openModPanel(){
   document.body.appendChild(panel);
 }
 
+function refreshDevAccountUI(){
+  if(document.getElementById('ownerSuite')&&typeof openOwnerSuite==='function')openOwnerSuite();
+  else openModPanel();
+}
+
 function addDevAccount(){
   if(!isOwner())return;
-  const email=document.getElementById('newDevEmail')?.value.trim();
+  const email=(document.getElementById('osNewDevEmail')||document.getElementById('newDevEmail'))?.value?.trim();
   if(!email||!email.includes('@')){alert('Enter a valid email.');return;}
   const devAccounts=load('flux_dev_accounts',[]);
   if(devAccounts.find(d=>d.email===email)){alert('Already a dev account.');return;}
-  devAccounts.push({email,perms:[],addedAt:Date.now()});
+  devAccounts.push({email,role:'viewer',perms:['view_users'],addedAt:Date.now()});
   saveDevAccounts(devAccounts);
-  openModPanel();
+  refreshDevAccountUI();
 }
 
 function removeDevAccount(idx){
@@ -1951,7 +2227,7 @@ function removeDevAccount(idx){
   const devAccounts=load('flux_dev_accounts',[]);
   devAccounts.splice(idx,1);
   saveDevAccounts(devAccounts);
-  openModPanel();
+  refreshDevAccountUI();
 }
 
 function toggleDevPerm(idx,perm,btn){
@@ -1966,6 +2242,7 @@ function toggleDevPerm(idx,perm,btn){
   btn.style.background=!has?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)';
   btn.style.borderColor=!has?'rgba(var(--accent-rgb),.35)':'var(--border2)';
   btn.style.color=!has?'var(--accent)':'var(--muted2)';
+  if(typeof ownerAuditAppend==='function')ownerAuditAppend('dev_perm_toggle',JSON.stringify({idx,perm,on:!has}));
 }
 
 function toggleDevMode(){
@@ -1984,6 +2261,7 @@ function toggleFeatureFlag(feature,btn){
   btn.style.color=cur?'var(--muted2)':'var(--accent)';
   const tc=tabConfig.find(t=>t.id===feature);
   if(tc){tc.visible=!cur;save('flux_tabs',tabConfig);renderSidebars();}
+  if(isOwner()&&typeof ownerAuditAppend==='function')ownerAuditAppend('feature_flag',feature+':'+(!cur));
 }
 
 function clearMyPlannerData(){
@@ -2208,23 +2486,29 @@ function buildAIPrompt(){
   return`You are Flux AI — a brilliant, warm AI tutor and planner assistant built into Flux Planner.
 Student: ${name}${grade?' · Grade '+grade:''}${program?' · '+program:''}
 Today: ${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
-${mood?`Mood: ${mood.mood}/5, Stress: ${mood.stress}/10, Sleep: ${mood.sleep}h`:''}
+${mood?`Latest mood check-in: ${mood.mood}/5, stress ${mood.stress}/10, sleep ${mood.sleep}h`:''}
 
-SCHEDULE:
-Classes: ${todayClasses}
+SCHEDULE (quick glance):
+Classes today: ${todayClasses}
 Calendar events this week:\n${calEvents}
 
-TASKS:
+TASKS (quick glance — full dump below):
 Recent completed (7d): ${ctx.recent.length?ctx.recent.map(fmt).join(' | '):'None'}
 Upcoming (14d): ${ctx.upcoming.length?ctx.upcoming.map(fmt).join(' | '):'None'}
-Active tasks: ${tasks.filter(t=>!t.done).slice(0,20).map(fmt).join(' | ')||'None'}
-${Object.keys(grades).length?`\nGrades: ${Object.entries(grades).map(([k,v])=>k+': '+v).join(', ')} | GPA: ${gpa!==null?precise(gpa)+' (4dp)':'—'}`:''}
+Active tasks (first 20): ${tasks.filter(t=>!t.done).slice(0,20).map(fmt).join(' | ')||'None'}
+${Object.keys(grades).length?`Grades summary: ${Object.entries(grades).map(([k,v])=>k+': '+v).join(', ')} | GPA: ${gpa!==null?precise(gpa)+' (4dp)':'—'}`:''}
+
+---
+${buildFullPlannerContextForAI({maxTotalChars:24000})}
+---
 
 RULES:
+- You have a comprehensive planner snapshot above (tasks, grades, notes, mood, timer, school, ECs, IB flags, settings, linked integrations flags, etc.). Use it to answer questions about ANY area of the planner. Reference specific items when helpful.
+- The **Extracurriculars** sidebar tab is labeled in the snapshot as **Extracurriculars tab** / **My activities** / **EC target schools** (the app’s internal panel id is \`goals\`).
+- Google Calendar events from the user's Google account load live in the Calendar tab and are not fully mirrored in this export; custom Flux calendar entries appear under "Calendar events" in the snapshot.
 - Be warm, concise, and helpful. Call the student by name naturally.
 - When adding tasks, output the actions block ONLY — no confirmation text.
 - Never sign off with the student's name repeatedly.
-- You can see their calendar and schedule above — use it to answer schedule questions.
 - GPA always to 4 decimal places (toFixed(4)).
 - g = 10 m/s² for all physics calculations.
 ${getStudyDNAPrompt()}
@@ -2328,6 +2612,101 @@ function setSyncStatus(status){
   if(guestBanner){guestBanner.style.display=wasGuest&&!currentUser?'block':'none';}
   if(signedOutMsg){signedOutMsg.style.display=wasGuest&&!currentUser?'none':'block';}
 }
+function getIbProgramProgress(){
+  return{
+    tok:!!load('flux_pt_tok',false),
+    ee:!!load('flux_pt_ee',false),
+    cas:!!load('flux_pt_cas',false),
+    pp:!!load('flux_pt_pp',false),
+    comm:!!load('flux_pt_comm',false),
+  };
+}
+
+/** Plain-text snapshot of the whole planner for Flux AI (trimmed to fit model context). */
+function buildFullPlannerContextForAI(opts){
+  const maxTotal=(opts&&opts.maxTotalChars!=null)?opts.maxTotalChars:24000;
+  const clip=(s,m)=>{const t=String(s??'');return t.length<=m?t:t.slice(0,m)+'…';};
+  const plain=(html,m)=>clip(String(html||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(),m);
+  const sections=[];
+  const add=(title,content)=>{
+    if(content==null||content==='')return;
+    const body=typeof content==='string'?content:JSON.stringify(content,null,2);
+    sections.push(`## ${title}\n${body}`);
+  };
+
+  const p=load('profile',{});
+  const displayName=[localStorage.getItem('flux_user_name'),p.name].filter(Boolean).join(' · ')||'Student';
+  add('Student',displayName);
+  add('Profile (JSON)',clip(JSON.stringify(p),1400));
+
+  // Extracurriculars tab FIRST — otherwise long tasks/notes hit maxTotal and this block was cut off entirely.
+  add('Extracurriculars tab (sidebar: Extracurriculars / internal id goals)','This section is the Extracurriculars tab: activities, college list, and EC milestones.');
+  const exLines=extras.map(e=>{
+    const ty=Array.isArray(e.types)?e.types.join(','):(e.type||'activity');
+    return `- ${e.name} (${ty}) ${e.hours||0}h/wk ${plain(e.desc,220)}`;
+  }).join('\n');
+  add('My activities (EC tab)',exLines||'(none yet)');
+  add('EC target schools',clip(JSON.stringify(ecSchools),2200));
+  const eg=ecGoals.map(g=>`${g.done?'✓':'○'} ${g.title} ${g.deadline||''}`).join('\n');
+  add('EC goals & milestones',eg||'(none)');
+  add('IB program tracker (on EC tab)',JSON.stringify(getIbProgramProgress()));
+
+  const subjs=getSubjects();
+  const fmtT=t=>{
+    const st=t.done?'done':'open';
+    const sub=subjs[t.subject]?.short||t.subject||'—';
+    const due=t.date||'—';
+    const subN=(t.subtasks&&t.subtasks.length)?` +${t.subtasks.length}sub`:'';
+    return `- [${st}|${t.priority||'med'}|${sub}|${t.type||'hw'}|${due}] ${t.name}${t.estTime?` ~${t.estTime}m`:''}${subN}${t.notes?` note:${plain(t.notes,100)}`:''}${t.ghostDraft?` draft:${plain(t.ghostDraft,160)}`:''}`;
+  };
+  add('Tasks — all open',clip(tasks.filter(t=>!t.done).map(fmtT).join('\n')||'(none)',6500));
+  add('Tasks — last 40 completed',clip(tasks.filter(t=>t.done).slice(-40).map(fmtT).join('\n')||'(none)',3200));
+
+  add('Grades map',clip(JSON.stringify(grades),2800));
+  add('Weighted rows',clip(JSON.stringify(weightedRows),2200));
+  const gpa=calcGPA(grades);
+  add('GPA (weighted calc, 4dp)',gpa!=null?precise(gpa):'n/a');
+
+  const noteBlock=notes.slice(0,50).map(n=>{
+    const dt=n.updatedAt?new Date(n.updatedAt).toISOString().slice(0,10):'—';
+    return `• "${plain(n.title,100)}" subj:${n.subject||'—'} ${dt} ★${n.starred?'y':'n'} fc:${(n.flashcards||[]).length}\n  ${plain(n.body,500)}`;
+  }).join('\n');
+  add('Notes (≤50, excerpted)',noteBlock||'(none)');
+
+  add('Habits',clip(JSON.stringify(habits),2200));
+  add('Goals (legacy list)',clip(JSON.stringify(goals),2200));
+  add('Colleges (legacy)',clip(JSON.stringify(colleges),1800));
+
+  const moodBlock=moodHistory.slice(-30).map(m=>{
+    const d=m.date||'?';
+    return `${d} mood:${m.mood} stress:${m.stress} sleep:${m.sleep}h`;
+  }).join('\n');
+  add('Mood history (last 30)',moodBlock||'(none)');
+
+  add('School info',clip(JSON.stringify(schoolInfo),900));
+  add('Classes / schedule',clip(JSON.stringify(classes),4000));
+  add('Teacher notes',clip(JSON.stringify(teacherNotes),2200));
+
+  const sess=sessionLog.slice(-50).map(s=>`${s.date||'?'} ${s.mins||0}m subj:${s.subject||'—'}`).join('\n');
+  add('Focus timer sessions (last 50)',sess||'(none)');
+  add('Subject time budgets',clip(JSON.stringify(subjectBudgets),1400));
+  add('Timer counters',{sessionsDone:load('t_sessions',0),totalMins:load('t_minutes',0),streakDays:load('t_streak',0)});
+
+  add('Study DNA',clip(JSON.stringify(studyDNA),900));
+  add('Confidences by subject',clip(JSON.stringify(confidences),1800));
+
+  add('Calendar events',clip(JSON.stringify(load('flux_events',[]).slice(0,70)),4000));
+  add('No-homework days',clip(JSON.stringify(noHomeworkDays),500));
+  add('App settings',clip(JSON.stringify(settings),1400));
+
+  add('Enabled app tabs (goals = Extracurriculars in UI)',tabConfig.filter(t=>t.visible).map(t=>t.id).join(', '));
+  add('Linked integrations',{canvas:!!(canvasToken&&canvasUrl),gmail:!!gmailToken});
+
+  let out=`# FULL PLANNER SNAPSHOT (read-only for Flux)\nLocal today: ${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}\n\n`+sections.join('\n\n');
+  if(out.length>maxTotal)out=out.slice(0,maxTotal)+'\n…[planner snapshot truncated]';
+  return out;
+}
+
 function getCloudPayload(){
   // Include colors in sync now — user wants same colors everywhere
   return{
@@ -2357,7 +2736,13 @@ function getCloudPayload(){
     extras,
     ecSchools,
     ecGoals,
-    ...(isOwner()?{devAccounts:load('flux_dev_accounts',[]),ownerEmail:OWNER_EMAIL}:{}),
+    ibProgramProgress:getIbProgramProgress(),
+    ...(isOwner()?{
+      devAccounts:load('flux_dev_accounts',[]),
+      ownerEmail:OWNER_EMAIL,
+      platformConfig:load('flux_platform_config',{}),
+      ownerAuditLog:load('flux_owner_audit',[]),
+    }:{}),
   };
 }
 async function syncToCloud(){
@@ -2425,6 +2810,11 @@ async function syncFromCloud(){
     if(d.extras){extras=d.extras;save('flux_extras',extras);}
     if(d.ecSchools){ecSchools=d.ecSchools;save('flux_ec_schools',ecSchools);}
     if(d.ecGoals){ecGoals=d.ecGoals;save('flux_ec_goals',ecGoals);}
+    if(d.ibProgramProgress&&typeof d.ibProgramProgress==='object'){
+      ['tok','ee','cas','pp','comm'].forEach(k=>{
+        if(typeof d.ibProgramProgress[k]==='boolean')save('flux_pt_'+k,d.ibProgramProgress[k]);
+      });
+    }
     if(d.noHWDays){save('flux_no_hw_days',d.noHWDays);}
     if(d.events){save('flux_events',d.events);}
     if(d.settings){
@@ -2452,6 +2842,10 @@ async function syncFromCloud(){
     if(d.onboarded)save('flux_onboarded',true);
     // Load devAccounts — owner's list syncs to all dev accounts too
     if(d.devAccounts)save('flux_dev_accounts',d.devAccounts);
+    if(isOwner()){
+      if(d.platformConfig&&typeof d.platformConfig==='object')save('flux_platform_config',d.platformConfig);
+      if(Array.isArray(d.ownerAuditLog))save('flux_owner_audit',d.ownerAuditLog.slice(-300));
+    }
     // Dev accounts: fetch owner's devAccounts list to check permissions
     if(!isOwner()&&!d.devAccounts){
       // Try to load dev accounts from owner's row
@@ -3165,10 +3559,12 @@ function showLoginScreen(){
   if(app)app.classList.remove('visible');
   initFeaturePills();
   initLoginFeatureCards();
+  setTimeout(()=>{if(typeof initLoginAmbient==='function')initLoginAmbient();},40);
 }
 function showApp(){
   const ls=document.getElementById('loginScreen');
   const app=document.getElementById('app');
+  if(typeof stopLoginAmbient==='function')stopLoginAmbient();
   if(ls){ls.style.display='none';ls.classList.remove('visible');}
   if(app)app.classList.add('visible');
   renderSidebars();
@@ -3302,7 +3698,6 @@ function initFeaturePills(){
     {label:'📧 Gmail Tasks',c:'#fb923c'},
     {label:'📝 Smart Notes',c:'#6366f1'},
     {label:'🎯 Extracurriculars',c:'#fbbf24'},
-    {label:'⚛️ Physics Sandbox',c:'#fb923c'},
   ];
   const all=[...pills,...pills];
   wrap.innerHTML=all.map(p=>`<div class="feat-pill" style="color:${p.c};border-color:${p.c}33;background:${p.c}11">${p.label}</div>`).join('');
@@ -3486,7 +3881,6 @@ function initDashboardFeatures(){
   // New systems
   initPomodoroVisibilityPause();
   initTaskSwipeGestures();
-  initQuickJumpPills();
   applyCollapsedSections();
   applyHighContrast();
   renderSavedViewsDropdown();
@@ -3696,28 +4090,6 @@ function showAutoNext(){
   document.body.appendChild(bar);
   clearTimeout(_autoNextTimer);
   _autoNextTimer=setTimeout(()=>{const el=document.getElementById('autoNextBar');if(el){el.style.opacity='0';el.style.transition='opacity .4s';setTimeout(()=>el.remove(),400);}},8000);
-}
-
-
-// ══ JUST START MODE ═══════════════════════════════════════════
-let justStartActive=load('flux_just_start',false);
-function toggleJustStart(){
-  justStartActive=!justStartActive;
-  save('flux_just_start',justStartActive);
-  const btn=document.getElementById('justStartBtn');
-  if(btn){btn.textContent=justStartActive?'⚡ Just Start: ON':'⚡ Just Start';
-    btn.style.background=justStartActive?'rgba(var(--accent-rgb),.2)':'';
-    btn.style.borderColor=justStartActive?'rgba(var(--accent-rgb),.4)':'';
-    btn.style.color=justStartActive?'var(--accent)':'';
-  }
-  if(justStartActive)activateJustStart();
-}
-function activateJustStart(){
-  const next=smartSortTasks(tasks.filter(t=>!t.done))[0];
-  if(!next){showToast('No tasks to start!','info');return;}
-  showToast('⚡ Starting: '+next.name,'success');
-  nav('dashboard');
-  setTimeout(()=>startDeepWork(next.id),300);
 }
 
 
@@ -4153,24 +4525,6 @@ function showSkeleton(containerId,rows=3,height=36){
   ).join('');
 }
 
-
-// ══ QUICK-JUMP PILLS ══════════════════════════════════════════
-function initQuickJumpPills(){
-  const el=document.getElementById('quickJumpPills');if(!el)return;
-  const jumps=[
-    {label:'Tasks',id:'taskListCard'},
-    {label:'Timer',tab:'timer'},
-    {label:'Grades',tab:'grades'},
-    {label:'AI',tab:'ai'},
-    {label:'Goals',tab:'goals'},
-    {label:'Habits',tab:'habits'},
-  ];
-  el.innerHTML=jumps.map(j=>`
-    <button onclick="${j.tab?`nav('${j.tab}')`:`document.getElementById('${j.id}')?.scrollIntoView({behavior:'smooth'})`}" 
-      style="padding:4px 12px;border-radius:20px;font-size:.65rem;font-weight:600;background:var(--card2);border:1px solid var(--border);color:var(--muted2);cursor:pointer;white-space:nowrap;transition:all .15s">
-      ${j.label}
-    </button>`).join('');
-}
 
 // ══ IMAGE IMPORT FEATURES ══
 
@@ -4940,9 +5294,9 @@ function switchIntelTab(tab, btn){
 
 // ════════════════════════════════════════════════════
 // FLUX INTELLIGENCE ENGINE v3.0
-// 10 Systems: NLP, Risk, TimeBlock, MultiView,
-// Filters, Keyboard Nav, Sessions, Resume,
-// Optimistic UI, Physics Sandbox
+// 10 Systems: NLP, Risk, MultiView,
+// Keyboard Nav, Sessions, Resume,
+// Optimistic UI
 // ════════════════════════════════════════════════════
 
 // ══ 1. NATURAL LANGUAGE TASK INPUT ══
@@ -5069,73 +5423,20 @@ function getRiskLabel(r){
   return null;
 }
 
-// ══ 3. SMART TIME BLOCKING ══
-function generateTimeBlocks(){
-  const today=todayStr();
-  const pending=tasks.filter(t=>!t.done&&t.estTime>0).sort((a,b)=>(b.urgencyScore||0)-(a.urgencyScore||0));
-  if(!pending.length){showToast('No tasks with time estimates to schedule.','info');return;}
-
-  // Start from current time, round up to next 30min
-  const now=new Date();
-  let cursor=new Date(now);
-  cursor.setMinutes(Math.ceil(cursor.getMinutes()/30)*30,0,0);
-
-  const blocks=[];
-  const endOfDay=new Date(cursor);endOfDay.setHours(22,0,0,0);
-
-  for(const task of pending){
-    if(cursor>=endOfDay)break;
-    const estMin=task.estTime||30;
-    const end=new Date(cursor.getTime()+estMin*60000);
-    if(end>endOfDay)break;
-    blocks.push({
-      task,
-      start:cursor.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
-      end:end.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),
-      durationMin:estMin
-    });
-    // Add 10min break between tasks
-    cursor=new Date(end.getTime()+10*60000);
-  }
-
-  if(!blocks.length){showToast('No time available today for scheduling.','info');return;}
-  showTimeBlockModal(blocks);
-}
-
-function showTimeBlockModal(blocks){
-  const existing=document.getElementById('timeBlockModal');if(existing)existing.remove();
-  const modal=document.createElement('div');
-  modal.id='timeBlockModal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)';
-  modal.innerHTML=`
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:24px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.5)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:1rem;font-weight:800">⏰ Smart Schedule — Today</div>
-        <button onclick="document.getElementById('timeBlockModal').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0;transform:none;box-shadow:none">✕</button>
-      </div>
-      <div style="font-size:.78rem;color:var(--muted2);margin-bottom:14px">Optimized by urgency · 10min breaks included</div>
-      ${blocks.map((b,i)=>`
-        <div style="display:flex;gap:12px;padding:12px;background:${i%2===0?'rgba(255,255,255,.03)':'transparent'};border-radius:10px;margin-bottom:6px;align-items:center">
-          <div style="font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--muted2);min-width:90px;flex-shrink:0">${b.start}<br>${b.end}</div>
-          <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600">${esc(b.task.name)}</div>
-            <div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${b.durationMin}min · ${b.task.priority} priority</div>
-          </div>
-          <div style="width:8px;height:8px;border-radius:50%;background:${b.task.priority==='high'?'var(--red)':b.task.priority==='low'?'var(--green)':'var(--gold)'};flex-shrink:0"></div>
-        </div>`).join('')}
-      <button onclick="document.getElementById('timeBlockModal').remove()" style="width:100%;margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px;font-weight:700;cursor:pointer">Got it — Let's work</button>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
-}
-
-// ══ 4. MULTI-VIEW SYSTEM ══
+// ══ 3. MULTI-VIEW SYSTEM ══
 let currentView='list'; // list | kanban | timeline
 
 function switchView(view){
   currentView=view;
   save('flux_view',view);
   document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  const tl=document.getElementById('taskList');
+  if(tl){
+    tl.classList.remove('flux-view-swap');
+    void tl.offsetWidth;
+    tl.classList.add('flux-view-swap');
+    setTimeout(()=>tl.classList.remove('flux-view-swap'),420);
+  }
   renderCurrentView();
 }
 
@@ -5253,109 +5554,7 @@ function renderTimeline(){
   </div>`:'');
 }
 
-// ══ 5. ADVANCED FILTERS ══
-let savedFilters=load('flux_saved_filters',[]);
-let activeFilterSet=null;
-
-function openAdvancedFilter(){
-  const existing=document.getElementById('advFilterModal');if(existing)existing.remove();
-  const modal=document.createElement('div');
-  modal.id='advFilterModal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)';
-  const subjs=getSubjects();
-  modal.innerHTML=`
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:24px;width:100%;max-width:440px;box-shadow:0 24px 80px rgba(0,0,0,.5)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-        <div style="font-size:1rem;font-weight:800">🔍 Advanced Filter</div>
-        <button onclick="document.getElementById('advFilterModal').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0;transform:none;box-shadow:none">✕</button>
-      </div>
-      <div style="margin-bottom:12px">
-        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Priority</div>
-        <div style="display:flex;gap:6px">
-          ${['high','med','low'].map(p=>`<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer">
-            <input type="checkbox" id="af_pri_${p}" style="width:auto;margin:0"> ${p.charAt(0).toUpperCase()+p.slice(1)}</label>`).join('')}
-        </div>
-      </div>
-      <div style="margin-bottom:12px">
-        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Type</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${['hw','test','quiz','project','essay','lab'].map(tp=>`<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer">
-            <input type="checkbox" id="af_type_${tp}" style="width:auto;margin:0"> ${tp.charAt(0).toUpperCase()+tp.slice(1)}</label>`).join('')}
-        </div>
-      </div>
-      <div style="margin-bottom:12px">
-        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Subject</div>
-        <select id="af_subject" style="margin:0"><option value="">Any subject</option>${Object.entries(subjs).map(([k,s])=>`<option value="${k}">${s.name}</option>`).join('')}</select>
-      </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Due within</div>
-        <select id="af_due" style="margin:0">
-          <option value="">Any time</option>
-          <option value="1">Today</option>
-          <option value="3">Next 3 days</option>
-          <option value="7">Next 7 days</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button onclick="applyAdvancedFilter()" style="flex:1;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:11px;font-weight:700;cursor:pointer">Apply</button>
-        <button onclick="saveCurrentFilter()" style="background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.3);color:var(--accent);border-radius:12px;padding:11px;font-size:.8rem;cursor:pointer;transform:none;box-shadow:none">Save</button>
-        <button onclick="clearAdvancedFilter()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted2);border-radius:12px;padding:11px;font-size:.8rem;cursor:pointer;transform:none;box-shadow:none">Clear</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
-}
-
-function applyAdvancedFilter(){
-  const pris=['high','med','low'].filter(p=>document.getElementById('af_pri_'+p)?.checked);
-  const types=['hw','test','quiz','project','essay','lab'].filter(tp=>document.getElementById('af_type_'+tp)?.checked);
-  const subject=document.getElementById('af_subject')?.value;
-  const due=document.getElementById('af_due')?.value;
-  activeFilterSet={pris,types,subject,due};
-  document.getElementById('advFilterModal')?.remove();
-  renderTasksFiltered();
-  const badge=document.getElementById('filterBadge');
-  if(badge){badge.style.display='inline';badge.textContent='Filtered';}
-}
-
-function clearAdvancedFilter(){
-  activeFilterSet=null;
-  document.getElementById('advFilterModal')?.remove();
-  renderTasks();
-  const badge=document.getElementById('filterBadge');
-  if(badge)badge.style.display='none';
-}
-
-function saveCurrentFilter(){
-  const f=activeFilterSet;if(!f)return;
-  const name=prompt('Name this filter:');if(!name)return;
-  savedFilters.push({name,...f});
-  save('flux_saved_filters',savedFilters);
-  showToast('Filter saved: '+name);
-}
-
-function renderTasksFiltered(){
-  if(!activeFilterSet){renderTasks();return;}
-  const {pris,types,subject,due}=activeFilterSet;
-  const now=new Date();now.setHours(0,0,0,0);
-  let list=tasks.filter(t=>{
-    if(pris.length&&!pris.includes(t.priority))return false;
-    if(types.length&&!types.includes(t.type))return false;
-    if(subject&&t.subject!==subject)return false;
-    if(due&&t.date){
-      const d=new Date(t.date+'T00:00');
-      const diff=Math.ceil((d-now)/86400000);
-      if(diff>parseInt(due)||diff<0)return false;
-    }
-    return true;
-  });
-  const el=document.getElementById('taskList');if(!el)return;
-  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No tasks match</div><div class="empty-sub">Try different filter conditions</div></div>';return;}
-  // Render filtered list using existing task HTML
-  const saved_tasks=tasks;tasks=list;renderTasks();tasks=saved_tasks;
-}
-
-// ══ 6. FULL KEYBOARD NAVIGATION ══
+// ══ 4. FULL KEYBOARD NAVIGATION ══
 function initFullKeyboardNav(){
   let focusIdx=-1;
   const getFocusable=()=>[...document.querySelectorAll('.nav-item,.bnav-item,button:not([disabled]),.task-item,.card')].filter(el=>el.offsetParent!==null&&!el.closest('#splash')&&!el.closest('#loginScreen'));
@@ -5527,102 +5726,6 @@ function optimisticToggleTask(id){
   setTimeout(()=>{renderStats();renderTasks();renderCalendar();renderCountdown();checkAllPanic();},300);
 }
 
-// ══ 10. PHYSICS SANDBOX ══
-const PHYSICS={g:10,G:6.674e-11,k:9e9,c:3e8};
-const PHYSICS_FORMULAS=[
-  {name:'Velocity',formula:'v = u + at',vars:['u','a','t'],solve:'v',fn:({u,a,t})=>parseFloat(u)+parseFloat(a)*parseFloat(t)},
-  {name:'Displacement',formula:'s = ut + ½at²',vars:['u','a','t'],solve:'s',fn:({u,a,t})=>parseFloat(u)*parseFloat(t)+0.5*parseFloat(a)*Math.pow(parseFloat(t),2)},
-  {name:'Force',formula:'F = ma',vars:['m','a'],solve:'F',fn:({m,a})=>parseFloat(m)*parseFloat(a)},
-  {name:'Weight',formula:'W = mg',vars:['m'],solve:'W',fn:({m})=>parseFloat(m)*PHYSICS.g},
-  {name:'Kinetic Energy',formula:'KE = ½mv²',vars:['m','v'],solve:'KE',fn:({m,v})=>0.5*parseFloat(m)*Math.pow(parseFloat(v),2)},
-  {name:'Potential Energy',formula:'PE = mgh',vars:['m','h'],solve:'PE',fn:({m,h})=>parseFloat(m)*PHYSICS.g*parseFloat(h)},
-  {name:'Momentum',formula:'p = mv',vars:['m','v'],solve:'p',fn:({m,v})=>parseFloat(m)*parseFloat(v)},
-  {name:'Power',formula:'P = W/t',vars:['W','t'],solve:'P',fn:({W,t})=>parseFloat(W)/parseFloat(t)},
-  {name:'Pressure',formula:'P = F/A',vars:['F','A'],solve:'P',fn:({F,A})=>parseFloat(F)/parseFloat(A)},
-  {name:'Ohm\'s Law',formula:'V = IR',vars:['I','R'],solve:'V',fn:({I,R})=>parseFloat(I)*parseFloat(R)},
-];
-
-let _physicsFormIdx=0;
-
-function openPhysicsSandbox(){
-  const existing=document.getElementById('physicsSandbox');if(existing)existing.remove();
-  const modal=document.createElement('div');
-  modal.id='physicsSandbox';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(12px)';
-  renderPhysicsModal(modal);
-  document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
-}
-
-function renderPhysicsModal(modal){
-  const f=PHYSICS_FORMULAS[_physicsFormIdx];
-  modal.innerHTML=`
-    <div style="background:var(--card);border:1px solid rgba(0,180,255,.3);border-radius:22px;padding:26px;width:100%;max-width:460px;box-shadow:0 0 60px rgba(0,180,255,.15),0 24px 80px rgba(0,0,0,.5)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-        <div>
-          <div style="font-size:1rem;font-weight:800;margin-bottom:2px">⚛️ Physics Sandbox</div>
-          <div style="font-size:.65rem;color:rgba(0,180,255,.7);font-family:'JetBrains Mono',monospace">g = ${PHYSICS.g} m/s² · 4dp precision</div>
-        </div>
-        <button onclick="document.getElementById('physicsSandbox').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0;transform:none;box-shadow:none">✕</button>
-      </div>
-
-      <!-- Formula selector -->
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px">
-        ${PHYSICS_FORMULAS.map((f2,i)=>`<button onclick="_physicsFormIdx=${i};renderPhysicsModal(document.getElementById('physicsSandbox'))"
-          style="padding:4px 10px;font-size:.7rem;border-radius:8px;border:1px solid ${i===_physicsFormIdx?'rgba(0,180,255,.5)':'var(--border2)'};background:${i===_physicsFormIdx?'rgba(0,180,255,.12)':'transparent'};color:${i===_physicsFormIdx?'rgba(0,200,255,1)':'var(--muted2)'};cursor:pointer;transition:all .15s;transform:none;box-shadow:none">${f2.name}</button>`).join('')}
-      </div>
-
-      <!-- Formula display -->
-      <div style="background:rgba(0,180,255,.06);border:1px solid rgba(0,180,255,.15);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center">
-        <div style="font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:rgba(0,210,255,.9);letter-spacing:1px">${f.formula}</div>
-        <div style="font-size:.72rem;color:var(--muted2);margin-top:4px">Solving for: <strong style="color:rgba(0,200,255,.8)">${f.solve}</strong></div>
-      </div>
-
-      <!-- g override -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;background:rgba(255,255,255,.03);border-radius:10px;padding:10px 12px">
-        <span style="font-size:.75rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;min-width:80px">g (m/s²)</span>
-        <input type="number" id="physics_g" value="${PHYSICS.g}" step="0.01" style="flex:1;margin:0;font-family:'JetBrains Mono',monospace;font-size:.9rem;text-align:center"
-          oninput="PHYSICS.g=parseFloat(this.value)||10">
-        <button onclick="PHYSICS.g=10;document.getElementById('physics_g').value=10" style="font-size:.7rem;padding:4px 8px;background:rgba(0,180,255,.1);border:1px solid rgba(0,180,255,.2);color:rgba(0,200,255,.8);border-radius:7px;cursor:pointer;transform:none;box-shadow:none">Reset</button>
-      </div>
-
-      <!-- Variable inputs -->
-      ${f.vars.map(v=>`
-        <div style="margin-bottom:10px">
-          <label style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'JetBrains Mono',monospace;display:block;margin-bottom:4px">${v}</label>
-          <input type="number" id="phys_${v}" placeholder="Enter ${v}" step="any" style="margin:0;font-family:'JetBrains Mono',monospace" oninput="calcPhysics()">
-        </div>`).join('')}
-
-      <!-- Result -->
-      <div id="physicsResult" style="margin-top:16px;padding:14px;background:rgba(0,180,255,.06);border:1px solid rgba(0,180,255,.15);border-radius:12px;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center">
-        <span style="font-size:.82rem;color:var(--muted2)">Enter values above</span>
-      </div>
-    </div>`;
-}
-
-function calcPhysics(){
-  const f=PHYSICS_FORMULAS[_physicsFormIdx];
-  const vals={};
-  let valid=true;
-  f.vars.forEach(v=>{
-    const el=document.getElementById('phys_'+v);
-    const val=parseFloat(el?.value);
-    if(isNaN(val)){valid=false;}else vals[v]=val;
-  });
-  const el=document.getElementById('physicsResult');if(!el)return;
-  if(!valid){el.innerHTML='<span style="font-size:.82rem;color:var(--muted2)">Enter all values</span>';return;}
-  try{
-    const result=f.fn(vals);
-    el.innerHTML=`<div>
-      <div style="font-size:.7rem;color:var(--muted2);font-family:'JetBrains Mono',monospace;margin-bottom:4px">${f.solve} =</div>
-      <div style="font-size:2rem;font-weight:800;color:rgba(0,210,255,.9);font-family:'JetBrains Mono',monospace;letter-spacing:-1px">${result.toFixed(4)}</div>
-      <div style="font-size:.68rem;color:rgba(0,180,255,.6);font-family:'JetBrains Mono',monospace;margin-top:2px">g = ${PHYSICS.g.toFixed(4)} m/s²</div>
-    </div>`;
-  }catch(e){
-    el.innerHTML='<span style="font-size:.82rem;color:var(--red)">Calculation error</span>';
-  }
-}
-
 // ══ WIRE INTO EXISTING SYSTEMS ══
 // Override renderTasks to add risk badges + make items focusable + show in right view
 const _baseRenderTasks=window.renderTasks;
@@ -5658,7 +5761,6 @@ window.renderTasks=function(){
   });
 };
 
-// Add to keyboard shortcuts: physics sandbox (P key)
 const _baseKB=window.initKeyboardShortcuts;
 window.initKeyboardShortcuts=function(){
   _baseKB?.();
@@ -5666,10 +5768,7 @@ window.initKeyboardShortcuts=function(){
     const tag=document.activeElement?.tagName;
     if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
     if(e.metaKey||e.ctrlKey||e.altKey)return;
-    if(e.key==='p'||e.key==='P'){e.preventDefault();openPhysicsSandbox();}
     if(e.key==='s'||e.key==='S'){e.preventDefault();if(_sessionStart)endSession();else startSession();}
-    if(e.key==='f'||e.key==='F'){e.preventDefault();openAdvancedFilter();}
-    if(e.key==='b'||e.key==='B'){e.preventDefault();generateTimeBlocks();}
   });
 };
 
@@ -5819,36 +5918,9 @@ FluxBus.on('task_completed',function(task){
 // ══ SMART DASHBOARD REORDER BY TIME OF DAY ═══════════════════
 function smartReorderDashboard(){
   // Dashboard sections are now in fixed wrapper divs (.dash-alerts, .dash-section,
-  // .dash-row, .dash-workspace, .dash-jump-pills). No individual element reordering
+  // .dash-row, .dash-workspace). No individual element reordering
   // needed — the HTML structure defines the layout. This function now only ensures
   // the old reorderDashboard() doesn't break anything.
-}
-
-
-// ══ RECOVERY MODE ════════════════════════════════════════════
-var _recoveryMode=false;
-function toggleRecoveryMode(){
-  _recoveryMode=!_recoveryMode;
-  save('flux_recovery',_recoveryMode);
-  const btn=document.getElementById('recoveryModeBtn');
-  if(btn){
-    btn.textContent=_recoveryMode?'🩹 Exit Recovery':'🩹 Recovery Mode';
-    btn.style.background=_recoveryMode?'rgba(0,217,163,.15)':'';
-    btn.style.borderColor=_recoveryMode?'rgba(0,217,163,.3)':'';
-  }
-  renderTasks();
-  showToast(_recoveryMode?'🩹 Recovery Mode — showing only critical + quick wins':'Recovery mode off','info');
-}
-function getRecoveryTasks(taskList){
-  if(!_recoveryMode)return taskList;
-  return taskList.filter(t=>{
-    if(t.done)return true;
-    const isOverdue=t.date&&new Date(t.date+'T00:00:00')<new Date(new Date().toDateString());
-    const isHigh=t.priority==='high';
-    const isQuickWin=(t.estTime||30)<=15;
-    const isDueToday=t.date===todayStr();
-    return isOverdue||isHigh||isQuickWin||isDueToday;
-  });
 }
 
 
@@ -5916,7 +5988,7 @@ function checkMicroCoaching(){
   const overdue=tasks.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<new Date(new Date().toDateString()));
   if(overdue.length>=3){
     _lastCoachTime=now;
-    showCoachPrompt('📋 '+overdue.length+' overdue tasks. Try Recovery Mode to focus on what matters.');
+    showCoachPrompt('📋 '+overdue.length+' overdue tasks. Use the Overdue filter to focus on what matters.');
     return;
   }
 }
@@ -5942,7 +6014,6 @@ const ACHIEVEMENTS={
   first_session:{title:'Focus Starter',desc:'Completed a focus session',icon:'⏱'},
   ten_sessions:{title:'Deep Worker',desc:'10 focus sessions',icon:'🧠'},
   chain_unlock:{title:'Chain Reaction',desc:'Unlocked 3+ tasks at once',icon:'⚡'},
-  recovery_used:{title:'Resilient',desc:'Used Recovery Mode',icon:'🩹'},
   all_done_today:{title:'Clean Slate',desc:'Finished all tasks for today',icon:'✨'},
 };
 let _achievements=load('flux_achievements',[]);
@@ -6005,7 +6076,6 @@ function updateMomentumZone(){
 
 // ══ V4 INITIALIZATION ════════════════════════════════════════
 function initV4Systems(){
-  _recoveryMode=load('flux_recovery',false);
   _achievements=load('flux_achievements',[]);
 
   smartReorderDashboard();

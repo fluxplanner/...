@@ -1,15 +1,20 @@
 /* ── FLUX PLANNER · login.css ── */
 
-#loginScreen{position:fixed;inset:0;background:#080a12;z-index:1000;display:none;overflow-y:auto}
+#loginScreen{position:fixed;inset:0;background:linear-gradient(165deg,#0B0F1A 0%,#121826 100%);z-index:1000;display:none;overflow-y:auto}
 #loginScreen.visible{display:block}
 
 /* ── BACKGROUND: LAYERED DEPTH ── */
 .login-bg{
   position:fixed;inset:0;pointer-events:none;z-index:0;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 20%,rgba(99,102,241,.1) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 80%,rgba(0,217,163,.06) 0%,transparent 60%),
-    radial-gradient(ellipse 50% 40% at 60% 10%,rgba(192,132,252,.05) 0%,transparent 60%);
+    radial-gradient(ellipse 85% 55% at 15% 15%,rgba(0,194,255,.11) 0%,transparent 58%),
+    radial-gradient(ellipse 65% 50% at 85% 85%,rgba(124,92,255,.09) 0%,transparent 58%),
+    radial-gradient(ellipse 50% 40% at 55% 8%,rgba(34,255,136,.05) 0%,transparent 55%);
+  animation:loginBgShift 22s ease-in-out infinite alternate;
+}
+@keyframes loginBgShift{
+  0%{filter:hue-rotate(0deg) saturate(1)}
+  100%{filter:hue-rotate(6deg) saturate(1.05)}
 }
 
 /* ── DOT-GRID PATTERN ── */
@@ -23,9 +28,9 @@
 
 /* ── FLOATING GLOWS ── */
 .login-glow{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0;opacity:.6;animation:glowFloat 16s ease-in-out infinite alternate}
-.login-glow-1{width:600px;height:600px;top:-200px;left:-150px;background:rgba(99,102,241,.12);animation-duration:18s}
-.login-glow-2{width:450px;height:450px;bottom:-150px;right:-100px;background:rgba(0,217,163,.08);animation-duration:22s;animation-delay:-7s}
-.login-glow-3{width:350px;height:350px;top:35%;left:55%;background:rgba(192,132,252,.06);animation-duration:20s;animation-delay:-4s}
+.login-glow-1{width:600px;height:600px;top:-200px;left:-150px;background:rgba(0,194,255,.1);animation-duration:18s}
+.login-glow-2{width:450px;height:450px;bottom:-150px;right:-100px;background:rgba(124,92,255,.09);animation-duration:22s;animation-delay:-7s}
+.login-glow-3{width:350px;height:350px;top:35%;left:55%;background:rgba(34,255,136,.06);animation-duration:20s;animation-delay:-4s}
 @keyframes glowFloat{
   0%{transform:translate(0,0) scale(1)}
   33%{transform:translate(30px,-20px) scale(1.06)}
@@ -34,7 +39,7 @@
 }
 
 /* ── TWO-COLUMN DESKTOP LAYOUT ── */
-.login-2col{position:fixed;inset:0;z-index:1;display:grid;grid-template-columns:1.1fr .9fr;overflow-y:auto}
+.login-2col{position:fixed;inset:0;z-index:2;display:grid;grid-template-columns:1.1fr .9fr;overflow-y:auto}
 .login-left{display:flex;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden}
 .login-left-inner{max-width:480px;width:100%;min-width:0}
 .login-right{display:flex;align-items:center;justify-content:center;padding:40px 48px}
@@ -59,7 +64,7 @@
   animation:loginFadeUp .6s cubic-bezier(.16,1,.3,1) .1s both;
 }
 .login-gradient-text{
-  background:linear-gradient(135deg,#6c63ff,#a78bfa,#00d9a3);
+  background:linear-gradient(135deg,#00C2FF,#7C5CFF,#22FF88);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
 .login-left-sub{
@@ -148,10 +153,10 @@
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px;position:relative;z-index:1}
 .login-logo{
   font-size:3rem;font-weight:800;letter-spacing:-2px;
-  background:linear-gradient(135deg,#6c63ff,#a78bfa,#00d9a3);
+  background:linear-gradient(135deg,#fff,#00C2FF 45%,#7C5CFF);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   line-height:1;display:block;text-align:center;
-  filter:drop-shadow(0 2px 12px rgba(99,102,241,.3));
+  filter:drop-shadow(0 2px 16px rgba(0,194,255,.35));
 }
 .login-tagline{
   font-size:.62rem;color:rgba(255,255,255,.3);
@@ -220,9 +225,11 @@
   transition:all .2s ease!important;
 }
 .login-email-form input:focus{
-  border-color:rgba(var(--accent-rgb),.3)!important;
-  box-shadow:0 0 0 3px rgba(var(--accent-rgb),.08)!important;
+  border-color:rgba(var(--accent-rgb),.45)!important;
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12),0 0 28px rgba(var(--accent-rgb),.12)!important;
+  transform:scale(1.012);
 }
+.login-email-form input{transition:transform .22s cubic-bezier(.34,1.56,.64,1),border-color .2s ease,box-shadow .2s ease!important}
 .login-auth-toggle{font-size:.73rem;color:rgba(255,255,255,.3);margin-top:12px;cursor:pointer;text-align:center;position:relative;z-index:1}
 .login-auth-toggle span{color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .login-auth-toggle span:hover{color:#a5b4fc}
@@ -279,8 +286,19 @@
 }
 
 /* ── REDUCED MOTION ── */
+#loginScreen.visible .login-logo-wrap{animation:loginStaggerIn .9s cubic-bezier(.22,1,.36,1) .08s both}
+#loginScreen.visible .login-google-btn{animation:loginStaggerIn .9s cubic-bezier(.22,1,.36,1) .16s both}
+#loginScreen.visible .login-divider{animation:loginStaggerIn .9s cubic-bezier(.22,1,.36,1) .24s both}
+#loginScreen.visible #loginEmailSection{animation:loginStaggerIn .9s cubic-bezier(.22,1,.36,1) .3s both}
+#loginScreen.visible .login-skip{animation:loginStaggerIn .9s cubic-bezier(.22,1,.36,1) .38s both}
+#loginScreen.visible .login-trust{animation:loginStaggerIn .9s cubic-bezier(.22,1,.36,1) .44s both}
+@keyframes loginStaggerIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
 @media(prefers-reduced-motion:reduce){
+  .login-bg{animation:none!important}
   .login-glow,.login-card::after{animation:none!important}
   .login-feature-card,.login-badge,.login-left-headline,.login-left-sub,.feat-pills-wrap{animation:none!important;opacity:1!important;transform:none!important}
   .login-card{animation:none!important;opacity:1!important;transform:none!important}
+  #loginScreen.visible .login-logo-wrap,#loginScreen.visible .login-google-btn,#loginScreen.visible .login-divider,
+  #loginScreen.visible #loginEmailSection,#loginScreen.visible .login-skip,#loginScreen.visible .login-trust{animation:none!important;opacity:1!important;transform:none!important}
 }

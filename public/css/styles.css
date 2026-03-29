@@ -4,33 +4,42 @@
    ══════════════════════════════════════════════════════ */
 
 :root {
-  --bg:#07080f; --bg2:#0c0d17; --bg3:#11121e;
-  --card:#13141f; --card2:#1a1b28; --card3:#1f2133; --card-solid:#13141f;
+  --bg:#0B0F1A; --bg2:#0e1424; --bg3:#121826;
+  --card:#151d30; --card2:#1a2335; --card3:#1f2a40; --card-solid:#121826;
   --border:rgba(255,255,255,.055); --border2:rgba(255,255,255,.09); --border3:rgba(255,255,255,.13);
-  --accent:#00bfff; --accent-rgb:0,191,255; --accent2:#38d6ff; --accent-glow:rgba(0,191,255,.25);
-  --green:#00d9a3; --green-rgb:0,217,163;
+  --accent:#00C2FF; --accent-rgb:0,194,255; --accent2:#4ddbff; --accent-glow:rgba(0,194,255,.28);
+  --green:#22FF88; --green-rgb:34,255,136;
   --red:#ff4d6d; --red-rgb:255,77,109;
   --gold:#f5a623; --gold-rgb:245,166,35;
-  --purple:#b57bee; --purple-rgb:181,123,238;
+  --purple:#7C5CFF; --purple-rgb:124,92,255;
   --orange:#ff7849; --blue:#3b9eff;
   --text:#f0f1f8; --text2:#c8cad8; --muted:#5a5f7a; --muted2:#7b809a;
-  --r:16px; --r-sm:10px; --r-lg:22px; --r-xl:28px;
+  --r:18px; --r-sm:12px; --r-lg:22px; --r-xl:28px;
   --sidebar-w:276px; --sidebar-collapsed:72px;
-  --glass:blur(24px) saturate(160%);
+  --glass:blur(28px) saturate(165%);
   --shadow-sm:0 2px 8px rgba(0,0,0,.3);
-  --shadow-card:0 4px 20px rgba(0,0,0,.4),0 1px 0 rgba(255,255,255,.04) inset;
+  --shadow-card:0 4px 24px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.05) inset;
   --shadow-float:0 12px 48px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.06) inset;
-  --shadow-glow:0 0 0 1px rgba(var(--accent-rgb),.3),0 8px 32px rgba(var(--accent-rgb),.15);
+  --shadow-glow:0 0 0 1px rgba(var(--accent-rgb),.35),0 8px 36px rgba(var(--accent-rgb),.18);
   --ease:cubic-bezier(.4,0,.2,1); --ease-out:cubic-bezier(0,0,.2,1);
   --ease-spring:cubic-bezier(.34,1.56,.64,1);
-  --t-fast:.15s; --t-base:.22s; --t-slow:.35s;
+  --ease-cinematic:cubic-bezier(.22,1,.36,1);
+  --t-fast:.14s; --t-base:.2s; --t-slow:.32s;
   --transition:all var(--t-base) var(--ease);
 }
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
-body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 60% 40% at 10% 5%,rgba(108,99,255,.09) 0%,transparent 65%),radial-gradient(ellipse 50% 35% at 90% 90%,rgba(0,217,163,.06) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 55% 50%,rgba(181,123,238,.04) 0%,transparent 65%)}
+body{background:linear-gradient(165deg,var(--bg) 0%,var(--bg3) 55%,#0a0e18 100%);color:var(--text);font-family:'Inter','Plus Jakarta Sans',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:
+  radial-gradient(ellipse 70% 50% at 8% 0%,rgba(var(--accent-rgb),.12) 0%,transparent 55%),
+  radial-gradient(ellipse 55% 40% at 92% 95%,rgba(var(--purple-rgb),.1) 0%,transparent 60%),
+  radial-gradient(ellipse 45% 35% at 50% 55%,rgba(var(--green-rgb),.05) 0%,transparent 55%);
+  animation:fluxBgDrift 28s ease-in-out infinite alternate}
+@keyframes fluxBgDrift{
+  0%{opacity:1;transform:scale(1) translate(0,0)}
+  100%{opacity:.92;transform:scale(1.03) translate(-1.2%,1%)}
+}
 
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -245,6 +254,19 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 }
 .dash-row-main{flex:1.5;min-width:0}
 .dash-row-side{flex:1;min-width:0}
+details.dash-new-task-compact.card{
+  align-self:flex-start;width:100%;
+  margin-bottom:8px;border-radius:var(--r-sm)!important;
+  box-shadow:0 2px 12px rgba(0,0,0,.28);
+}
+details.dash-new-task-compact > .dash-nt-summary{
+  padding:5px 10px;cursor:pointer;font-size:.64rem;font-weight:600;color:var(--muted2);
+  list-style:none;display:flex;align-items:center;gap:5px;user-select:none;line-height:1.2;
+}
+details.dash-new-task-compact > .dash-nt-summary::-webkit-details-marker{display:none}
+details.dash-new-task-compact .dash-nt-plus{font-size:.7rem;line-height:1}
+details.dash-new-task-compact .dash-nt-hint{margin-left:auto;font-size:.52rem;opacity:.35;letter-spacing:.02em}
+details.dash-new-task-compact .dash-nt-body{padding:0 10px 12px}
 @media(max-width:768px){
   .dash-row{flex-direction:column}
 }
@@ -275,9 +297,6 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 .dash-toolbar-views{
   display:flex;gap:4px;align-items:center;
 }
-.dash-toolbar-actions{
-  display:flex;gap:4px;align-items:center;margin-left:auto;
-}
 .dash-pill-btn{
   padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:600;
   background:var(--card2);border:1px solid var(--border);color:var(--muted2);
@@ -288,15 +307,9 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 
 .dash-filters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
 
-.dash-jump-pills{
-  display:flex;gap:6px;flex-wrap:wrap;
-  padding-top:12px;border-top:1px solid var(--border);margin-top:8px;
-}
-
 @media(max-width:768px){
   .dash-toolbar{flex-direction:column;align-items:stretch}
   .dash-toolbar-views{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
-  .dash-toolbar-actions{margin-left:0;justify-content:flex-start}
 }
 
 .grade-buffer-bar{height:8px;background:var(--border2);border-radius:4px;overflow:hidden;margin-top:8px}
@@ -1081,13 +1094,6 @@ button[onclick*="generateStudyRoadmap"]:hover{
   animation:slideUp .25s var(--ease-spring,ease);
 }
 
-/* Quick-jump pills */
-#quickJumpPills button:hover{
-  background:rgba(var(--accent-rgb),.12)!important;
-  border-color:rgba(var(--accent-rgb),.3)!important;
-  color:var(--accent)!important;
-}
-
 /* Saved views section */
 #savedViewsSection{
   animation:fadeIn .2s ease;
@@ -1102,13 +1108,6 @@ button[onclick*="generateStudyRoadmap"]:hover{
   color:var(--red)!important;
   border-color:rgba(244,63,94,.5)!important;
   animation:pulse 1s infinite;
-}
-
-/* Just Start active state */
-#justStartBtn.active{
-  background:rgba(var(--accent-rgb),.2)!important;
-  border-color:rgba(var(--accent-rgb),.4)!important;
-  color:var(--accent)!important;
 }
 
 /* High contrast adjustments */
@@ -1178,11 +1177,6 @@ body.high-contrast .nav-item{
   transform:translateY(-2px)!important;
 }
 
-/* Physics modal polish */
-#physicsModal input[type="number"]{
-  font-family:'JetBrains Mono',monospace;
-}
-
 /* Shimmer animation for skeletons */
 @keyframes shimmer{
   0%{background-position:200% 0}
@@ -1198,18 +1192,6 @@ body.high-contrast .nav-item{
 [data-task-id]{
   will-change:transform;
 }
-
-/* Physics toolbox badge on task cards */
-.physics-badge{
-  display:inline-flex;align-items:center;gap:3px;
-  padding:2px 6px;border-radius:6px;
-  background:rgba(var(--accent-rgb),.1);
-  border:1px solid rgba(var(--accent-rgb),.2);
-  color:var(--accent);font-size:.6rem;
-  font-family:'JetBrains Mono',monospace;
-  cursor:pointer;
-}
-.physics-badge:hover{background:rgba(var(--accent-rgb),.18);}
 
 /* ══════════════════════════════════════════════════════════════
    FLUX V4 — NEURO-PREDICTIVE UI SYSTEMS
@@ -1254,10 +1236,6 @@ body.high-contrast .nav-item{
   from{opacity:0;transform:translateY(6px)}
   to{opacity:1;transform:none}
 }
-
-/* ── Recovery Mode Badge ── */
-[data-recovery="true"] .task-item{opacity:.4;transition:opacity .2s}
-[data-recovery="true"] .task-item.recovery-visible{opacity:1}
 
 /* ── Dependency Badge ── */
 .dep-badge{transition:background .15s ease}
@@ -1491,7 +1469,6 @@ button:focus-visible,.nav-item:focus-visible,.tmode-btn:focus-visible,.check:foc
 }
 .dash-toolbar{margin-bottom:12px!important;gap:8px!important}
 .dash-toolbar-views .tmode-btn{padding:9px 18px!important;font-size:.88rem!important;border-radius:20px!important}
-.dash-toolbar-actions .dash-pill-btn{padding:7px 14px!important;font-size:.82rem!important}
 .dash-filters{margin-bottom:10px!important;gap:6px!important}
 .dash-filters .tmode-btn{padding:8px 16px!important;font-size:.84rem!important;border-radius:18px!important}
 .dash-energy{

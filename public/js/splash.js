@@ -4,26 +4,45 @@
 function runShortSplash(callback){
   const splash=document.getElementById('splash');
   if(!splash){callback();return;}
-  splash.style.cssText='position:fixed;inset:0;background:#000810;z-index:9999;display:flex;align-items:center;justify-content:center;overflow:hidden';
+  splash.style.cssText='position:fixed;inset:0;background:linear-gradient(165deg,#0B0F1A,#121826);z-index:9999;display:flex;align-items:center;justify-content:center;overflow:hidden';
   splash.innerHTML=`
-    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;animation:splashFadeIn .4s ease both">
-      <div style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:2.4rem;font-weight:800;letter-spacing:-0.04em;
-        background:linear-gradient(135deg,#fff 0%,#00bfff 60%,#3b82f6 100%);
+    <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
+      ${Array.from({length:18},(_,i)=>`<span style="position:absolute;left:${8+i*5}%;top:${(i*7)%100}%;width:4px;height:4px;border-radius:50%;
+        background:rgba(0,194,255,${.15+.03*(i%5)});animation:splashFloat ${3+i*.2}s ease-in-out ${i*.08}s infinite alternate"></span>`).join('')}
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;animation:splashFadeIn .55s cubic-bezier(.22,1,.36,1) both;position:relative;z-index:1">
+      <div style="position:relative;width:100px;height:100px">
+        <svg viewBox="0 0 100 100" width="100" height="100" style="transform:rotate(-90deg);filter:drop-shadow(0 0 12px rgba(0,194,255,.4))">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6" pathLength="100"/>
+          <circle cx="50" cy="50" r="42" fill="none" stroke="url(#ssg)" stroke-width="6" stroke-linecap="round" pathLength="100"
+            stroke-dasharray="0 100" style="animation:splashRing 1s cubic-bezier(.34,1.56,.64,1) .15s forwards"/>
+          <defs><linearGradient id="ssg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00C2FF"/><stop offset="50%" stop-color="#7C5CFF"/><stop offset="100%" stop-color="#22FF88"/>
+          </linearGradient></defs>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.85rem;animation:splashLogoPop .7s cubic-bezier(.34,1.56,.64,1) .35s both">⚡</div>
+      </div>
+      <div style="font-family:'Inter','Plus Jakarta Sans',system-ui,sans-serif;font-size:2.35rem;font-weight:800;letter-spacing:-0.04em;
+        background:linear-gradient(135deg,#fff 0%,#00C2FF 50%,#7C5CFF 100%);
         -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-        filter:drop-shadow(0 0 20px rgba(0,191,255,.5))">Flux</div>
-      <div style="width:120px;height:2px;background:rgba(0,191,255,.2);border-radius:1px;overflow:hidden">
-        <div style="height:100%;background:linear-gradient(90deg,#00bfff,#3b82f6);border-radius:1px;animation:splashBar .8s ease both"></div>
+        filter:drop-shadow(0 0 22px rgba(0,194,255,.45));animation:splashTitle .75s cubic-bezier(.22,1,.36,1) .2s both">Flux</div>
+      <div style="width:132px;height:3px;background:rgba(0,194,255,.18);border-radius:2px;overflow:hidden">
+        <div style="height:100%;background:linear-gradient(90deg,#00C2FF,#22FF88);border-radius:2px;animation:splashBar .85s cubic-bezier(.22,1,.36,1) .35s both"></div>
       </div>
     </div>
     <style>
-      @keyframes splashFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+      @keyframes splashFadeIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+      @keyframes splashFloat{0%{transform:translate(0,0) scale(1)}100%{transform:translate(10px,-14px) scale(1.2)}}
+      @keyframes splashRing{to{stroke-dasharray:88 100}}
+      @keyframes splashLogoPop{from{opacity:0;transform:scale(.3) rotate(-25deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+      @keyframes splashTitle{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
       @keyframes splashBar{from{width:0}to{width:100%}}
     </style>`;
   setTimeout(()=>{
     splash.style.transition='opacity .3s ease';
     splash.style.opacity='0';
     setTimeout(()=>{splash.style.display='none';splash.innerHTML='';callback();},300);
-  },900);
+  },1100);
 }
 
 // Full orbital laser splash for first-time users
@@ -31,27 +50,27 @@ function runFullSplash(callback){
   const splash=document.getElementById('splash');
   if(!splash){callback();return;}
   const metaTheme=document.querySelector('meta[name="theme-color"]');
-  if(metaTheme)metaTheme.setAttribute('content','#000810');
-  splash.style.cssText='position:fixed;inset:0;background:#000810;z-index:9999;overflow:hidden;display:block';
+  if(metaTheme)metaTheme.setAttribute('content','#0B0F1A');
+  splash.style.cssText='position:fixed;inset:0;background:linear-gradient(165deg,#0B0F1A,#121826);z-index:9999;overflow:hidden;display:block';
   splash.innerHTML=`
     <canvas id="orbCanvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
     <div id="orbLogo" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;opacity:0;transition:opacity .6s ease;pointer-events:none">
       <div style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:clamp(2.8rem,10vw,4.2rem);font-weight:800;letter-spacing:-0.04em;text-align:center;
-        background:linear-gradient(135deg,#fff 0%,#00bfff 50%,#3b82f6 100%);
+        background:linear-gradient(135deg,#fff 0%,#00C2FF 45%,#7C5CFF 100%);
         -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-        filter:drop-shadow(0 0 30px rgba(0,180,255,.6))">Flux</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:clamp(.55rem,2vw,.8rem);letter-spacing:4px;text-transform:uppercase;color:rgba(0,200,255,.6);margin-top:8px;text-align:center">Planner</div>
+        filter:drop-shadow(0 0 30px rgba(0,194,255,.55))">Flux</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:clamp(.55rem,2vw,.8rem);letter-spacing:4px;text-transform:uppercase;color:rgba(0,194,255,.65);margin-top:8px;text-align:center">Planner</div>
     </div>`;
   const canvas=document.getElementById('orbCanvas');
   const ctx=canvas.getContext('2d');
   let W,H,cx,cy,animId,tick=0;
   const PH={ORBIT_START:50,CONVERGE_START:110,FLASH_START:145,LOGO_START:158,EXIT_START:198};
   const RINGS=[
-    {rx:.38,ry:.14,tilt:0,phase:0,speed:.008,alpha:.18,color:[0,180,255]},
-    {rx:.30,ry:.20,tilt:55,phase:1.2,speed:-.006,alpha:.14,color:[80,140,255]},
-    {rx:.46,ry:.10,tilt:-30,phase:2.4,speed:.005,alpha:.12,color:[0,220,200]},
-    {rx:.22,ry:.22,tilt:80,phase:3.8,speed:-.009,alpha:.10,color:[120,100,255]},
-    {rx:.52,ry:.08,tilt:15,phase:.7,speed:.004,alpha:.09,color:[0,160,255]},
+    {rx:.38,ry:.14,tilt:0,phase:0,speed:.008,alpha:.18,color:[0,194,255]},
+    {rx:.30,ry:.20,tilt:55,phase:1.2,speed:-.006,alpha:.14,color:[124,92,255]},
+    {rx:.46,ry:.10,tilt:-30,phase:2.4,speed:.005,alpha:.12,color:[34,255,136]},
+    {rx:.22,ry:.22,tilt:80,phase:3.8,speed:-.009,alpha:.10,color:[100,160,255]},
+    {rx:.52,ry:.08,tilt:15,phase:.7,speed:.004,alpha:.09,color:[0,194,255]},
   ];
   let beamAngle=0,beamBrightness=0,beamSnapTarget=null,lastSnapTick=0,sparks=[];
   const bri=0;
@@ -110,7 +129,7 @@ function runFullSplash(callback){
   let logoShown=false;
   function frame(){
     tick++;const t=tick;
-    ctx.clearRect(0,0,W,H);ctx.fillStyle='#000810';ctx.fillRect(0,0,W,H);
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0B0F1A';ctx.fillRect(0,0,W,H);
     const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*.5);
     bg.addColorStop(0,'rgba(0,20,60,.8)');bg.addColorStop(1,'rgba(0,2,12,0)');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
