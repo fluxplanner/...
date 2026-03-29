@@ -441,7 +441,7 @@
     </div>
 
     <!-- ─── DASHBOARD ─── -->
-    <div id="dashboard" class="panel active dash-v2">
+    <div id="dashboard" class="panel active dash-v2 flux-page">
 
       <header class="dash-v2-greet" id="dashHero">
         <h1 class="dash-v2-greet-title" id="dashGreeting">Good evening 👋</h1>
@@ -576,8 +576,12 @@
     </div>
 
     <!-- ─── CALENDAR ─── -->
-    <div id="calendar" class="panel">
-      <div class="cal-layout">
+    <div id="calendar" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Calendar</h1>
+        <p class="flux-page-sub">Month view, cycle days, weekly activities, and what’s ahead.</p>
+      </header>
+      <div class="cal-layout flux-stack">
         <div class="card cal-hero-card">
           <div class="cal-nav-row">
             <button type="button" class="btn-sec cal-nav-btn" onclick="changeMonth(-1)">‹</button>
@@ -699,7 +703,12 @@
     </div>
 
     <!-- ─── SCHOOL INFO ─── -->
-    <div id="school" class="panel">
+    <div id="school" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">School</h1>
+        <p class="flux-page-sub">Locker, classes, schedule import, and private teacher notes.</p>
+      </header>
+      <div class="flux-stack">
       <div class="card">
         <h3>School Info</h3>
         <div class="school-info-grid">
@@ -784,10 +793,16 @@
           <button onclick="addTeacherNote()">+</button>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- ─── GRADES ─── -->
-    <div id="grades" class="panel">
+    <div id="grades" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Grades</h1>
+        <p class="flux-page-sub">Import, GPA, weights, what-if finals, and your safety buffer.</p>
+      </header>
+      <div class="flux-stack">
       <div class="card">
         <h3>📷 Import from Photo</h3>
         <div style="font-size:.82rem;color:var(--muted2);margin-bottom:12px">Upload a screenshot of your grades or report card — AI reads it automatically.</div>
@@ -851,10 +866,16 @@
         <div id="whatIfResult" style="font-size:.88rem;color:var(--muted);font-family:'JetBrains Mono',monospace;min-height:22px"></div>
       </div>
       <div class="card"><h3>🛡 Safety Net — Grade Buffer</h3><div id="gradeBufferCard"><div class="empty"><div class="empty-icon">🛡</div><div class="empty-title">No grades yet</div><div class="empty-sub">Add grades above to see your buffer</div></div></div></div>
+      </div>
     </div>
 
     <!-- ─── NOTES ─── -->
-    <div id="notes" class="panel">
+    <div id="notes" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Notes</h1>
+        <p class="flux-page-sub">Search, rich text, flashcards, and AI summaries.</p>
+      </header>
+      <div class="flux-stack">
       <div id="notesListView">
         <div style="display:flex;gap:8px;margin-bottom:14px">
           <input type="text" id="noteSearch" placeholder="Search notes..." style="flex:1;margin:0" oninput="renderNotesList()">
@@ -904,10 +925,16 @@
         </div>
         <button onclick="closeFlashcards()" class="btn-sec" style="width:100%;margin-top:10px">Back to Notes</button>
       </div>
+      </div>
     </div>
 
     <!-- ─── TIMER ─── -->
-    <div id="timer" class="panel">
+    <div id="timer" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Focus timer</h1>
+        <p class="flux-page-sub">Pomodoro, ambient sound, streaks, and where your time goes.</p>
+      </header>
+      <div class="flux-stack">
       <div class="card" style="text-align:center;padding:24px 16px">
         <div style="display:flex;gap:6px;justify-content:center;margin-bottom:20px;flex-wrap:wrap">
           <button class="tmode-btn active" onclick="setTMode('pomodoro',this)">Pomodoro</button>
@@ -990,10 +1017,16 @@
         <h3>📊 Session History</h3>
         <div id="sessionStatsCard"><div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No sessions yet</div><div class="empty-sub">Press S or use the FAB to start tracking</div></div></div>
       </div>
+      </div>
     </div>
 
     <!-- ─── PROFILE ─── -->
-    <div id="profile" class="panel">
+    <div id="profile" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Profile</h1>
+        <p class="flux-page-sub">Identity, study style, stats, badges, and Canvas.</p>
+      </header>
+      <div class="flux-stack">
       <div class="profile-hero">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
           <div class="p-avatar" id="pAvatar" onclick="document.getElementById('picUpload').click()">?
@@ -1060,10 +1093,16 @@
         </div>
         <div style="font-size:.7rem;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono',monospace">Account → Settings → Approved Integrations → New Access Token</div>
       </div>
+      </div>
     </div>
 
     <!-- ─── EXTRACURRICULARS ─── -->
-    <div id="goals" class="panel">
+    <div id="goals" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Extracurriculars</h1>
+        <p class="flux-page-sub">Activities, target schools, goals, AI advisor, and college chat.</p>
+      </header>
+      <div class="flux-stack">
 
       <!-- Activity list -->
       <div class="card">
@@ -1136,11 +1175,17 @@
         <div style="font-size:.65rem;color:var(--muted);margin-top:8px">Enter to send · Shift+Enter for new line</div>
       </div>
 
+      </div>
     </div>
 
 
     <!-- ─── MOOD ─── -->
-    <div id="mood" class="panel">
+    <div id="mood" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Mood</h1>
+        <p class="flux-page-sub">Daily check-in, history, affirmations, and breathing.</p>
+      </header>
+      <div class="flux-stack">
       <div class="card">
         <h3>Daily Check-In</h3>
         <div style="font-size:.88rem;font-weight:600;margin-bottom:12px">How are you feeling today?</div>
@@ -1167,37 +1212,50 @@
           <button onclick="startBreathing()" id="breathBtn" style="padding:8px 24px">Start</button>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- ─── GMAIL ─── -->
-    <div id="gmail" class="panel">
-      <div class="card" style="padding:14px;margin-bottom:8px">
+    <div id="gmail" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Gmail</h1>
+        <p class="flux-page-sub">School messages in one place — refresh to load and add to tasks.</p>
+      </header>
+      <div class="flux-stack">
+      <div class="card" style="padding:14px;margin-bottom:0">
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-weight:800;font-size:1rem">📧 Gmail</div><div style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">View school emails · Add to tasks</div></div>
+          <div><div style="font-weight:800;font-size:1rem">Inbox</div><div style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">View school emails · Add to tasks</div></div>
           <button onclick="loadGmail()" class="btn-sec" style="padding:7px 14px;font-size:.78rem">↻ Refresh</button>
         </div>
       </div>
       <div id="gmailList"></div>
+      </div>
     </div>
 
     <!-- ─── AI ─── -->
-    <div id="ai" class="panel" style="display:none;flex-direction:column;height:calc(100vh - 60px);padding:0">
+    <div id="ai" class="panel flux-page" style="display:none;flex-direction:column;height:calc(100vh - 60px);padding:0;max-width:none">
+      <div class="flux-ai-top">
+      <header class="flux-page-header flux-page-header--compact" style="margin:0;padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <h1 class="flux-page-title">Flux AI</h1>
+        <p class="flux-page-sub">Tutoring, plans, and flashcards — Groq · Llama 3.3 70B</p>
+      </header>
       <!-- Chat tabs bar -->
-      <div style="display:flex;align-items:center;gap:6px;padding:10px 14px 0;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 14px 0;overflow-x:auto;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06)">
         <div id="aiChatTabs" style="display:flex;gap:6px;flex:1;overflow-x:auto"></div>
         <button onclick="newAIChat()" style="flex-shrink:0;padding:5px 12px;font-size:.75rem;border-radius:20px;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.25);color:var(--accent)">+ New</button>
       </div>
-      <!-- Header -->
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <!-- Toolbar -->
+      <div class="flux-ai-head" style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;flex-shrink:0">
         <div class="ai-orb" style="width:28px;height:28px;flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:.95rem;background:linear-gradient(90deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Flux AI</div>
-          <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;-webkit-text-fill-color:var(--muted)">Groq · Llama 3.3 70B</div>
+          <div style="font-weight:800;font-size:.95rem;background:linear-gradient(90deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Chat</div>
+          <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;-webkit-text-fill-color:var(--muted)">Image · clear · history in tabs</div>
         </div>
         <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:.75rem;color:var(--muted2);flex-shrink:0">
           📷 <input type="file" accept="image/*" id="aiImgUpload" style="display:none;width:auto;margin:0" onchange="handleAIImg(event)">
         </label>
         <button onclick="clearAIChat()" style="padding:5px 10px;font-size:.72rem;background:transparent;border:1px solid var(--border2);color:var(--muted2);flex-shrink:0">Clear</button>
+      </div>
       </div>
       <!-- Messages — scrollable -->
       <div id="aiMsgsWrap" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:0">
@@ -1219,7 +1277,12 @@
     </div>
 
     <!-- ─── SETTINGS ─── -->
-    <div id="settings" class="panel">
+    <div id="settings" class="panel flux-page">
+      <header class="flux-page-header">
+        <h1 class="flux-page-title">Settings</h1>
+        <p class="flux-page-sub">Theme, alerts, account, tabs, data, and about.</p>
+      </header>
+      <div class="flux-stack">
       <div class="stabs">
         <button class="stab active" onclick="switchStab('appearance',this)">Theme</button>
         <button class="stab" onclick="switchStab('notifications',this)">Alerts</button>
@@ -1453,6 +1516,7 @@
           <h3>Your Flux Stats</h3>
           <div id="aboutStats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
         </div>
+      </div>
       </div>
     </div>
 
