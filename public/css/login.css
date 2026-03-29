@@ -142,16 +142,8 @@
 @keyframes loginCardIn{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:none}}
 .login-card::before{
   content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:0;
-  background:linear-gradient(135deg,rgba(var(--accent-rgb),.14) 0%,transparent 48%,rgba(var(--purple-rgb),.08) 100%);
+  background:linear-gradient(135deg,rgba(255,255,255,.06) 0%,transparent 52%,rgba(255,255,255,.03) 100%);
 }
-.login-card::after{
-  content:"";position:absolute;top:-50%;left:-50%;width:200%;height:200%;
-  pointer-events:none;z-index:0;
-  background:conic-gradient(from 0deg,transparent,rgba(var(--accent-rgb),.12),transparent,rgba(var(--purple-rgb),.08),transparent,rgba(var(--accent-rgb),.06),transparent);
-  animation:loginCardShine 10s linear infinite;
-  mix-blend-mode:soft-light;opacity:.85;
-}
-@keyframes loginCardShine{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* ── LOGO ── */
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px;position:relative;z-index:1}
@@ -160,7 +152,7 @@
   background:linear-gradient(135deg,#fff,var(--accent) 42%,var(--purple));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   line-height:1;display:block;text-align:center;
-  filter:drop-shadow(0 2px 20px rgba(var(--accent-rgb),.4));
+  filter:drop-shadow(0 2px 14px rgba(var(--accent-rgb),.28));
 }
 .login-tagline{
   font-size:.62rem;color:rgba(255,255,255,.3);
@@ -276,9 +268,12 @@
 
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
-  .login-2col{grid-template-columns:1fr;position:relative;min-height:100vh}
+  .login-2col{grid-template-columns:1fr;position:relative;min-height:100vh;min-height:100dvh}
   .login-left{display:none}
-  .login-right{padding:40px 20px 60px;align-items:flex-start;justify-content:center}
+  .login-right{
+    padding:max(32px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-left)) max(48px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-right));
+    align-items:flex-start;justify-content:center;
+  }
   .login-card{max-width:100%}
 }
 @media(min-width:901px) and (max-width:1100px){
@@ -302,7 +297,7 @@
 
 @media(prefers-reduced-motion:reduce){
   .login-bg{animation:none!important}
-  .login-glow,.login-card::after{animation:none!important}
+  .login-glow{animation:none!important}
   .login-feature-card,.login-badge,.login-left-headline,.login-left-sub,.feat-pills-wrap{animation:none!important;opacity:1!important;transform:none!important}
   .login-card{animation:none!important;opacity:1!important;transform:none!important}
   #loginScreen.visible .login-logo-wrap,#loginScreen.visible .login-google-btn,#loginScreen.visible .login-divider,

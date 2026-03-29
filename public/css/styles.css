@@ -19,8 +19,7 @@
   --sidebar-w:276px; --sidebar-collapsed:72px;
   --glass:blur(44px) saturate(200%);
   --glass-soft:blur(28px) saturate(175%);
-  /* Sheen follows user accent (--accent-rgb updated by theme picker) */
-  --glass-tint:linear-gradient(155deg,rgba(var(--accent-rgb),.16) 0%,rgba(255,255,255,.05) 38%,rgba(var(--accent-rgb),.1) 100%);
+  --glass-tint:linear-gradient(155deg,rgba(255,255,255,.1) 0%,rgba(255,255,255,.02) 42%,rgba(255,255,255,.06) 100%);
   --liquid-edge:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.12);
   --shadow-sm:0 2px 12px rgba(0,0,0,.28);
   --shadow-card:0 8px 32px rgba(0,0,0,.38),var(--liquid-edge);
@@ -178,12 +177,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
   .sidebar{display:none}
   .bottom-nav{display:flex}
   .mob-menu-btn{display:block}
-  body{padding-bottom:70px}
-  .panel{padding:18px 16px 96px}
-  .stats-row{grid-template-columns:repeat(2,1fr)}
+  body{padding-bottom:max(72px,calc(58px + env(safe-area-inset-bottom)))}
+  .panel{
+    padding:16px clamp(14px,4vw,22px) max(104px,calc(92px + env(safe-area-inset-bottom)));
+  }
+  .mob-drawer{width:min(90vw,300px)}
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:10px}
   .school-info-grid{grid-template-columns:1fr}
   .irow{flex-direction:column}
   .irow>*{width:100%}
+  .card,.stat,.task-item{margin-left:0;margin-right:0}
+  .bottom-nav{padding-bottom:max(env(safe-area-inset-bottom),10px)}
+  .bnav-item{min-height:48px;padding-top:8px;padding-bottom:10px}
+  .modal-card{
+    padding-bottom:max(28px,calc(24px + env(safe-area-inset-bottom)));
+    border-radius:var(--r-xl) var(--r-xl) 0 0;
+  }
 }
 @media(min-width:769px){.mob-drawer-overlay,.mob-drawer{display:none!important}}
 
@@ -875,7 +884,9 @@ button:active:not(:disabled){transform:scale(.97)!important}
   /* Let clicks pass through the tall flex box; only trigger + open menu capture */
   pointer-events:none;
 }
-@media(max-width:768px){.fab-container{bottom:80px;right:16px}}
+@media(max-width:768px){
+  .fab-container{bottom:calc(78px + env(safe-area-inset-bottom));right:max(14px, env(safe-area-inset-right))}
+}
 
 .fab-trigger{
   width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
@@ -1067,7 +1078,7 @@ button:active:not(:disabled){transform:scale(.97)!important}
     align-items:stretch!important;
   }
   .stabs{position:sticky!important;top:57px!important;z-index:10!important;background:var(--bg)!important}
-  #fabContainer{position:fixed!important;bottom:80px!important;right:16px!important;z-index:300!important}
+  #fabContainer{position:fixed!important;bottom:calc(78px + env(safe-area-inset-bottom))!important;right:max(14px, env(safe-area-inset-right))!important;z-index:300!important}
   .stats-row{grid-template-columns:repeat(2,1fr)!important}
   .irow{flex-direction:column!important}
   .irow>*{width:100%!important}
@@ -1993,16 +2004,24 @@ input[type=text],input[type=date],input[type=email],input[type=password],input[t
 
 /* ── 20. MOBILE ── */
 @media(max-width:768px){
-  .panel{max-width:none;padding:18px 16px 96px!important}
+  .panel{
+    max-width:none;
+    padding:16px clamp(14px,4vw,22px) max(104px,calc(92px + env(safe-area-inset-bottom)))!important;
+  }
   .card{padding:16px!important}
   .task-actions{opacity:1}
-  .quick-add-panel{padding:12px 16px}
+  .quick-add-panel{
+    padding:12px max(16px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-right));
+  }
   .search-box{margin:0 12px;max-width:none}
-  .topbar{padding:8px 16px!important}
-  .topbar-left.topbar-title{font-size:.92rem!important}
+  .topbar{
+    padding:max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left))!important;
+    gap:10px!important;
+  }
+  .topbar-left.topbar-title{font-size:clamp(.95rem,4vw,1.05rem)!important;line-height:1.25!important}
   .stat-n{font-size:1.3rem!important}
   .focus-time{font-size:1.5rem!important}
-  .mob-drawer{width:280px!important}
+  .mob-drawer{width:min(90vw,300px)!important}
   .mob-drawer-nav .nav-item{padding:10px 16px!important;font-size:.9rem!important}
 }
 
