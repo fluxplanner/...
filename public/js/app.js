@@ -337,6 +337,9 @@ function getCycleDayLabel(dateStr){
   return AB_MAP[dateStr]||'';
 }
 function getWeeklyRules(){return load('flux_weekly_events',[]);}
+/** 'school' | 'outside' — default school when unset. */
+function fluxEventScope(o){if(!o)return'school';return o.scope==='outside'?'outside':'school';}
+function fluxScopeSortKey(o){return fluxEventScope(o)==='outside'?1:0;}
 function weeklyVirtualEventsForDate(dateStr){
   const d=fluxParseLocalYMD(dateStr);
   if(!d)return[];
@@ -348,6 +351,7 @@ function weeklyVirtualEventsForDate(dateStr){
     time:r.time||'',
     notes:r.notes||'',
     date:dateStr,
+    scope:fluxEventScope(r),
     _weekly:true
   }));
 }
@@ -813,6 +817,7 @@ function renderTasks(){
   const energy=parseInt(localStorage.getItem('flux_energy')||'3');
   list.sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
+    if(fluxScopeSortKey(a)!==fluxScopeSortKey(b))return fluxScopeSortKey(a)-fluxScopeSortKey(b);
     if(energy<=2){const da=(a.difficulty||3),db=(b.difficulty||3);if(da!==db)return da-db;}
     else if(energy>=4){const heavy=['project','essay','lab'];const ha=heavy.includes(a.type||'')?0:1,hb=heavy.includes(b.type||'')?0:1;if(ha!==hb)return ha-hb;}
     if((b.urgencyScore||0)!==(a.urgencyScore||0))return(b.urgencyScore||0)-(a.urgencyScore||0);
@@ -845,6 +850,7 @@ function renderTasks(){
     const blockedStyle=blocked?'opacity:.45;pointer-events:auto':'';
     const priChip=t.priority?`<span class="task-chip task-chip-priority ${t.priority}">${t.priority}</span>`:'';
     const extraCls=(isOver?' task-overdue':'')+(isToday?' due-today':'');
+    const sch=fluxEventScope(t)==='school';
     return`<div class="task-item ${priClass}${extraCls} ${t.done?'task-done':''}" data-task-id="${t.id}" draggable="true" style="${blockedStyle}">
 <div class="check ${t.done?'done':''}" onclick="${blocked?'showToast(\'Complete blockers first\',\'warning\');return':'toggleTask('+t.id+')'}">${t.done?'✓':blocked?'🔒':''}</div>
 <div class="task-body">
@@ -859,6 +865,7 @@ ${t.estTime?`<span class="task-chip task-chip-time">${t.estTime}m</span>`:''}
 ${stBar}${procras}
 </div>
 <div class="task-actions">
+<button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${t.id})" title="School vs outside">${sch?'🏫':'🌐'}</button>
 <button class="task-action-btn" onclick="openEdit(${t.id})" title="Edit">✎</button>
 <button class="task-action-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button>
 </div>
@@ -923,7 +930,7 @@ function showCalAddModal(dateStr){
 function submitCalTask(dateStr){
   const name=document.getElementById('calModalName')?.value.trim();
   if(!name)return;
-  const task={id:Date.now(),name,date:dateStr,subject:document.getElementById('calModalSubject')?.value||'',priority:document.getElementById('calModalPriority')?.value||'med',type:'hw',estTime:0,difficulty:3,notes:'',subtasks:[],done:false,rescheduled:0,createdAt:Date.now()};
+  const task={id:Date.now(),name,date:dateStr,subject:document.getElementById('calModalSubject')?.value||'',priority:document.getElementById('calModalPriority')?.value||'med',type:'hw',estTime:0,difficulty:3,notes:'',subtasks:[],done:false,rescheduled:0,createdAt:Date.now(),scope:'school'};
   task.urgencyScore=calcUrgency(task);
   tasks.unshift(task);save('tasks',tasks);
   document.getElementById('calAddModal')?.remove();
@@ -949,9 +956,9 @@ function renderCalendar(){
   }
   let html=['S','M','T','W','T','F','S'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let i=first-1;i>=0;i--)html+=`<div class="cal-day other"><div class="cal-dn">${prevDays-i}</div></div>`;
-  for(let d=1;d<=days;d++){const dt=new Date(calYear,calMonth,d),ds=fluxLocalYMD(dt);const isToday=dt.getTime()===now.getTime(),isNP=isBreak(ds),ab=getCycleDayLabel(ds);const tlist=tMap[d]||[];const elist=evMap[d]||[];// Task bars with names
-const taskBars=tlist.slice(0,3).map(t=>{const s=getSubjects()[t.subject];const c=s?s.color:'var(--accent)';return`<div class="cal-task-bar" style="background:${c}22;border-left:2px solid ${c};opacity:${t.done?.5:1};text-decoration:${t.done?'line-through':'none'}">${esc(t.name)}</div>`;}).join('');
-const eventBars=elist.slice(0,2).map(e=>`<div class="cal-task-bar" style="background:${e._weekly?'rgba(0,194,255,.12)':'rgba(192,132,252,.15)'};border-left:2px solid ${e._weekly?'var(--accent)':'var(--purple)'}">${esc(e.title||'Event')}</div>`).join('');
+  for(let d=1;d<=days;d++){const dt=new Date(calYear,calMonth,d),ds=fluxLocalYMD(dt);const isToday=dt.getTime()===now.getTime(),isNP=isBreak(ds),ab=getCycleDayLabel(ds);const rawT=tMap[d]||[],rawE=evMap[d]||[];const tlist=[...rawT].sort((a,b)=>fluxScopeSortKey(a)-fluxScopeSortKey(b));const elist=[...rawE].sort((a,b)=>fluxScopeSortKey(a)-fluxScopeSortKey(b));// Task bars — school items first
+const taskBars=tlist.slice(0,3).map(t=>{const s=getSubjects()[t.subject];const c=s?s.color:'var(--accent)';const out=fluxEventScope(t)==='outside';return`<div class="cal-task-bar" style="background:${c}22;border-left:2px solid ${c};opacity:${out?0.75:(t.done?0.5:1)};text-decoration:${t.done?'line-through':'none'}">${esc(t.name)}</div>`;}).join('');
+const eventBars=elist.slice(0,2).map(e=>{const out=fluxEventScope(e)==='outside';const wk=e._weekly;const bg=wk?(out?'rgba(148,163,184,.1)':'rgba(0,194,255,.12)'):(out?'rgba(148,163,184,.12)':'rgba(192,132,252,.15)');const br=wk?(out?'var(--border2)':'var(--accent)'):(out?'var(--muted2)':'var(--purple)');return`<div class="cal-task-bar" style="background:${bg};border-left:2px solid ${br}">${esc(e.title||'Event')}</div>`;}).join('');
 const allCount=tlist.length+elist.length;const dots=taskBars+eventBars;const abCol=ab==='A'?'var(--accent)':ab==='B'?'var(--green)':ab?'var(--gold)':'var(--muted)';const abLabel=ab?`<div style="font-size:${ab.length>2?'.4rem':'.45rem'};font-family:'JetBrains Mono',monospace;color:${abCol};line-height:1;margin-top:1px;max-width:100%;text-overflow:ellipsis;overflow:hidden">${esc(ab)}</div>`:'';const overFlag=tlist.some(t=>!t.done&&new Date(t.date+'T00:00:00')<now)?'<div style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--red)"></div>':'';const countBadge=allCount>3?`<div class="cal-day-count">+${allCount-3}</div>`:'';html+=`<div class="cal-day ${isToday?'today ':''}${d===calSelected?'selected ':''}${isNP?'no-hw':''}" onclick="selectDay(${d})" style="position:relative">${overFlag}<div class="cal-dn">${d}</div>${abLabel}<div class="cal-dots">${dots}</div>${countBadge}</div>`;}
   document.getElementById('calGrid').innerHTML=html;
   renderCalDay();
@@ -975,11 +982,21 @@ function renderCalDay(){
   const weekly=weeklyVirtualEventsForDate(ds);
   const el=document.getElementById('calDayTasks');
   if(!day.length&&!events.length&&!weekly.length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:4px 0">Nothing scheduled.</div>';return;}
-  el.innerHTML=[
-    ...weekly.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,194,255,.08);border:1px solid rgba(var(--accent-rgb),.25);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">🔁</span><div style="flex:1"><div style="font-size:.82rem;font-weight:600;color:var(--accent)">Every week</div><div style="font-size:.85rem;font-weight:600">${esc(e.title)}</div>${e.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</div>`:''}</div><button type="button" onclick="deleteWeeklyRule('${e.ruleId}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px" title="Remove weekly rule">✕</button></div>`),
-    ...events.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">📅</span><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${esc(e.title)}</div>${e.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</div>`:''}</div><button type="button" onclick="deleteEvent('${e.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px">✕</button></div>`),
-    ...day.map(t=>`<div class="task-item" style="margin-bottom:6px"><div class="check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div><div class="task-body"><div class="task-text ${t.done?'done':''}">${esc(t.name)}</div></div><button class="btn-sm btn-del" onclick="deleteTask(${t.id})">✕</button></div>`)
-  ].join('');
+  const blocks=[];weekly.forEach(w=>blocks.push({k:'w',o:w}));events.forEach(e=>blocks.push({k:'e',o:e}));day.forEach(t=>blocks.push({k:'t',o:t}));
+  const ord={w:0,e:1,t:2};
+  blocks.sort((a,b)=>{const s=fluxScopeSortKey(a.o)-fluxScopeSortKey(b.o);if(s!==0)return s;return ord[a.k]-ord[b.k];});
+  el.innerHTML=blocks.map(({k,o})=>{
+    if(k==='w'){
+      const sch=fluxEventScope(o)==='school';
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,194,255,.08);border:1px solid rgba(var(--accent-rgb),.25);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">🔁</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--accent)">Every week</div><div style="font-size:.85rem;font-weight:600">${esc(o.title)}</div>${o.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</div>`:''}</div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleWeeklyRuleScope('${o.ruleId}')" title="School vs outside">${sch?'🏫':'🌐'}</button><button type="button" onclick="deleteWeeklyRule('${o.ruleId}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px" title="Remove">✕</button></div>`;
+    }
+    if(k==='e'){
+      const sch=fluxEventScope(o)==='school';
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">📅</span><div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600">${esc(o.title)}</div>${o.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</div>`:''}</div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleOneOffEventScope('${o.id}')" title="School vs outside">${sch?'🏫':'🌐'}</button><button type="button" onclick="deleteEvent('${o.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px">✕</button></div>`;
+    }
+    const sch=fluxEventScope(o)==='school';
+    return`<div class="task-item" style="margin-bottom:6px;display:flex;align-items:center;gap:6px"><div class="check ${o.done?'done':''}" onclick="toggleTask(${o.id})">${o.done?'✓':''}</div><div class="task-body" style="flex:1;min-width:0"><div class="task-text ${o.done?'done':''}">${esc(o.name)}</div></div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${o.id})" title="School vs outside">${sch?'🏫':'🌐'}</button><button class="btn-sm btn-del" onclick="deleteTask(${o.id})">✕</button></div>`;
+  }).join('');
 }
 
 function renderCalToday(){
@@ -992,11 +1009,22 @@ function renderCalToday(){
   const wToday=weeklyVirtualEventsForDate(ts);
   if(!todayEl)return;
   if(!todayTasks.length&&!todayEvents.length&&!wToday.length){todayEl.innerHTML='<div style="color:var(--muted);font-size:.82rem">Nothing due today 🎉</div>';return;}
-  todayEl.innerHTML=[
-    ...wToday.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(0,194,255,.08);border-radius:10px;margin-bottom:5px;border:1px solid rgba(var(--accent-rgb),.2)"><span>🔁</span><div style="flex:1;font-size:.82rem;font-weight:600">${esc(e.title)} <span style="font-size:.65rem;color:var(--muted);font-weight:500">(weekly)</span></div>${e.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</span>`:''}</div>`),
-    ...todayEvents.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(192,132,252,.08);border-radius:10px;margin-bottom:5px"><span>📅</span><div style="flex:1;font-size:.82rem;font-weight:600">${esc(e.title)}</div>${e.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</span>`:''}</div>`),
-    ...todayTasks.map(t=>{const sub=getSubjects()[t.subject];const pc=t.priority==='high'?'var(--red)':t.priority==='med'?'var(--gold)':'var(--green)';return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card2);border-radius:10px;margin-bottom:5px;border-left:3px solid ${pc}"><div class="check ${t.done?'done':''}" onclick="toggleTask(${t.id})" style="width:18px;height:18px;border-radius:5px;font-size:10px">${t.done?'✓':''}</div><div style="flex:1;font-size:.82rem;font-weight:500">${esc(t.name)}</div>${sub?`<span style="font-size:.65rem;color:${sub.color};font-family:'JetBrains Mono',monospace">${sub.short}</span>`:''}</div>`;})
-  ].join('');
+  const blocks=[];wToday.forEach(o=>blocks.push({k:'w',o}));todayEvents.forEach(o=>blocks.push({k:'e',o}));todayTasks.forEach(o=>blocks.push({k:'t',o}));
+  const ord={w:0,e:1,t:2};
+  blocks.sort((a,b)=>{const s=fluxScopeSortKey(a.o)-fluxScopeSortKey(b.o);if(s!==0)return s;return ord[a.k]-ord[b.k];});
+  todayEl.innerHTML=blocks.map(({k,o})=>{
+    if(k==='w'){
+      const sch=fluxEventScope(o)==='school';
+      return`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(0,194,255,.08);border-radius:10px;margin-bottom:5px;border:1px solid rgba(var(--accent-rgb),.2)"><span>🔁</span><div style="flex:1;font-size:.82rem;font-weight:600;min-width:0">${esc(o.title)} <span style="font-size:.65rem;color:var(--muted);font-weight:500">(weekly)</span></div>${o.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</span>`:''}<button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleWeeklyRuleScope('${o.ruleId}')">${sch?'🏫':'🌐'}</button>`;
+    }
+    if(k==='e'){
+      const sch=fluxEventScope(o)==='school';
+      return`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(192,132,252,.08);border-radius:10px;margin-bottom:5px"><span>📅</span><div style="flex:1;font-size:.82rem;font-weight:600;min-width:0">${esc(o.title)}</div>${o.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</span>`:''}<button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleOneOffEventScope('${o.id}')">${sch?'🏫':'🌐'}</button>`;
+    }
+    const sub=getSubjects()[o.subject];const pc=o.priority==='high'?'var(--red)':o.priority==='med'?'var(--gold)':'var(--green)';
+    const sch=fluxEventScope(o)==='school';
+    return`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--card2);border-radius:10px;margin-bottom:5px;border-left:3px solid ${pc}"><div class="check ${o.done?'done':''}" onclick="toggleTask(${o.id})" style="width:18px;height:18px;border-radius:5px;font-size:10px;flex-shrink:0">${o.done?'✓':''}</div><div style="flex:1;font-size:.82rem;font-weight:500;min-width:0">${esc(o.name)}</div>${sub?`<span style="font-size:.65rem;color:${sub.color};font-family:'JetBrains Mono',monospace">${sub.short}</span>`:''}<button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${o.id})">${sch?'🏫':'🌐'}</button>`;
+  }).join('');
 }
 
 function renderCalUpcoming(){
@@ -1009,26 +1037,46 @@ function renderCalUpcoming(){
   for(let i=1;i<=7;i++){
     const x=new Date(now);x.setDate(now.getDate()+i);
     const ds=fluxLocalYMD(x);
-    weeklyVirtualEventsForDate(ds).forEach(e=>upWeekly.push({title:e.title,time:e.time,date:ds,_type:'weekly'}));
+    weeklyVirtualEventsForDate(ds).forEach(e=>upWeekly.push({...e,date:ds,_type:'weekly'}));
   }
-  const all=[...upEvents.map(e=>({...e,_type:'event'})),...upWeekly,...upcoming.map(t=>({...t,_type:'task'}))].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const all=[...upEvents.map(e=>({...e,_type:'event'})),...upWeekly,...upcoming.map(t=>({...t,_type:'task'}))].sort((a,b)=>{
+    if(fluxScopeSortKey(a)!==fluxScopeSortKey(b))return fluxScopeSortKey(a)-fluxScopeSortKey(b);
+    return new Date(a.date)-new Date(b.date);
+  });
   if(!all.length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem">Nothing coming up 🎉</div>';return;}
   el.innerHTML=all.map(item=>{
     const d=new Date(item.date+'T00:00:00');const dStr=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-    if(item._type==='weekly')return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">🔁</span><div style="flex:1"><div style="font-size:.82rem;font-weight:600">${esc(item.title)} <span style="color:var(--muted);font-weight:500">(weekly)</span></div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${item.time?' · '+item.time:''}</div></div></div>`;
-    if(item._type==='event')return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">📅</span><div style="flex:1"><div style="font-size:.82rem;font-weight:600">${esc(item.title)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}</div></div></div>`;
+    if(item._type==='weekly'){
+      const sch=fluxEventScope(item)==='school';
+      return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">🔁</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600">${esc(item.title)} <span style="color:var(--muted);font-weight:500">(weekly)</span></div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${item.time?' · '+esc(item.time):''}</div></div><button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleWeeklyRuleScope('${item.ruleId}')">${sch?'🏫':'🌐'}</button></div>`;
+    }
+    if(item._type==='event'){
+      const sch=fluxEventScope(item)==='school';
+      return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">📅</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600">${esc(item.title)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}</div></div><button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleOneOffEventScope('${item.id}')">${sch?'🏫':'🌐'}</button></div>`;
+    }
     const sub=getSubjects()[item.subject];const pc=item.priority==='high'?'var(--red)':item.priority==='med'?'var(--gold)':'var(--green)';
-    return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><div style="width:4px;height:32px;border-radius:2px;background:${pc};flex-shrink:0"></div><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(item.name)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${sub?' · '+sub.short:''}</div></div></div>`;
+    const sch=fluxEventScope(item)==='school';
+    return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><div style="width:4px;height:32px;border-radius:2px;background:${pc};flex-shrink:0"></div><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(item.name)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${sub?' · '+sub.short:''}</div></div><button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${item.id})">${sch?'🏫':'🌐'}</button></div>`;
   }).join('');
 }
 
 // ── Add event modal ──
 let addEventType='task';
+function setAddEventScope(scope){
+  const inp=document.getElementById('addEventScopeValue');
+  if(inp)inp.value=scope==='outside'?'outside':'school';
+  const sb=document.getElementById('addEventScopeSchoolBtn');
+  const ob=document.getElementById('addEventScopeOutsideBtn');
+  const onSchool=scope!=='outside';
+  if(sb)sb.classList.toggle('event-scope-btn-on',onSchool);
+  if(ob)ob.classList.toggle('event-scope-btn-on',!onSchool);
+}
 function openAddEventModal(){
   const modal=document.getElementById('addEventModal');if(!modal)return;
   document.getElementById('addEventDate').value=new Date(calYear,calMonth,calSelected).toISOString().slice(0,10);
   document.getElementById('addEventTitle').value='';
   document.getElementById('addEventNotes').value='';
+  setAddEventScope('school');
   setAddEventType('task');
   modal.style.display='flex';
 }
@@ -1047,13 +1095,15 @@ function saveAddEvent(){
   const date=document.getElementById('addEventDate').value;
   const time=document.getElementById('addEventTime').value;
   const notes=document.getElementById('addEventNotes').value.trim();
+  const sc=document.getElementById('addEventScopeValue')?.value;
+  const scope=sc==='outside'?'outside':'school';
   if(addEventType==='task'){
-    const task={id:Date.now(),name:title,date,subject:document.getElementById('addEventSubject').value,priority:document.getElementById('addEventPriority').value,type:'hw',notes,done:false,rescheduled:0,createdAt:Date.now()};
+    const task={id:Date.now(),name:title,date,subject:document.getElementById('addEventSubject').value,priority:document.getElementById('addEventPriority').value,type:'hw',notes,done:false,rescheduled:0,createdAt:Date.now(),scope};
     task.urgencyScore=calcUrgency(task);tasks.unshift(task);save('tasks',tasks);
     renderStats();renderTasks();
   }else{
     const events=load('flux_events',[]);
-    events.push({id:String(Date.now()),title,date,time,notes});
+    events.push({id:String(Date.now()),title,date,time,notes,scope});
     save('flux_events',events);
   }
   syncKey('tasks',tasks);
@@ -1093,7 +1143,8 @@ function renderWeeklyRulesList(){
   if(!rules.length){el.innerHTML='<div style="color:var(--muted);font-size:.78rem">No weekly activities yet.</div>';return;}
   el.innerHTML=rules.map(r=>{
     const days=(r.weekdays||[]).map(d=>dayNames[d]).join(', ');
-    return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border2)"><div style="min-width:0"><div style="font-weight:600">${esc(r.title)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${days}${r.time?' · '+r.time:''}</div></div><button type="button" class="btn-sec" style="padding:4px 10px;font-size:.72rem;flex-shrink:0" onclick="deleteWeeklyRule('${r.id}')">Remove</button></div>`;
+    const sch=fluxEventScope(r)==='school';
+    return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border2)"><div style="min-width:0"><div style="font-weight:600">${esc(r.title)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${days}${r.time?' · '+esc(r.time):''}</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleWeeklyRuleScope('${r.id}')" title="School vs outside">${sch?'🏫':'🌐'}</button><button type="button" class="btn-sec" style="padding:4px 10px;font-size:.72rem" onclick="deleteWeeklyRule('${r.id}')">Remove</button></div></div>`;
   }).join('');
 }
 function addWeeklyRule(){
@@ -1103,17 +1154,36 @@ function addWeeklyRule(){
   const boxes=document.querySelectorAll('#calendar input[name="wd"]:checked');
   const weekdays=[...boxes].map(b=>parseInt(b.value,10)).sort((a,b)=>a-b);
   if(!weekdays.length){showToast('Pick at least one weekday','warning');return;}
+  const outside=document.getElementById('weeklyScopeOutside')?.checked;
   const rules=getWeeklyRules();
-  rules.push({id:String(Date.now()),title,time,weekdays,enabled:true});
+  rules.push({id:String(Date.now()),title,time,weekdays,enabled:true,scope:outside?'outside':'school'});
   save('flux_weekly_events',rules);
   const ti=document.getElementById('weeklyTitleInput');if(ti)ti.value='';
   const tm=document.getElementById('weeklyTimeInput');if(tm)tm.value='';
   document.querySelectorAll('#calendar input[name="wd"]').forEach(c=>{c.checked=false;});
+  const wo=document.getElementById('weeklyScopeOutside');if(wo)wo.checked=false;
   renderWeeklyRulesList();renderCalendar();syncKey('weekly',rules);
 }
 function deleteWeeklyRule(id){
   save('flux_weekly_events',getWeeklyRules().filter(r=>String(r.id)!==String(id)));
   renderWeeklyRulesList();renderCalendar();syncKey('weekly',1);
+}
+function toggleTaskScope(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.scope=t.scope==='outside'?'school':'outside';
+  save('tasks',tasks);renderCalendar();if(typeof renderTasks==='function')renderTasks();syncKey('tasks',tasks);
+}
+function toggleOneOffEventScope(eid){
+  const events=load('flux_events',[]);
+  const ev=events.find(x=>String(x.id)===String(eid));if(!ev)return;
+  ev.scope=ev.scope==='outside'?'school':'outside';
+  save('flux_events',events);renderCalendar();syncKey('events',1);
+}
+function toggleWeeklyRuleScope(rid){
+  const rules=getWeeklyRules();
+  const r=rules.find(x=>String(x.id)===String(rid));if(!r)return;
+  r.scope=r.scope==='outside'?'school':'outside';
+  save('flux_weekly_events',rules);renderWeeklyRulesList();renderCalendar();syncKey('weekly',1);
 }
 
 // ── Google Calendar sync ──
@@ -2618,7 +2688,9 @@ function buildAIPrompt(){
   // Calendar context — upcoming events + classes
   const today=todayStr();
   const in7=new Date(now);in7.setDate(now.getDate()+7);
-  const calEvents=(load('flux_events',[])).filter(e=>{if(!e.date)return false;const d=new Date(e.date+'T00:00:00');return d>=now&&d<=in7;}).map(e=>`- [EVENT|${e.date}${e.time?' '+e.time:''}]: ${e.title}`).join('\n')||'None';
+  const calEvAi=(load('flux_events',[])).filter(e=>{if(!e.date)return false;const d=new Date(e.date+'T00:00:00');return d>=now&&d<=in7;});
+  calEvAi.sort((a,b)=>fluxScopeSortKey(a)-fluxScopeSortKey(b));
+  const calEvents=calEvAi.map(e=>`- [EVENT|${e.date}${e.time?' '+e.time:''}|${fluxEventScope(e)==='school'?'SCHOOL':'OUT'}]: ${e.title}`).join('\n')||'None';
   const todayClasses=classes.filter(c=>c.name).map(c=>`P${c.period}: ${c.name}${c.teacher?' ('+c.teacher+')':''}`).join(', ')||'Not set up';
 
   return`You are Flux AI — a brilliant, warm AI tutor and planner assistant built into Flux Planner.

@@ -441,35 +441,14 @@
     </div>
 
     <!-- ─── DASHBOARD ─── -->
-    <div id="dashboard" class="panel active">
+    <div id="dashboard" class="panel active dash-v2">
 
-      <div class="dash-hero" id="dashHero">
-        <div class="dash-hero-text">
-          <h1 class="dash-greeting" id="dashGreeting">Good evening 👋</h1>
-          <p class="dash-greeting-sub" id="dashGreetingSub">Your momentum, at a glance.</p>
-        </div>
-        <div class="dash-streak-ring" aria-hidden="true">
-          <svg class="dash-streak-svg" viewBox="0 0 120 120" width="112" height="112">
-            <defs>
-              <linearGradient id="dashStreakGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#00C2FF"/>
-                <stop offset="50%" stop-color="#7C5CFF"/>
-                <stop offset="100%" stop-color="#22FF88"/>
-              </linearGradient>
-            </defs>
-            <circle class="dash-streak-bg" cx="60" cy="60" r="50" fill="none" stroke-width="7" pathLength="100"/>
-            <circle class="dash-streak-progress" id="dashStreakArc" cx="60" cy="60" r="50" fill="none" stroke-width="7" pathLength="100"
-              stroke="url(#dashStreakGrad)" stroke-linecap="round" stroke-dasharray="0 100" stroke-dashoffset="0"/>
-          </svg>
-          <div class="dash-streak-center">
-            <span class="dash-streak-n" id="dashStreakN">0</span>
-            <span class="dash-streak-lbl">day streak</span>
-          </div>
-        </div>
-      </div>
+      <header class="dash-v2-greet" id="dashHero">
+        <h1 class="dash-v2-greet-title" id="dashGreeting">Good evening 👋</h1>
+        <p class="dash-v2-greet-sub" id="dashGreetingSub">Your momentum, at a glance.</p>
+      </header>
 
-      <!-- ── SECTION 1: Alerts (conditional) ── -->
-      <div class="dash-alerts">
+      <div class="dash-alerts dash-v2-alerts">
         <div class="panic-banner" id="panicBanner">
           <span style="font-size:1.2rem">🚨</span>
           <div style="flex:1"><div style="font-weight:800;font-size:.88rem;color:#fca5a5">PANIC MODE — Tasks due within 12 hours!</div><div id="panicList" style="font-size:.75rem;color:#fca5a5;margin-top:3px;font-family:'JetBrains Mono',monospace"></div></div>
@@ -477,37 +456,64 @@
         <div class="time-poverty-banner" id="timePovertyBanner"></div>
       </div>
 
-      <!-- ── SECTION 2: At a Glance ── -->
-      <div class="dash-section">
-        <div class="stats-row" id="statsRow"></div>
-        <div class="dash-energy" id="dashEnergyCard">
-          <span class="dash-energy-label">Energy</span>
+      <section class="dash-v2-pulse" aria-label="Today at a glance">
+        <div class="dash-v2-pulse-top">
+          <div class="dash-streak-ring dash-v2-streak" aria-hidden="true">
+            <svg class="dash-streak-svg" viewBox="0 0 120 120" width="96" height="96">
+              <defs>
+                <linearGradient id="dashStreakGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#00C2FF"/>
+                  <stop offset="50%" stop-color="#7C5CFF"/>
+                  <stop offset="100%" stop-color="#22FF88"/>
+                </linearGradient>
+              </defs>
+              <circle class="dash-streak-bg" cx="60" cy="60" r="50" fill="none" stroke-width="7" pathLength="100"/>
+              <circle class="dash-streak-progress" id="dashStreakArc" cx="60" cy="60" r="50" fill="none" stroke-width="7" pathLength="100"
+                stroke="url(#dashStreakGrad)" stroke-linecap="round" stroke-dasharray="0 100" stroke-dashoffset="0"/>
+            </svg>
+            <div class="dash-streak-center">
+              <span class="dash-streak-n" id="dashStreakN">0</span>
+              <span class="dash-streak-lbl">day streak</span>
+            </div>
+          </div>
+          <div class="stats-row dash-v2-stats" id="statsRow"></div>
+        </div>
+        <div class="dash-energy dash-v2-energy" id="dashEnergyCard">
+          <span class="dash-energy-label">Energy today</span>
           <input type="range" id="energySlider" min="1" max="5" value="3" oninput="setEnergy(this.value)">
           <span id="energyEmoji" class="dash-energy-emoji">😐</span>
           <span id="energyLabel" class="dash-energy-level">Neutral</span>
         </div>
-      </div>
+      </section>
 
-      <!-- ── SECTION 3: Focus + Suggestion (side-by-side) ── -->
-      <div class="dash-row">
-        <div id="dynamicFocusCard" class="dash-row-main"></div>
-        <div class="dash-row-side" id="smartSugCard" style="display:none">
-          <div class="card" style="height:100%;background:linear-gradient(135deg,rgba(var(--accent-rgb),.08),rgba(var(--purple-rgb),.04));border-color:rgba(var(--accent-rgb),.2)">
-            <h3>✦ What to work on now</h3>
-            <div id="smartSug" style="font-size:.9rem;font-weight:700;margin-bottom:4px"></div>
-            <div id="smartSugSub" style="font-size:.75rem;color:var(--muted2);font-family:'JetBrains Mono',monospace"></div>
+      <section class="dash-v2-insight" aria-label="Focus">
+        <div id="dynamicFocusCard" class="dash-v2-focus-slot"></div>
+        <div id="smartSugCard" class="dash-v2-suggest-wrap" style="display:none">
+          <div class="dash-v2-suggest card">
+            <div class="dash-v2-suggest-kicker">Next up</div>
+            <div id="smartSug" class="dash-v2-suggest-title"></div>
+            <div id="smartSugSub" class="dash-v2-suggest-meta"></div>
           </div>
+        </div>
+      </section>
+
+      <div id="countdownCard" class="dash-v2-countdown" style="display:none">
+        <div class="card dash-v2-countdown-card">
+          <div class="dash-v2-countdown-kicker">Assessment</div>
+          <h3 class="dash-v2-countdown-heading">Next exam countdown</h3>
+          <div id="countdownLabel" class="dash-v2-countdown-label"></div>
+          <div class="dash-v2-countdown-grid" id="countdownGrid"></div>
         </div>
       </div>
 
-      <!-- ── SECTION 4: Quick Add + Countdown (side-by-side) ── -->
-      <div class="dash-row">
-        <details class="card dash-row-main dash-new-task-compact" style="padding:0">
-          <summary class="dash-nt-summary">
-            <span class="dash-nt-plus">＋</span> New Task
+      <section class="dash-v2-compose" aria-label="Add a task">
+        <details class="card dash-new-task-compact dash-v2-compose-details" style="padding:0">
+          <summary class="dash-nt-summary dash-v2-compose-summary">
+            <span class="dash-nt-plus">＋</span>
+            <span class="dash-v2-compose-summary-text">New task</span>
             <span class="dash-nt-hint">expand</span>
           </summary>
-          <div class="dash-nt-body">
+          <div class="dash-nt-body dash-v2-compose-body">
             <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
               <input type="text" id="taskName" placeholder="Assignment, test, project..." style="flex:1;margin:0">
               <button type="button" id="voiceBtn" onclick="startVoiceInput()" title="Voice input" style="padding:8px 10px;border-radius:10px;background:var(--card2);border:1px solid var(--border2);cursor:pointer;font-size:1rem;flex-shrink:0;line-height:1">🎙</button>
@@ -533,23 +539,18 @@
             <button onclick="addTask()" style="width:100%">+ Add Task</button>
           </div>
         </details>
-        <div class="dash-row-side" id="countdownCard" style="display:none">
-          <div class="card" style="height:100%">
-            <h3>🎯 Next Exam Countdown</h3>
-            <div id="countdownLabel" style="font-size:.85rem;font-weight:700;margin-bottom:12px"></div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px" id="countdownGrid"></div>
-          </div>
-        </div>
-      </div>
+      </section>
 
-      <!-- ── SECTION 5: Task Workspace ── -->
-      <div class="dash-workspace">
-        <div class="dash-toolbar">
-          <div class="dash-toolbar-views">
-            <button class="view-btn tmode-btn active" data-view="list" onclick="switchView('list')" title="List view">☰ List</button>
-            <button class="view-btn tmode-btn" data-view="kanban" onclick="switchView('kanban')" title="Kanban board">⬜ Board</button>
-            <button class="view-btn tmode-btn" data-view="timeline" onclick="switchView('timeline')" title="Timeline">📅 Timeline</button>
-            <button class="view-btn tmode-btn" data-view="workload" onclick="switchView('workload')" title="Workload forecast">📊 Workload</button>
+      <section class="dash-workspace dash-v2-workspace" aria-label="Tasks">
+        <div class="dash-v2-work-head">
+          <h2 class="dash-v2-work-title">Tasks</h2>
+          <div class="dash-toolbar">
+            <div class="dash-toolbar-views">
+              <button class="view-btn tmode-btn active" data-view="list" onclick="switchView('list')" title="List view">☰ List</button>
+              <button class="view-btn tmode-btn" data-view="kanban" onclick="switchView('kanban')" title="Kanban board">⬜ Board</button>
+              <button class="view-btn tmode-btn" data-view="timeline" onclick="switchView('timeline')" title="Timeline">📅 Timeline</button>
+              <button class="view-btn tmode-btn" data-view="workload" onclick="switchView('workload')" title="Workload forecast">📊 Workload</button>
+            </div>
           </div>
         </div>
 
@@ -563,14 +564,14 @@
 
         <div id="taskList"></div>
 
-        <div id="savedViewsSection" style="display:none;border-top:1px solid var(--border);padding-top:10px;margin-top:14px">
-          <div style="display:flex;align-items:center;margin-bottom:6px">
-            <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace">Saved Views</div>
-            <button onclick="saveCurrentView()" class="dash-pill-btn" style="margin-left:auto;font-size:.6rem;padding:2px 8px">+ Save View</button>
+        <div id="savedViewsSection" class="dash-v2-saved-views" style="display:none">
+          <div class="dash-v2-saved-head">
+            <div class="dash-v2-saved-label">Saved views</div>
+            <button onclick="saveCurrentView()" class="dash-pill-btn" type="button">+ Save view</button>
           </div>
           <div id="savedViewsList"></div>
         </div>
-      </div>
+      </section>
 
     </div>
 
@@ -634,6 +635,9 @@
                 <label class="weekly-dow"><input type="checkbox" name="wd" value="0"> Sun</label>
               </div>
             </div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;margin-bottom:10px;cursor:pointer">
+              <input type="checkbox" id="weeklyScopeOutside" style="margin:0"> Outside school (not on campus / after school)
+            </label>
             <button type="button" onclick="addWeeklyRule()" style="padding:9px 16px;font-size:.82rem;margin-bottom:14px">+ Add weekly activity</button>
             <div id="weeklyRulesList" style="font-size:.82rem"></div>
           </div>
@@ -681,6 +685,13 @@
         </div>
         <div class="mrow" id="addEventPriorityRow"><label>Priority</label>
           <select id="addEventPriority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
+        </div>
+        <div class="mrow" id="addEventScopeRow"><label>Where</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+            <button type="button" id="addEventScopeSchoolBtn" class="event-scope-btn event-scope-btn-on" onclick="setAddEventScope('school')">🏫 School</button>
+            <button type="button" id="addEventScopeOutsideBtn" class="event-scope-btn" onclick="setAddEventScope('outside')">Outside school</button>
+          </div>
+          <input type="hidden" id="addEventScopeValue" value="school">
         </div>
         <div class="mrow"><label>Notes</label><textarea id="addEventNotes" style="min-height:60px" placeholder="Optional notes..."></textarea></div>
         <div class="mactions"><button onclick="closeAddEventModal()" class="btn-sec">Cancel</button><button onclick="saveAddEvent()">Add</button></div>
