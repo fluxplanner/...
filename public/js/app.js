@@ -2126,7 +2126,7 @@ function updateLogoColor(hex){
   styleTag.textContent=`
     :root{--accent:${hex}!important;--accent-rgb:${rgb}!important}
     html{--accent:${hex}!important;--accent-rgb:${rgb}!important}
-    .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke],.mob-drawer-logo svg circle[stroke],.mob-drawer-logo svg line,.mob-drawer-logo svg path[stroke]{stroke:${hex}!important}
+    .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke]:not(.flux-logo-tick),.mob-drawer-logo svg circle[stroke],.mob-drawer-logo svg line,.mob-drawer-logo svg path[stroke]:not(.flux-logo-tick){stroke:${hex}!important}
     .sidebar-logo svg rect[stroke],.mob-drawer-logo svg rect[stroke]{stroke:${hex}!important}
     #fluxWG stop:nth-child(2),#fluxCG stop:nth-child(2),#fluxWG2 stop:nth-child(2),#fluxCG2 stop:nth-child(2){stop-color:${hex}!important}
     #fluxWG stop:nth-child(3),#fluxWG2 stop:nth-child(3){stop-color:${hex}aa!important}
