@@ -94,6 +94,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .sidebar.collapsed{width:var(--sidebar-collapsed);min-width:var(--sidebar-collapsed)}
 .sidebar-header{display:flex;align-items:center;justify-content:space-between;padding:20px 16px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .sidebar-logo{font-size:1.18rem;font-weight:800;letter-spacing:-.6px;background:linear-gradient(135deg,var(--text),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;overflow:hidden}
+.sidebar-logo .flux-logo-svg,.mob-drawer-logo .flux-logo-svg{display:block;vertical-align:middle}
 .sidebar.collapsed .sidebar-logo{opacity:0;width:0}
 .sidebar-toggle{background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;flex-shrink:0;font-size:1rem;transition:var(--transition)}
 .sidebar-toggle:hover{color:var(--text);background:var(--card2);transform:none;box-shadow:none}

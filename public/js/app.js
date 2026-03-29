@@ -2126,9 +2126,10 @@ function updateLogoColor(hex){
   styleTag.textContent=`
     :root{--accent:${hex}!important;--accent-rgb:${rgb}!important}
     html{--accent:${hex}!important;--accent-rgb:${rgb}!important}
-    .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke]{stroke:${hex}!important}
-    #fluxWG stop:nth-child(2),#fluxCG stop:nth-child(2){stop-color:${hex}!important}
-    #fluxWG stop:nth-child(3){stop-color:${hex}aa!important}
+    .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke],.mob-drawer-logo svg circle[stroke],.mob-drawer-logo svg line,.mob-drawer-logo svg path[stroke]{stroke:${hex}!important}
+    .sidebar-logo svg rect[stroke],.mob-drawer-logo svg rect[stroke]{stroke:${hex}!important}
+    #fluxWG stop:nth-child(2),#fluxCG stop:nth-child(2),#fluxWG2 stop:nth-child(2),#fluxCG2 stop:nth-child(2){stop-color:${hex}!important}
+    #fluxWG stop:nth-child(3),#fluxWG2 stop:nth-child(3){stop-color:${hex}aa!important}
     #fabBtn{background:${hex}!important;box-shadow:0 6px 24px rgba(${rgb},.45)!important}
     .bottom-nav .bnav-item.active{color:${hex}!important}
     .nav-item.active{color:${hex}!important;background:rgba(${rgb},.12)!important}
@@ -2157,9 +2158,9 @@ function setAccent(hex,rgb,el){
   applyCustomVar('--accent-rgb',rgb);
   document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
   if(el)el.classList.add('active');
-  // Update logo gradient to match new accent
+  // Text-only logos (login); sidebar/drawer use SVG + updateLogoColor()
   const logoGrad=`linear-gradient(135deg,${hex},${hex}bb)`;
-  document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,.topbar-left,[class*="logo"]').forEach(logoEl=>{
+  document.querySelectorAll('.login-logo').forEach(logoEl=>{
     if(logoEl){
       logoEl.style.background=logoGrad;
       logoEl.style.webkitBackgroundClip='text';
@@ -2167,9 +2168,7 @@ function setAccent(hex,rgb,el){
       logoEl.style.backgroundClip='text';
     }
   });
-  // Update SVG logo if present
-  const svgLogo=document.querySelector('.sidebar-logo svg, .flux-logo-svg');
-  if(svgLogo){const stops=svgLogo.querySelectorAll('stop');stops.forEach(s=>s.setAttribute('stop-color',hex));}
+  // SVG logo gradients: updateLogoColor() below (do not flatten all <stop> to one hex)
   const tp=document.getElementById('topbarTaskPill');
   if(tp)tp.style.borderColor=`rgba(${rgb},.3)`;
   // Persist to localStorage as raw strings (NOT via save() which JSON.stringify wraps in quotes)
