@@ -340,6 +340,9 @@ details.dash-new-task-compact .dash-nt-body{padding:0 10px 12px}
 @media(max-width:1000px){.cal-bottom-row{grid-template-columns:1fr}}
 @media(max-width:480px){.cal-hero-card .cal-day{min-height:44px}.cal-hero-card .cal-task-bar{display:none}}
 .cal-today-col{display:flex;flex-direction:column;gap:12px}
+.cal-schedule-setup .weekly-dow{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--border2);font-size:.72rem;cursor:pointer;user-select:none;transition:background .15s ease,border-color .15s ease}
+.cal-schedule-setup .weekly-dow input{margin:0;accent-color:var(--accent)}
+.cal-schedule-setup .weekly-dow:has(input:checked){background:rgba(var(--accent-rgb),.12);border-color:rgba(var(--accent-rgb),.35)}
 .cal-today-header{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:8px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .cal-dow{text-align:center;font-size:.58rem;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:6px 0;text-transform:uppercase}

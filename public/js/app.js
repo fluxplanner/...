@@ -290,6 +290,68 @@ function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
 const TODAY=new Date();
 
+/** Local YYYY-MM-DD (no UTC shift). */
+function fluxLocalYMD(d){
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fluxParseLocalYMD(s){
+  if(!s||typeof s!=='string')return null;
+  const p=s.split('-').map(Number);
+  if(p.length!==3||!p[0])return null;
+  const x=new Date(p[0],p[1]-1,p[2]);
+  if(x.getFullYear()!==p[0]||x.getMonth()!==p[1]-1||x.getDate()!==p[2])return null;
+  return x;
+}
+function fluxIsWeekend(d){const w=d.getDay();return w===0||w===6;}
+/** Cycle label for a calendar day, or '' — uses flux_cycle_config or legacy AB_MAP. */
+function getCycleDayLabel(dateStr){
+  const cfg=load('flux_cycle_config',null);
+  if(cfg&&cfg.enabled&&cfg.pattern&&cfg.anchorDate){
+    const pat=cfg.pattern.map(x=>String(x).trim()).filter(Boolean);
+    if(!pat.length)return'';
+    const skip=cfg.skipWeekends!==false;
+    const target=fluxParseLocalYMD(dateStr);
+    if(!target)return'';
+    if(skip&&fluxIsWeekend(target))return'';
+    const anchor=fluxParseLocalYMD(cfg.anchorDate);
+    if(!anchor)return'';
+    let cur=new Date(anchor.getFullYear(),anchor.getMonth(),anchor.getDate());
+    const end=new Date(target.getFullYear(),target.getMonth(),target.getDate());
+    if(cur.getTime()===end.getTime())return pat[0];
+    if(end>cur){
+      let n=0;
+      while(cur<end){
+        cur.setDate(cur.getDate()+1);
+        if(!skip||!fluxIsWeekend(cur))n++;
+      }
+      return pat[n%pat.length];
+    }
+    let n=0;
+    cur=new Date(anchor.getFullYear(),anchor.getMonth(),anchor.getDate());
+    while(cur>end){
+      cur.setDate(cur.getDate()-1);
+      if(!skip||!fluxIsWeekend(cur))n--;
+    }
+    return pat[((n%pat.length)+pat.length)%pat.length];
+  }
+  return AB_MAP[dateStr]||'';
+}
+function getWeeklyRules(){return load('flux_weekly_events',[]);}
+function weeklyVirtualEventsForDate(dateStr){
+  const d=fluxParseLocalYMD(dateStr);
+  if(!d)return[];
+  const wd=d.getDay();
+  return getWeeklyRules().filter(r=>r.enabled!==false&&Array.isArray(r.weekdays)&&r.weekdays.includes(wd)).map(r=>({
+    id:'w_'+r.id,
+    ruleId:r.id,
+    title:r.title,
+    time:r.time||'',
+    notes:r.notes||'',
+    date:dateStr,
+    _weekly:true
+  }));
+}
+
 
 // ══ STATE ══
 let tasks=load('tasks',[]);
@@ -420,7 +482,7 @@ function nav(id,btn){
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
   const bni=document.querySelector(`.bnav-item[data-tab="${id}"]`);if(bni)bni.classList.add('active');
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();renderDynamicFocus();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();},calendar:()=>{renderCalendar();renderCalToday();renderCalUpcoming();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();},gmail:()=>loadGmail()};
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();renderDynamicFocus();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();},calendar:()=>{loadCalScheduleUI();renderCalendar();renderCalToday();renderCalUpcoming();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();},gmail:()=>loadGmail()};
   fns[id]?.();
 }
 function navMob(id){closeDrawer();nav(id);}
@@ -875,14 +937,22 @@ function renderCalendar(){
   const first=new Date(calYear,calMonth,1).getDay(),days=new Date(calYear,calMonth+1,0).getDate(),prevDays=new Date(calYear,calMonth,0).getDate();
   const now=new Date();now.setHours(0,0,0,0);
   const tMap={};tasks.filter(t=>t.date).forEach(t=>{const d=new Date(t.date+'T00:00:00');if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=d.getDate();if(!tMap[k])tMap[k]=[];tMap[k].push(t);}});
-  // Also map custom events
-  const evMap={};(load('flux_events',[])).filter(e=>e.date).forEach(e=>{const d=new Date(e.date+'T00:00:00');if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=d.getDate();if(!evMap[k])evMap[k]=[];evMap[k].push(e);}});
+  const evMap={};
+  (load('flux_events',[])).filter(e=>e.date).forEach(e=>{
+    const d=new Date(e.date+'T12:00:00');
+    if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=d.getDate();if(!evMap[k])evMap[k]=[];evMap[k].push(e);}
+  });
+  for(let d=1;d<=days;d++){
+    const ds=fluxLocalYMD(new Date(calYear,calMonth,d));
+    const wk=weeklyVirtualEventsForDate(ds);
+    if(wk.length){if(!evMap[d])evMap[d]=[];evMap[d].push(...wk);}
+  }
   let html=['S','M','T','W','T','F','S'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let i=first-1;i>=0;i--)html+=`<div class="cal-day other"><div class="cal-dn">${prevDays-i}</div></div>`;
-  for(let d=1;d<=days;d++){const dt=new Date(calYear,calMonth,d),ds=dt.toISOString().slice(0,10);const isToday=dt.getTime()===now.getTime(),isNP=isBreak(ds),ab=AB_MAP[ds];const tlist=tMap[d]||[];const elist=evMap[d]||[];// Task bars with names
+  for(let d=1;d<=days;d++){const dt=new Date(calYear,calMonth,d),ds=fluxLocalYMD(dt);const isToday=dt.getTime()===now.getTime(),isNP=isBreak(ds),ab=getCycleDayLabel(ds);const tlist=tMap[d]||[];const elist=evMap[d]||[];// Task bars with names
 const taskBars=tlist.slice(0,3).map(t=>{const s=getSubjects()[t.subject];const c=s?s.color:'var(--accent)';return`<div class="cal-task-bar" style="background:${c}22;border-left:2px solid ${c};opacity:${t.done?.5:1};text-decoration:${t.done?'line-through':'none'}">${esc(t.name)}</div>`;}).join('');
-const eventBars=elist.slice(0,1).map(e=>`<div class="cal-task-bar" style="background:rgba(192,132,252,.15);border-left:2px solid var(--purple)">${esc(e.title||'Event')}</div>`).join('');
-const allCount=tlist.length+elist.length;const dots=taskBars+eventBars;const abLabel=ab?`<div style="font-size:.45rem;font-family:'JetBrains Mono',monospace;color:${ab==='A'?'var(--accent)':'var(--green)'};line-height:1;margin-top:1px">${ab}</div>`:'';const overFlag=tlist.some(t=>!t.done&&new Date(t.date+'T00:00:00')<now)?'<div style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--red)"></div>':'';const countBadge=allCount>3?`<div class="cal-day-count">+${allCount-3}</div>`:'';html+=`<div class="cal-day ${isToday?'today ':''}${d===calSelected?'selected ':''}${isNP?'no-hw':''}" onclick="selectDay(${d})" style="position:relative">${overFlag}<div class="cal-dn">${d}</div>${abLabel}<div class="cal-dots">${dots}</div>${countBadge}</div>`;}
+const eventBars=elist.slice(0,2).map(e=>`<div class="cal-task-bar" style="background:${e._weekly?'rgba(0,194,255,.12)':'rgba(192,132,252,.15)'};border-left:2px solid ${e._weekly?'var(--accent)':'var(--purple)'}">${esc(e.title||'Event')}</div>`).join('');
+const allCount=tlist.length+elist.length;const dots=taskBars+eventBars;const abCol=ab==='A'?'var(--accent)':ab==='B'?'var(--green)':ab?'var(--gold)':'var(--muted)';const abLabel=ab?`<div style="font-size:${ab.length>2?'.4rem':'.45rem'};font-family:'JetBrains Mono',monospace;color:${abCol};line-height:1;margin-top:1px;max-width:100%;text-overflow:ellipsis;overflow:hidden">${esc(ab)}</div>`:'';const overFlag=tlist.some(t=>!t.done&&new Date(t.date+'T00:00:00')<now)?'<div style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--red)"></div>':'';const countBadge=allCount>3?`<div class="cal-day-count">+${allCount-3}</div>`:'';html+=`<div class="cal-day ${isToday?'today ':''}${d===calSelected?'selected ':''}${isNP?'no-hw':''}" onclick="selectDay(${d})" style="position:relative">${overFlag}<div class="cal-dn">${d}</div>${abLabel}<div class="cal-dots">${dots}</div>${countBadge}</div>`;}
   document.getElementById('calGrid').innerHTML=html;
   renderCalDay();
   renderCalToday();
@@ -891,16 +961,23 @@ const allCount=tlist.length+elist.length;const dots=taskBars+eventBars;const abL
 
 function renderCalDay(){
   const dt=new Date(calYear,calMonth,calSelected);
+  const ds=fluxLocalYMD(dt);
   const titleEl=document.getElementById('calDayTitle');
-  if(titleEl)titleEl.textContent=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  if(titleEl){
+    const cyc=getCycleDayLabel(ds);
+    const base=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    titleEl.textContent=cyc?`${base} · ${cyc} day`:base;
+  }
   const addBtn=document.getElementById('calAddBtn');if(addBtn)addBtn.style.display='inline-flex';
   const addEvBtn=document.getElementById('calAddEventBtn');if(addEvBtn)addEvBtn.style.display='inline-flex';
   const day=tasks.filter(t=>{if(!t.date)return false;const d=new Date(t.date+'T00:00:00');return d.getFullYear()===calYear&&d.getMonth()===calMonth&&d.getDate()===calSelected;});
-  const events=(load('flux_events',[])).filter(e=>{if(!e.date)return false;const d=new Date(e.date+'T00:00:00');return d.getFullYear()===calYear&&d.getMonth()===calMonth&&d.getDate()===calSelected;});
+  const events=(load('flux_events',[])).filter(e=>{if(!e.date)return false;const d=new Date(e.date+'T12:00:00');return d.getFullYear()===calYear&&d.getMonth()===calMonth&&d.getDate()===calSelected;});
+  const weekly=weeklyVirtualEventsForDate(ds);
   const el=document.getElementById('calDayTasks');
-  if(!day.length&&!events.length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:4px 0">Nothing scheduled.</div>';return;}
+  if(!day.length&&!events.length&&!weekly.length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:4px 0">Nothing scheduled.</div>';return;}
   el.innerHTML=[
-    ...events.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">📅</span><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${esc(e.title)}</div>${e.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</div>`:''}</div><button onclick="deleteEvent('${e.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px">✕</button></div>`),
+    ...weekly.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,194,255,.08);border:1px solid rgba(var(--accent-rgb),.25);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">🔁</span><div style="flex:1"><div style="font-size:.82rem;font-weight:600;color:var(--accent)">Every week</div><div style="font-size:.85rem;font-weight:600">${esc(e.title)}</div>${e.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</div>`:''}</div><button type="button" onclick="deleteWeeklyRule('${e.ruleId}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px" title="Remove weekly rule">✕</button></div>`),
+    ...events.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">📅</span><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${esc(e.title)}</div>${e.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</div>`:''}</div><button type="button" onclick="deleteEvent('${e.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px">✕</button></div>`),
     ...day.map(t=>`<div class="task-item" style="margin-bottom:6px"><div class="check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div><div class="task-body"><div class="task-text ${t.done?'done':''}">${esc(t.name)}</div></div><button class="btn-sm btn-del" onclick="deleteTask(${t.id})">✕</button></div>`)
   ].join('');
 }
@@ -912,9 +989,11 @@ function renderCalToday(){
   if(badgeEl)badgeEl.textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   const todayTasks=tasks.filter(t=>t.date===ts&&!t.done);
   const todayEvents=(load('flux_events',[])).filter(e=>e.date===ts);
+  const wToday=weeklyVirtualEventsForDate(ts);
   if(!todayEl)return;
-  if(!todayTasks.length&&!todayEvents.length){todayEl.innerHTML='<div style="color:var(--muted);font-size:.82rem">Nothing due today 🎉</div>';return;}
+  if(!todayTasks.length&&!todayEvents.length&&!wToday.length){todayEl.innerHTML='<div style="color:var(--muted);font-size:.82rem">Nothing due today 🎉</div>';return;}
   todayEl.innerHTML=[
+    ...wToday.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(0,194,255,.08);border-radius:10px;margin-bottom:5px;border:1px solid rgba(var(--accent-rgb),.2)"><span>🔁</span><div style="flex:1;font-size:.82rem;font-weight:600">${esc(e.title)} <span style="font-size:.65rem;color:var(--muted);font-weight:500">(weekly)</span></div>${e.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</span>`:''}</div>`),
     ...todayEvents.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(192,132,252,.08);border-radius:10px;margin-bottom:5px"><span>📅</span><div style="flex:1;font-size:.82rem;font-weight:600">${esc(e.title)}</div>${e.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.time}</span>`:''}</div>`),
     ...todayTasks.map(t=>{const sub=getSubjects()[t.subject];const pc=t.priority==='high'?'var(--red)':t.priority==='med'?'var(--gold)':'var(--green)';return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card2);border-radius:10px;margin-bottom:5px;border-left:3px solid ${pc}"><div class="check ${t.done?'done':''}" onclick="toggleTask(${t.id})" style="width:18px;height:18px;border-radius:5px;font-size:10px">${t.done?'✓':''}</div><div style="flex:1;font-size:.82rem;font-weight:500">${esc(t.name)}</div>${sub?`<span style="font-size:.65rem;color:${sub.color};font-family:'JetBrains Mono',monospace">${sub.short}</span>`:''}</div>`;})
   ].join('');
@@ -926,10 +1005,17 @@ function renderCalUpcoming(){
   const in7=new Date(now);in7.setDate(now.getDate()+7);
   const upcoming=tasks.filter(t=>{if(!t.date||t.done)return false;const d=new Date(t.date+'T00:00:00');return d>now&&d<=in7;}).sort((a,b)=>new Date(a.date)-new Date(b.date));
   const upEvents=(load('flux_events',[])).filter(e=>{if(!e.date)return false;const d=new Date(e.date+'T00:00:00');return d>now&&d<=in7;}).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const all=[...upEvents.map(e=>({...e,_type:'event'})),...upcoming.map(t=>({...t,_type:'task'}))].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const upWeekly=[];
+  for(let i=1;i<=7;i++){
+    const x=new Date(now);x.setDate(now.getDate()+i);
+    const ds=fluxLocalYMD(x);
+    weeklyVirtualEventsForDate(ds).forEach(e=>upWeekly.push({title:e.title,time:e.time,date:ds,_type:'weekly'}));
+  }
+  const all=[...upEvents.map(e=>({...e,_type:'event'})),...upWeekly,...upcoming.map(t=>({...t,_type:'task'}))].sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(!all.length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem">Nothing coming up 🎉</div>';return;}
   el.innerHTML=all.map(item=>{
     const d=new Date(item.date+'T00:00:00');const dStr=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    if(item._type==='weekly')return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">🔁</span><div style="flex:1"><div style="font-size:.82rem;font-weight:600">${esc(item.title)} <span style="color:var(--muted);font-weight:500">(weekly)</span></div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${item.time?' · '+item.time:''}</div></div></div>`;
     if(item._type==='event')return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">📅</span><div style="flex:1"><div style="font-size:.82rem;font-weight:600">${esc(item.title)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}</div></div></div>`;
     const sub=getSubjects()[item.subject];const pc=item.priority==='high'?'var(--red)':item.priority==='med'?'var(--gold)':'var(--green)';
     return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><div style="width:4px;height:32px;border-radius:2px;background:${pc};flex-shrink:0"></div><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(item.name)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${sub?' · '+sub.short:''}</div></div></div>`;
@@ -974,8 +1060,60 @@ function saveAddEvent(){
   closeAddEventModal();renderCalendar();
 }
 function deleteEvent(id){
+  if(String(id).startsWith('w_')){deleteWeeklyRule(String(id).slice(2));return;}
   const events=load('flux_events',[]).filter(e=>e.id!==id);
   save('flux_events',events);renderCalendar();
+}
+function saveCycleSchedule(){
+  const enabled=document.getElementById('cycleEnabled')?.checked;
+  const raw=document.getElementById('cyclePatternInput')?.value||'A, B';
+  const pattern=raw.split(',').map(s=>s.trim()).filter(Boolean);
+  const anchorDate=document.getElementById('cycleAnchorInput')?.value;
+  const skipWeekends=document.getElementById('cycleSkipWeekends')?.checked!==false;
+  if(!pattern.length){showToast('Add a pattern (e.g. A, B)','warning');return;}
+  if(!anchorDate){showToast('Pick an anchor date','warning');return;}
+  save('flux_cycle_config',{enabled:!!enabled,pattern,anchorDate,skipWeekends});
+  const hint=document.getElementById('cycleSaveHint');
+  if(hint)hint.textContent='Saved — calendar labels updated.';
+  setTimeout(()=>{if(hint)hint.textContent='';},3500);
+  renderCalendar();syncKey('cycle',pattern);
+}
+function loadCalScheduleUI(){
+  const cfg=load('flux_cycle_config',null);
+  const ce=document.getElementById('cycleEnabled');if(ce)ce.checked=!!cfg?.enabled;
+  const cp=document.getElementById('cyclePatternInput');if(cp)cp.value=cfg?.pattern?.join(', ')||'A, B';
+  const ca=document.getElementById('cycleAnchorInput');if(ca)ca.value=cfg?.anchorDate||fluxLocalYMD(new Date());
+  const sw=document.getElementById('cycleSkipWeekends');if(sw)sw.checked=cfg?.skipWeekends!==false;
+  renderWeeklyRulesList();
+}
+function renderWeeklyRulesList(){
+  const el=document.getElementById('weeklyRulesList');if(!el)return;
+  const rules=getWeeklyRules();
+  const dayNames={0:'Sun',1:'Mon',2:'Tue',3:'Wed',4:'Thu',5:'Fri',6:'Sat'};
+  if(!rules.length){el.innerHTML='<div style="color:var(--muted);font-size:.78rem">No weekly activities yet.</div>';return;}
+  el.innerHTML=rules.map(r=>{
+    const days=(r.weekdays||[]).map(d=>dayNames[d]).join(', ');
+    return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--card2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border2)"><div style="min-width:0"><div style="font-weight:600">${esc(r.title)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${days}${r.time?' · '+r.time:''}</div></div><button type="button" class="btn-sec" style="padding:4px 10px;font-size:.72rem;flex-shrink:0" onclick="deleteWeeklyRule('${r.id}')">Remove</button></div>`;
+  }).join('');
+}
+function addWeeklyRule(){
+  const title=document.getElementById('weeklyTitleInput')?.value.trim();
+  if(!title){showToast('Enter a title','warning');return;}
+  const time=document.getElementById('weeklyTimeInput')?.value||'';
+  const boxes=document.querySelectorAll('#calendar input[name="wd"]:checked');
+  const weekdays=[...boxes].map(b=>parseInt(b.value,10)).sort((a,b)=>a-b);
+  if(!weekdays.length){showToast('Pick at least one weekday','warning');return;}
+  const rules=getWeeklyRules();
+  rules.push({id:String(Date.now()),title,time,weekdays,enabled:true});
+  save('flux_weekly_events',rules);
+  const ti=document.getElementById('weeklyTitleInput');if(ti)ti.value='';
+  const tm=document.getElementById('weeklyTimeInput');if(tm)tm.value='';
+  document.querySelectorAll('#calendar input[name="wd"]').forEach(c=>{c.checked=false;});
+  renderWeeklyRulesList();renderCalendar();syncKey('weekly',rules);
+}
+function deleteWeeklyRule(id){
+  save('flux_weekly_events',getWeeklyRules().filter(r=>String(r.id)!==String(id)));
+  renderWeeklyRulesList();renderCalendar();syncKey('weekly',1);
 }
 
 // ── Google Calendar sync ──
@@ -2059,7 +2197,7 @@ function resetTabs(){
   renderSidebars();
   const b=event?.target;if(b){b.textContent='✓ Reset!';setTimeout(()=>b.textContent='↺ Reset to defaults',1500);}
 }
-function exportData(){const data={tasks,grades,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
+function exportData(){const data={tasks,grades,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
 function exportToICal(){const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Flux Planner//EN'];tasks.filter(t=>t.date&&!t.done).forEach(t=>{const d=t.date.replace(/-/g,'');lines.push('BEGIN:VEVENT','DTSTART;VALUE=DATE:'+d,'SUMMARY:'+t.name,'END:VEVENT');});lines.push('END:VCALENDAR');const blob=new Blob([lines.join('\r\n')],{type:'text/calendar'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux.ics';a.click();URL.revokeObjectURL(url);}
 function clearCache(){
   const inp=prompt('Type DELETE to confirm wiping all planner data. This cannot be undone.');
@@ -2696,6 +2834,8 @@ function buildFullPlannerContextForAI(opts){
   add('Confidences by subject',clip(JSON.stringify(confidences),1800));
 
   add('Calendar events',clip(JSON.stringify(load('flux_events',[]).slice(0,70)),4000));
+  add('Weekly repeating activities',clip(JSON.stringify(load('flux_weekly_events',[])),2000));
+  add('Cycle day config',clip(JSON.stringify(load('flux_cycle_config',null)),800));
   add('No-homework days',clip(JSON.stringify(noHomeworkDays),500));
   add('App settings',clip(JSON.stringify(settings),1400));
 
@@ -2731,6 +2871,8 @@ function getCloudPayload(){
     onboarded:true,
     noHWDays:load('flux_no_hw_days',[]),
     events:load('flux_events',[]),
+    cycleConfig:load('flux_cycle_config',null),
+    weeklyEvents:load('flux_weekly_events',[]),
     settings:settings,
     tourCompleted:isTourCompleted(),
     extras,
@@ -2817,6 +2959,8 @@ async function syncFromCloud(){
     }
     if(d.noHWDays){save('flux_no_hw_days',d.noHWDays);}
     if(d.events){save('flux_events',d.events);}
+    if(d.cycleConfig!==undefined)save('flux_cycle_config',d.cycleConfig);
+    if(Array.isArray(d.weeklyEvents)){save('flux_weekly_events',d.weeklyEvents);}
     if(d.settings){
       settings={...settings,...d.settings};
       save('flux_settings',settings);

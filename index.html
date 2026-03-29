@@ -577,6 +577,46 @@
     <!-- ─── CALENDAR ─── -->
     <div id="calendar" class="panel">
       <div class="cal-layout">
+        <div class="card cal-schedule-setup">
+          <h3 style="margin:0 0 12px">Cycle days &amp; weekly schedule</h3>
+          <p style="font-size:.78rem;color:var(--muted2);margin:0 0 14px;line-height:1.45">Set how <strong>A / B</strong> (or longer) days rotate, and add activities that repeat every week (e.g. Taekwondo on Mon, Wed, Thu) without re-entering them.</p>
+          <div style="border-top:1px solid var(--border2);padding-top:14px;margin-bottom:14px">
+            <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px">Cycle day labels</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;margin-bottom:10px;cursor:pointer">
+              <input type="checkbox" id="cycleEnabled" style="margin:0"> Show cycle labels on calendar (A / B / …)
+            </label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+              <div><label style="font-size:.7rem;color:var(--muted)">Pattern (comma-separated)</label><input type="text" id="cyclePatternInput" placeholder="A, B" style="margin:4px 0 0"></div>
+              <div><label style="font-size:.7rem;color:var(--muted)">Anchor date (first “A” or first day in pattern)</label><input type="date" id="cycleAnchorInput" style="margin:4px 0 0"></div>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;margin-bottom:10px;cursor:pointer">
+              <input type="checkbox" id="cycleSkipWeekends" checked style="margin:0"> Only count Mon–Fri for rotation (skip weekends)
+            </label>
+            <button type="button" onclick="saveCycleSchedule()" class="btn-sec" style="padding:8px 14px;font-size:.8rem">Save cycle</button>
+            <div id="cycleSaveHint" style="font-size:.68rem;color:var(--muted);margin-top:8px"></div>
+          </div>
+          <div style="border-top:1px solid var(--border2);padding-top:14px">
+            <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px">Repeats every week</div>
+            <div style="display:grid;grid-template-columns:1fr 120px;gap:10px;margin-bottom:10px;align-items:end">
+              <div><label style="font-size:.7rem;color:var(--muted)">Title</label><input type="text" id="weeklyTitleInput" placeholder="e.g. Taekwondo" style="margin:4px 0 0"></div>
+              <div><label style="font-size:.7rem;color:var(--muted)">Time (optional)</label><input type="time" id="weeklyTimeInput" style="margin:4px 0 0"></div>
+            </div>
+            <div style="margin-bottom:10px">
+              <span style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:6px">Days</span>
+              <div class="weekly-dow-row" style="display:flex;flex-wrap:wrap;gap:6px">
+                <label class="weekly-dow"><input type="checkbox" name="wd" value="1"> Mon</label>
+                <label class="weekly-dow"><input type="checkbox" name="wd" value="2"> Tue</label>
+                <label class="weekly-dow"><input type="checkbox" name="wd" value="3"> Wed</label>
+                <label class="weekly-dow"><input type="checkbox" name="wd" value="4"> Thu</label>
+                <label class="weekly-dow"><input type="checkbox" name="wd" value="5"> Fri</label>
+                <label class="weekly-dow"><input type="checkbox" name="wd" value="6"> Sat</label>
+                <label class="weekly-dow"><input type="checkbox" name="wd" value="0"> Sun</label>
+              </div>
+            </div>
+            <button type="button" onclick="addWeeklyRule()" style="padding:9px 16px;font-size:.82rem;margin-bottom:14px">+ Add weekly activity</button>
+            <div id="weeklyRulesList" style="font-size:.82rem"></div>
+          </div>
+        </div>
         <div class="card cal-hero-card">
           <div class="cal-nav-row">
             <button type="button" class="btn-sec cal-nav-btn" onclick="changeMonth(-1)">‹</button>
