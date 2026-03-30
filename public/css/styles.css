@@ -976,7 +976,7 @@ button:active:not(:disabled){transform:scale(.97)!important}
 }
 
 /* ══ ABOUT SPANE ══ */
-#spane-about .srow { align-items: flex-start; }
+#spane-data .srow { align-items: flex-start; }
 
 /* ══ SETTINGS TAB — sticky on desktop ══ */
 @media(min-width:769px) {

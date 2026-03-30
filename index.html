@@ -1266,7 +1266,7 @@
     <!-- ─── SETTINGS ─── -->
     <div id="settings" class="panel flux-page">
       <header class="flux-page-header flux-page-header--lead">
-        <p class="flux-page-sub">Theme, alerts, account, tabs, data, and about.</p>
+        <p class="flux-page-sub">Theme, alerts, account, tabs, and data &amp; info.</p>
       </header>
       <div class="flux-stack">
       <div class="stabs">
@@ -1274,8 +1274,7 @@
         <button class="stab" onclick="switchStab('notifications',this)">Alerts</button>
         <button class="stab" onclick="switchStab('account',this)">Account</button>
         <button class="stab" onclick="switchStab('tabs',this)">Tabs</button>
-        <button class="stab" onclick="switchStab('data',this)">Data</button>
-        <button class="stab" onclick="switchStab('about',this)">About</button>
+        <button class="stab" onclick="switchStab('data',this)">Data &amp; info</button>
       </div>
       <div class="spane active" id="spane-appearance">
         <div class="card" style="margin-bottom:10px">
@@ -1424,10 +1423,8 @@
           <div class="srow" style="border:none"><div><div class="slabel">Export all data</div><div class="ssub">Download as JSON</div></div><button onclick="exportData()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Export</button></div>
         </div>
         <div class="card"><h3>Danger Zone</h3><div class="srow" style="border:none"><div><div class="slabel">Clear local cache</div><div class="ssub">Permanently deletes all tasks, grades, notes, extracurriculars</div></div><button onclick="clearCache()" class="btn-sec" style="padding:6px 12px;font-size:.78rem;color:var(--red)">Clear Data</button></div></div>
-      </div>
 
-      <!-- ABOUT TAB -->
-      <div class="spane" id="spane-about">
+        <!-- About (same tab as export / danger) -->
         <!-- Developer Card -->
         <div class="card" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),.08),rgba(var(--purple-rgb),.04));border-color:rgba(var(--accent-rgb),.2)">
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">

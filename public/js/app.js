@@ -2185,7 +2185,7 @@ function applyCustomColor(){
 }
 
 // ══ SETTINGS ══
-function switchStab(id,el){if(id==='data')id='about';document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');const pane=document.getElementById('spane-'+id);if(pane)pane.classList.add('active');}
+function switchStab(id,el){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');const pane=document.getElementById('spane-'+id);if(pane)pane.classList.add('active');}
 function toggleSetting(k,el){settings[k]=!settings[k];el.classList.toggle('on',settings[k]);save('flux_settings',settings);}
 function saveDND(){settings.dndStart=document.getElementById('dndStart').value;settings.dndEnd=document.getElementById('dndEnd').value;save('flux_settings',settings);const b=event?.target;if(b){b.textContent='✓';setTimeout(()=>b.textContent='Save',1500);}}
 function saveDailyGoal(){settings.dailyGoalHrs=parseFloat(document.getElementById('dailyGoalHrs').value)||2;save('flux_settings',settings);const done=tMins/60,goal=settings.dailyGoalHrs;const el=document.getElementById('dailyGoalStatus');if(el)el.textContent=done>=goal?`✓ Goal reached! (${done.toFixed(1)}h / ${goal}h)`:`Progress: ${done.toFixed(1)}h / ${goal}h`;}
@@ -3144,8 +3144,10 @@ function obNext(){
   if(obCurrentStep===1){
     const name=document.getElementById('obName')?.value.trim();
     if(!name){document.getElementById('obName')?.focus();return;}
-    const p={name,grade:obSelectedGrade,program:obSelectedTrack};
-    localStorage.setItem('profile',JSON.stringify(p));
+    const p=load('profile',{});
+    p.name=name;
+    p.grade=obSelectedGrade;
+    save('profile',p);
     localStorage.setItem('flux_user_name',name.split(' ')[0]);
     _updateSidebarName(name);
   }
@@ -3155,6 +3157,9 @@ function obNext(){
     schoolInfo.locker=document.getElementById('obLocker')?.value.trim()||'';
     schoolInfo.combo=document.getElementById('obCombo')?.value.trim()||'';
     save('flux_school',schoolInfo);
+    const p=load('profile',{});
+    p.program=obSelectedTrack||p.program||'';
+    save('profile',p);
   }
   if(obCurrentStep===3){
     if(obExtractedClasses.length){classes=obExtractedClasses;save('flux_classes',classes);}
@@ -3171,11 +3176,10 @@ function obFinish(){
   if(goalSlider){settings.dailyGoalHrs=parseFloat(goalSlider.value)||2;save('flux_settings',settings);}
   save('flux_onboarded',true);
   const ob=document.getElementById('onboarding');if(ob)ob.classList.remove('visible');
-  document.getElementById('app').classList.add('visible');
+  showApp();
   spawnConfetti();
-  renderProfile();renderSchool();renderSidebars();populateSubjectSelects();
   if(currentUser)syncToCloud();
-  if(currentUser&&!isTourCompleted()){
+  if(!isTourCompleted()){
     setTimeout(()=>startOnboardingTour(),1600);
   }
 }
@@ -3861,10 +3865,10 @@ async function handleSignedIn(user,session){
   const hasProfile=!!load('profile',{}).name;
   const isFirstTime=!onboarded&&!hasLocalData&&!hasProfile;
 
-  const ob=document.getElementById('onboarding');
   if(isFirstTime){
-    if(ob)ob.classList.add('visible');
+    showOnboarding();
   }else{
+    const ob=document.getElementById('onboarding');
     if(ob)ob.classList.remove('visible');
     showApp();
     // Call _updateUserUI AFTER showApp() so DOM elements are visible
@@ -4622,35 +4626,52 @@ function applyCollapsedSections(){
 function startOnboardingTour(){
   if(isTourCompleted())return;
   const steps=[
-    {sel:'[data-tab="school"]',title:'Import Your Schedule',body:'Upload a photo of your schedule and AI will extract all your classes automatically.',side:'right'},
-    {sel:'[data-tab="timer"]',title:'Focus Timer',body:'Use the Pomodoro timer to study in focused 25-minute sessions with breaks.',side:'right'},
-    {sel:'[data-tab="ai"]',title:'Flux AI',body:'Ask anything — study plans, explanations, flashcards. Type / to open it.',side:'right'},
-    {sel:'.view-btn',title:'Multiple Views',body:'Switch between List, Board, Timeline, and Workload views for your tasks.',side:'bottom'},
+    {nav:'dashboard',sel:'[data-tab="dashboard"]',title:'Dashboard',body:'Your home base: today\'s tasks, streaks, focus cards, and quick-add at the top.'},
+    {nav:'calendar',sel:'[data-tab="calendar"]',title:'Calendar',body:'Plan around classes and due dates. Sync Google Calendar from Settings if you use it.'},
+    {nav:'school',sel:'[data-tab="school"]',title:'School & schedule',body:'Classes, bell schedule, and upload a timetable photo so AI can fill your classes.'},
+    {nav:'grades',sel:'[data-tab="grades"]',title:'Grades & GPA',body:'Track subjects, weighted GPA, and import grades from a screenshot when you need to.'},
+    {nav:'notes',sel:'[data-tab="notes"]',title:'Notes',body:'Subject-tagged notes linked to your courses — handy for review before tests.'},
+    {nav:'timer',sel:'[data-tab="timer"]',title:'Focus timer',body:'Pomodoro-style sessions with subject budgets and a simple study heatmap.'},
+    {nav:'ai',sel:'[data-tab="ai"]',title:'Flux AI',body:'Ask for plans, explanations, or flashcards. Type / in the chat for shortcuts.'},
+    {nav:'dashboard',sel:'.view-btn[data-view="list"]',title:'Task views',body:'Switch List, Board, Timeline, or Workload to match how you like to work.'},
+    {nav:'profile',sel:'[data-tab="profile"]',title:'Profile',body:'Your academic snapshot, energy, and habits — adjust as the term goes on.'},
+    {nav:'settings',sel:'[data-tab="settings"]',title:'Settings',body:'Theme, accent, sync, Google account, and data — sign in anytime to back up (guests too).'},
   ];
   let step=0;
+  function placeTip(tip,target){
+    const rect=target.getBoundingClientRect();
+    const pad=12,w=Math.min(280,window.innerWidth-24),h=tip.offsetHeight||200;
+    let top=rect.bottom+pad;
+    if(top+h>window.innerHeight-16&&rect.top>h+pad)top=Math.max(8,rect.top-h-pad);
+    tip.style.top=Math.min(top,window.innerHeight-h-8)+'px';
+    tip.style.left=Math.min(Math.max(8,rect.left),window.innerWidth-w-8)+'px';
+  }
   function showStep(){
     document.querySelectorAll('.tour-tooltip').forEach(e=>e.remove());
     if(step>=steps.length){markTourCompleted();return;}
     const s=steps[step];
-    const target=document.querySelector(s.sel);
-    if(!target){step++;showStep();return;}
-    const rect=target.getBoundingClientRect();
-    const tip=document.createElement('div');
-    tip.className='tour-tooltip';
-    tip.style.cssText=`position:fixed;z-index:9000;background:var(--card);border:1px solid rgba(var(--accent-rgb),.4);border-radius:14px;padding:16px;max-width:260px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:slideUp .3s var(--ease-spring)`;
-    tip.style.top=(rect.bottom+12)+'px';
-    tip.style.left=Math.min(rect.left,window.innerWidth-280)+'px';
-    tip.innerHTML=`<div style="font-size:.82rem;font-weight:800;margin-bottom:4px">${step+1}/${steps.length} · ${s.title}</div>
-      <div style="font-size:.75rem;color:var(--muted2);line-height:1.6;margin-bottom:10px">${s.body}</div>
-      <div style="display:flex;gap:6px">
-        <button onclick="document.querySelectorAll('.tour-tooltip').forEach(e=>e.remove());markTourCompleted()" style="flex:1;padding:5px;font-size:.72rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Skip tour</button>
-        <button onclick="window._tourStep();this.closest('.tour-tooltip').remove()" style="flex:1;padding:5px;font-size:.72rem;background:var(--accent);border:none;color:#fff;border-radius:8px;cursor:pointer">${step<steps.length-1?'Next →':'Done ✓'}</button>
-      </div>`;
-    document.body.appendChild(tip);
-    target.scrollIntoView({behavior:'smooth',block:'center'});
-    target.style.outline='2px solid rgba(var(--accent-rgb),.6)';
-    target.style.outlineOffset='3px';
-    setTimeout(()=>target.style.outline='',3000);
+    const run=()=>{
+      const target=document.querySelector(s.sel);
+      if(!target){step++;showStep();return;}
+      const tip=document.createElement('div');
+      tip.className='tour-tooltip';
+      tip.style.cssText=`position:fixed;z-index:9000;background:var(--card);border:1px solid rgba(var(--accent-rgb),.4);border-radius:14px;padding:16px;max-width:280px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:slideUp .3s var(--ease-spring)`;
+      tip.innerHTML=`<div style="font-size:.82rem;font-weight:800;margin-bottom:4px">${step+1}/${steps.length} · ${s.title}</div>
+        <div style="font-size:.75rem;color:var(--muted2);line-height:1.6;margin-bottom:10px">${s.body}</div>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="tour-skip" style="flex:1;padding:5px;font-size:.72rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Skip tour</button>
+          <button type="button" class="tour-next" style="flex:1;padding:5px;font-size:.72rem;background:var(--accent);border:none;color:#fff;border-radius:8px;cursor:pointer">${step<steps.length-1?'Next →':'Done ✓'}</button>
+        </div>`;
+      document.body.appendChild(tip);
+      placeTip(tip,target);
+      tip.querySelector('.tour-skip').onclick=()=>{tip.remove();markTourCompleted();};
+      tip.querySelector('.tour-next').onclick=()=>{tip.remove();step++;showStep();};
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+      target.style.outline='2px solid rgba(var(--accent-rgb),.6)';
+      target.style.outlineOffset='3px';
+      setTimeout(()=>{target.style.outline='';},3000);
+    };
+    if(s.nav){nav(s.nav);setTimeout(run,420);}else run();
   }
   window._tourStep=()=>{step++;showStep();};
   setTimeout(showStep,1500);
