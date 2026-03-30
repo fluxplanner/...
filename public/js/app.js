@@ -912,14 +912,11 @@ function openScheduleOptimizerAI(){
   setTimeout(()=>{
     const inp=document.getElementById('aiInput');
     if(!inp)return;
-    let ctx='';
-    if(typeof buildFullPlannerContextForAI==='function'){
-      try{ctx=buildFullPlannerContextForAI({maxTotalChars:6500});}catch(e){ctx='';}
-    }
-    inp.value='Optimize my student schedule for the next 7 days. Use this planner context:\n\n'+ctx+'\n\nReply with: (1) ordered list of what to do first, (2) what to defer, (3) one “minimum viable day” if I\'m overwhelmed. Short bullets.';
+    // Full planner data is already attached server-side via buildAIPrompt() → system message; keep the visible prompt short.
+    inp.value='Help me optimize my schedule for the next 7 days. What should I do first, what can I defer, and what’s a realistic “minimum viable” day if I’m overwhelmed? Short bullets.';
     inp.focus();
-    if(typeof showToast==='function')showToast('Flux AI — schedule optimizer','info');
-  },280);
+    if(typeof sendAI==='function')sendAI();
+  },320);
 }
 function autoSplitEditSubtasks(){
   const title=(document.getElementById('editText')?.value||'').trim();
