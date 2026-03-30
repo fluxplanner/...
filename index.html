@@ -419,9 +419,9 @@
   <div class="main-content">
     <!-- Topbar -->
     <div class="topbar">
-      <div style="display:flex;align-items:center;gap:10px">
-        <button class="mob-menu-btn" onclick="openDrawer()">☰</button>
-        <span class="topbar-left topbar-title" id="topbarTitle">Dashboard</span>
+      <div class="topbar-title-wrap">
+        <button type="button" class="mob-menu-btn" onclick="openDrawer()">☰</button>
+        <span class="topbar-title" id="topbarTitle">Dashboard</span>
       </div>
       <div class="topbar-right">
         <button type="button" class="btn-icon topbar-search-btn" onclick="openGlobalSearch()" title="Search tasks, notes, and classes (⌘⇧K or Ctrl+Shift+K)">🔍</button>
@@ -818,9 +818,26 @@
         <div id="gradesImportResult" style="display:none;margin-top:10px"></div>
       </div>
       <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div><h3 style="margin:0 0 2px">Grades</h3><div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">4-decimal GPA</div></div>
-          <div style="text-align:right"><div style="font-size:1.8rem;font-weight:800;color:var(--accent)" id="gpaDisplay">—</div><div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace">EST. GPA</div></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+          <div><h3 style="margin:0 0 2px">Grades</h3><div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">4-decimal term GPA</div></div>
+          <div style="text-align:right;min-width:120px">
+            <div style="font-size:1.8rem;font-weight:800;color:var(--accent)" id="gpaDisplay">—</div>
+            <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace">TERM GPA</div>
+            <div id="cumGpaWrap" style="display:none;margin-top:10px">
+              <div style="font-size:1.35rem;font-weight:800;color:var(--accent)" id="cumGpaDisplay">—</div>
+              <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace">CUMULATIVE (EST.)</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:12px;line-height:1.45">
+          <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:6px">Prior record (cumulative)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+            <label style="display:flex;flex-direction:column;gap:3px;margin:0"><span style="font-size:.65rem;color:var(--muted)">Cumulative GPA</span>
+              <input type="number" step="0.0001" min="0" max="4.3" id="prevCumGpaIn" placeholder="e.g. 3.85" style="max-width:130px;margin:0" oninput="updateGPADisplay()"></label>
+            <label style="display:flex;flex-direction:column;gap:3px;margin:0"><span style="font-size:.65rem;color:var(--muted)">Credits earned before</span>
+              <input type="number" step="0.5" min="0" id="prevCumCreditsIn" placeholder="e.g. 45" style="max-width:130px;margin:0" oninput="updateGPADisplay()"></label>
+          </div>
+          <p style="font-size:.65rem;color:var(--muted);margin:8px 0 0">Optional. Combines with this term’s courses (equal weight per class). Save grades to persist.</p>
         </div>
         <div id="gradeInputs"></div>
         <div class="irow" style="margin-top:8px">

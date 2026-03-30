@@ -360,6 +360,7 @@ function weeklyVirtualEventsForDate(dateStr){
 // ══ STATE ══
 let tasks=load('tasks',[]);
 let grades=load('flux_grades',{});
+let gpaPrior=load('flux_gpa_prior',{prevGpa:'',prevCredits:''});
 let weightedRows=load('flux_weighted',[]);
 let notes=load('flux_notes',[]);
 let habits=load('flux_habits',[]);
@@ -1555,13 +1556,54 @@ function saveEditClass(){
 }
 
 // ══ GRADES ══
-function calcGPA(g){const map={'A+':4.3,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D+':1.3,'D':1.0,'F':0};const vals=Object.values(g).map(v=>{const p=parseFloat(v);if(!isNaN(p)){if(p>=97)return 4.3;if(p>=93)return 4.0;if(p>=90)return 3.7;if(p>=87)return 3.3;if(p>=83)return 3.0;if(p>=80)return 2.7;if(p>=77)return 2.3;if(p>=73)return 2.0;if(p>=70)return 1.7;if(p>=67)return 1.3;if(p>=60)return 1.0;return 0;}return map[(v||'').trim().toUpperCase()]??null;}).filter(v=>v!==null);if(!vals.length)return null;return parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(4));}
+const GPA_LETTER_MAP={'A+':4.3,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D+':1.3,'D':1.0,'F':0};
+function gradePointValues(g){
+  return Object.values(g).map(v=>{
+    const p=parseFloat(v);
+    if(!isNaN(p)){
+      if(p>=97)return 4.3;if(p>=93)return 4.0;if(p>=90)return 3.7;if(p>=87)return 3.3;if(p>=83)return 3.0;if(p>=80)return 2.7;if(p>=77)return 2.3;if(p>=73)return 2.0;if(p>=70)return 1.7;if(p>=67)return 1.3;if(p>=60)return 1.0;return 0;
+    }
+    return GPA_LETTER_MAP[(v||'').trim().toUpperCase()]??null;
+  }).filter(v=>v!==null);
+}
+function calcGPA(g){const vals=gradePointValues(g);if(!vals.length)return null;return parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(4));}
+function calcCumulativeGpa(termGpa,nThisTerm,prevGpa,prevCredits){
+  const pg=parseFloat(prevGpa);const pc=parseFloat(prevCredits);
+  if(isNaN(pg)||isNaN(pc)||pc<=0)return null;
+  if(nThisTerm<=0||termGpa===null)return parseFloat(pg.toFixed(4));
+  return parseFloat(((pg*pc+termGpa*nThisTerm)/(pc+nThisTerm)).toFixed(4));
+}
 function addGradeRow(){const s=document.getElementById('newSubject').value.trim(),v=document.getElementById('newGrade').value.trim();if(!s||!v)return;grades[s]=v;save('flux_grades',grades);document.getElementById('newSubject').value='';document.getElementById('newGrade').value='';renderGradeInputs();renderGradeOverview();}
 function removeGrade(k){delete grades[k];save('flux_grades',grades);renderGradeInputs();renderGradeOverview();}
-function updateGPADisplay(){const gpa=calcGPA(grades);document.getElementById('gpaDisplay').textContent=gpa!==null?precise(gpa):'—';}
-function renderGradeInputs(){const el=document.getElementById('gradeInputs');if(!el)return;if(!Object.keys(grades).length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem;margin-bottom:8px">No grades yet.</div>';updateGPADisplay();return;}el.innerHTML=Object.entries(grades).map(([k,v])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="flex:1;font-size:.85rem;font-weight:500">${esc(k)}</div><input type="text" id="g_${k.replace(/\s/g,'_')}" value="${esc(v)}" style="width:90px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.82rem;margin:0;padding:6px 8px" oninput="updateGPADisplay()"><button onclick="removeGrade('${k}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px">✕</button></div>`).join('');updateGPADisplay();}
+function populateGpaPriorInputs(){
+  const a=document.getElementById('prevCumGpaIn');const b=document.getElementById('prevCumCreditsIn');
+  if(a)a.value=gpaPrior.prevGpa!==undefined&&gpaPrior.prevGpa!==null&&gpaPrior.prevGpa!==''?String(gpaPrior.prevGpa):'';
+  if(b)b.value=gpaPrior.prevCredits!==undefined&&gpaPrior.prevCredits!==null&&gpaPrior.prevCredits!==''?String(gpaPrior.prevCredits):'';
+}
+function updateGPADisplay(){
+  const term=calcGPA(grades);
+  const gEl=document.getElementById('gpaDisplay');
+  if(gEl)gEl.textContent=term!==null?precise(term):'—';
+  const a=document.getElementById('prevCumGpaIn');
+  const b=document.getElementById('prevCumCreditsIn');
+  const pgStr=a?a.value.trim():String(gpaPrior.prevGpa||'').trim();
+  const pcStr=b?b.value.trim():String(gpaPrior.prevCredits||'').trim();
+  const n=gradePointValues(grades).length;
+  const cum=calcCumulativeGpa(term,n,pgStr,pcStr);
+  const wrap=document.getElementById('cumGpaWrap');
+  const cEl=document.getElementById('cumGpaDisplay');
+  if(wrap&&cEl){
+    if(cum!==null&&(pgStr!==''&&pcStr!=='')){
+      cEl.textContent=precise(cum);
+      wrap.style.display='block';
+    }else{
+      wrap.style.display='none';
+    }
+  }
+}
+function renderGradeInputs(){populateGpaPriorInputs();const el=document.getElementById('gradeInputs');if(!el)return;if(!Object.keys(grades).length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem;margin-bottom:8px">No grades yet.</div>';updateGPADisplay();return;}el.innerHTML=Object.entries(grades).map(([k,v])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="flex:1;font-size:.85rem;font-weight:500">${esc(k)}</div><input type="text" id="g_${k.replace(/\s/g,'_')}" value="${esc(v)}" style="width:90px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.82rem;margin:0;padding:6px 8px" oninput="updateGPADisplay()"><button onclick="removeGrade('${k}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px">✕</button></div>`).join('');updateGPADisplay();}
 function renderGradeOverview(){const el=document.getElementById('gradeOverview');if(!el)return;if(!Object.keys(grades).length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem">No grades yet.</div>';return;}el.innerHTML=Object.entries(grades).map(([k,g])=>{const pct=parseFloat(g);const c=!isNaN(pct)?(pct>=90?'var(--green)':pct>=80?'var(--accent)':pct>=70?'var(--gold)':'var(--red)'):'var(--accent)';const w=!isNaN(pct)?Math.min(pct,100):75;return`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><div style="flex:1;font-size:.85rem;font-weight:500">${esc(k)}</div><span style="font-size:.82rem;font-weight:700;color:${c};font-family:'JetBrains Mono',monospace">${esc(g)}</span></div>${!isNaN(pct)?`<div class="gpa-bar"><div class="gpa-fill" style="width:${w}%;background:${c}"></div></div>`:''}</div>`;}).join('');}
-function saveGrades(){Object.keys(grades).forEach(k=>{const inp=document.getElementById('g_'+k.replace(/\s/g,'_'));if(inp)grades[k]=inp.value.trim();});save('flux_grades',grades);updateGPADisplay();renderGradeOverview();syncKey('grades',grades);const b=event?.target;if(b){b.textContent='✓ Saved!';setTimeout(()=>b.textContent='Save Grades',1500);}}
+function saveGrades(){Object.keys(grades).forEach(k=>{const inp=document.getElementById('g_'+k.replace(/\s/g,'_'));if(inp)grades[k]=inp.value.trim();});save('flux_grades',grades);const pa=document.getElementById('prevCumGpaIn');const pb=document.getElementById('prevCumCreditsIn');if(pa||pb){gpaPrior={prevGpa:(pa?.value||'').trim(),prevCredits:(pb?.value||'').trim()};save('flux_gpa_prior',gpaPrior);syncKey('gpaPrior',gpaPrior);}updateGPADisplay();renderGradeOverview();syncKey('grades',grades);const b=event?.target;if(b){b.textContent='✓ Saved!';setTimeout(()=>b.textContent='Save Grades',1500);}}
 function addWeightRow(){const c=document.getElementById('wCat').value.trim(),w=document.getElementById('wWeight').value,s=document.getElementById('wScore').value;if(!c||!w)return;weightedRows.push({cat:c,weight:parseFloat(w),score:parseFloat(s)||0});save('flux_weighted',weightedRows);document.getElementById('wCat').value='';document.getElementById('wWeight').value='';document.getElementById('wScore').value='';renderWeightedRows();calcWeighted();}
 function removeWeightRow(i){weightedRows.splice(i,1);save('flux_weighted',weightedRows);renderWeightedRows();calcWeighted();}
 function renderWeightedRows(){const el=document.getElementById('weightRows');if(!el)return;if(!weightedRows.length){el.innerHTML='<div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Add categories below.</div>';return;}el.innerHTML=weightedRows.map((r,i)=>`<div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px"><span style="font-size:.82rem;font-weight:500">${esc(r.cat)}</span><span style="font-size:.82rem;font-family:'JetBrains Mono',monospace;color:var(--muted2)">${r.weight}%</span><span style="font-size:.82rem;font-family:'JetBrains Mono',monospace;color:var(--accent)">${r.score}%</span><button onclick="removeWeightRow(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0">✕</button></div>`).join('');}
@@ -2336,7 +2378,7 @@ function setAccent(hex,rgb,el){
   if(el)el.classList.add('active');
   // Update logo gradient to match new accent
   const logoGrad=`linear-gradient(135deg,${hex},${hex}bb)`;
-  document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,.topbar-left,[class*="logo"]').forEach(logoEl=>{
+  document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,[class*="logo"]').forEach(logoEl=>{
     if(logoEl){
       logoEl.style.background=logoGrad;
       logoEl.style.webkitBackgroundClip='text';
@@ -2444,14 +2486,14 @@ function resetTabs(){
   renderSidebars();
   const b=event?.target;if(b){b.textContent='✓ Reset!';setTimeout(()=>b.textContent='↺ Reset to defaults',1500);}
 }
-function exportData(){const data={tasks,grades,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
+function exportData(){const data={tasks,grades,gpaPrior,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
 function exportToICal(){const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Flux Planner//EN'];tasks.filter(t=>t.date&&!t.done).forEach(t=>{const d=t.date.replace(/-/g,'');lines.push('BEGIN:VEVENT','DTSTART;VALUE=DATE:'+d,'SUMMARY:'+t.name,'END:VEVENT');});lines.push('END:VCALENDAR');const blob=new Blob([lines.join('\r\n')],{type:'text/calendar'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux.ics';a.click();URL.revokeObjectURL(url);}
 function clearCache(){
   const inp=prompt('Type DELETE to confirm wiping all planner data. This cannot be undone.');
   if(inp!=='DELETE'){if(inp!==null)alert('Cancelled — you must type DELETE exactly.');return;}
   const keep=['flux_settings','flux_accent','flux_accent_rgb','flux_theme','profile','flux_user_name'];
   Object.keys(localStorage).forEach(k=>{if(!keep.includes(k))localStorage.removeItem(k);});
-  tasks=[];grades={};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];extras=[];ecSchools=[];ecGoals=[];
+  tasks=[];grades={};gpaPrior={prevGpa:'',prevCredits:''};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];extras=[];ecSchools=[];ecGoals=[];
   renderStats();renderTasks();
   showToast('All planner data cleared.','info');
 }
@@ -2651,8 +2693,8 @@ function toggleFeatureFlag(feature,btn){
 
 function clearMyPlannerData(){
   if(!confirm('Clear ALL your planner data? This cannot be undone.'))return;
-  tasks=[];grades={};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];weightedRows=[];extras=[];ecSchools=[];ecGoals=[];
-  save('tasks',tasks);save('flux_grades',grades);save('flux_notes',notes);
+  tasks=[];grades={};gpaPrior={prevGpa:'',prevCredits:''};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];weightedRows=[];extras=[];ecSchools=[];ecGoals=[];
+  save('tasks',tasks);save('flux_grades',grades);save('flux_gpa_prior',gpaPrior);save('flux_notes',notes);
   save('flux_habits',habits);save('flux_goals',goals);save('flux_colleges',colleges);
   save('flux_mood',moodHistory);save('flux_weighted',weightedRows);
   save('flux_extras',extras);save('flux_ec_schools',ecSchools);save('flux_ec_goals',ecGoals);
@@ -3120,6 +3162,7 @@ function getCloudPayload(){
     theme:localStorage.getItem('flux_theme')||'dark',
     tasks,
     grades,
+    gpaPrior,
     weightedRows,
     notes:notes.map(n=>({...n,body:n.body||''})),
     habits,
@@ -3201,6 +3244,7 @@ async function syncFromCloud(){
     const d=data.data;
     if(d.tasks){tasks=d.tasks;save('tasks',tasks);migrateCompletedAtBackfill();}
     if(d.grades){grades=d.grades;save('flux_grades',grades);}
+    if(d.gpaPrior&&typeof d.gpaPrior==='object'){gpaPrior={prevGpa:d.gpaPrior.prevGpa??'',prevCredits:d.gpaPrior.prevCredits??''};save('flux_gpa_prior',gpaPrior);}
     if(d.weightedRows){weightedRows=d.weightedRows;save('flux_weighted',weightedRows);}
     if(d.notes){notes=d.notes;save('flux_notes',notes);}
     if(d.habits){habits=d.habits;save('flux_habits',habits);}
@@ -4023,7 +4067,7 @@ async function handleSignedIn(user,session){
     localStorage.clear();
     Object.entries(survived).forEach(([k,v])=>localStorage.setItem(k,v));
     // Reset all in-memory state
-    tasks=[];grades={};notes=[];habits=[];goals=[];colleges=[];extras=[];ecSchools=[];ecGoals=[];
+    tasks=[];grades={};gpaPrior={prevGpa:'',prevCredits:''};notes=[];habits=[];goals=[];colleges=[];extras=[];ecSchools=[];ecGoals=[];
     moodHistory=[];schoolInfo={};classes=[];teacherNotes=[];
     sessionLog=[];studyDNA=[];confidences={};weightedRows=[];
     aiChats=[];aiHistory=[];
