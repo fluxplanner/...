@@ -592,6 +592,7 @@
           <button onclick="setFilter('today',this)" class="tmode-btn">Due Today</button>
           <button onclick="setFilter('overdue',this)" class="tmode-btn">Overdue</button>
           <button onclick="setFilter('high',this)" class="tmode-btn">High</button>
+          <button onclick="setFilter('reading',this)" class="tmode-btn">Reading</button>
           <button onclick="setFilter('snoozed',this)" class="tmode-btn">Snoozed</button>
         </div>
 
@@ -869,6 +870,7 @@
           <button onclick="addGradeRow()">+ Add</button>
         </div>
         <button onclick="saveGrades()" style="width:100%;margin-top:10px">Save Grades</button>
+        <button type="button" onclick="exportGradesCSV()" class="btn-sec" style="width:100%;margin-top:8px">Export CSV</button>
       </div>
       <div class="card">
         <h3>Weighted Calculator</h3>
@@ -993,9 +995,15 @@
             <div class="t-lbl" id="tLbl">Focus Time</div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;align-items:center">
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;align-items:center">
           Work:<input type="number" id="customWork" value="25" min="1" max="90" style="width:44px;padding:3px 5px;margin:0 4px;font-size:.72rem;text-align:center" onchange="updateTLengths()">min
           &nbsp;Short:<input type="number" id="customShort" value="5" min="1" max="30" style="width:44px;padding:3px 5px;margin:0 4px;font-size:.72rem;text-align:center" onchange="updateTLengths()">min
+        </div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;align-items:center;max-width:420px;margin-left:auto;margin-right:auto">
+          <span style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace">Focus presets</span>
+          <button type="button" class="btn-sec" style="padding:4px 10px;font-size:.65rem" onclick="setTimerPresetMins(25)">25</button>
+          <button type="button" class="btn-sec" style="padding:4px 10px;font-size:.65rem" onclick="setTimerPresetMins(45)">45</button>
+          <button type="button" class="btn-sec" style="padding:4px 10px;font-size:.65rem" onclick="setTimerPresetMins(90)">90</button>
         </div>
         <div style="margin-bottom:14px">
           <select id="timerSubject" style="width:auto;padding:5px 10px;margin:0;font-size:.78rem;display:inline-block">
@@ -1240,6 +1248,12 @@
         <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;margin-bottom:10px"><span>Low</span><span id="stressVal">3</span><span>High</span></div>
         <input type="number" id="sleepHours" placeholder="Hours slept last night" min="0" max="14" step="0.5">
         <button onclick="saveMoodEntry()" style="width:100%">Save Check-In</button>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border2)">
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:6px">Journal line</div>
+          <div style="font-size:.72rem;color:var(--muted2);margin-bottom:8px">One sentence for today — saved per day on this device.</div>
+          <input type="text" id="journalLine" placeholder="e.g. Grateful for clear skies" style="width:100%;margin-bottom:8px" maxlength="500">
+          <button type="button" onclick="saveJournalLine()" style="width:100%" class="btn-sec">Save line</button>
+        </div>
         <div id="burnoutAlert" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:8px;font-size:.82rem;color:var(--red)">⚠️ Burnout warning: high stress + low sleep. Take it easy today.</div>
       </div>
       <div class="card"><h3>Mood History</h3><div id="moodHistory" style="display:flex;gap:4px;flex-wrap:wrap"></div><div style="font-size:.72rem;color:var(--muted);margin-top:8px" id="moodInsight"></div></div>
@@ -1498,6 +1512,11 @@
             </div>
           </div>
         </div>
+        <div class="card">
+          <h3>Local storage</h3>
+          <p style="font-size:.72rem;color:var(--muted2);margin:0 0 8px;line-height:1.5">Rough size of data this site keeps in your browser (tasks, notes, cache).</p>
+          <div id="storageMeter" style="font-size:.82rem;color:var(--muted2);line-height:1.5">—</div>
+        </div>
         <div class="card" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),.08),rgba(var(--purple-rgb),.04));border-color:rgba(var(--accent-rgb),.2)">
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
             <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">✦</div>
@@ -1535,10 +1554,26 @@
           </div>
         </div>
         <div class="card">
+          <h3>MLA citation (web)</h3>
+          <p style="font-size:.72rem;color:var(--muted2);margin:0 0 10px;line-height:1.5">Fill what you have — Flux builds a simple web-style line you can paste into a bibliography.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><label style="font-size:.65rem;color:var(--muted)">Author</label><input type="text" id="mlaAuthor" placeholder="Last, First" style="margin:0"></div>
+            <div><label style="font-size:.65rem;color:var(--muted)">Year</label><input type="text" id="mlaYear" placeholder="2026" style="margin:0"></div>
+          </div>
+          <div style="margin-bottom:8px"><label style="font-size:.65rem;color:var(--muted)">Page / article title</label><input type="text" id="mlaTitle" placeholder="Title in quotes" style="margin:0"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><label style="font-size:.65rem;color:var(--muted)">Site</label><input type="text" id="mlaSite" placeholder="Site name" style="margin:0"></div>
+            <div><label style="font-size:.65rem;color:var(--muted)">URL</label><input type="text" id="mlaUrl" placeholder="https://…" style="margin:0"></div>
+          </div>
+          <button type="button" onclick="generateMLACitation()" style="width:100%;margin-bottom:8px">Generate</button>
+          <div id="mlaOut" style="font-size:.78rem;line-height:1.55;padding:10px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:10px;font-family:'JetBrains Mono',monospace;color:var(--text);min-height:2.5em;white-space:pre-wrap"></div>
+        </div>
+        <div class="card">
           <h3>Export</h3>
           <div class="srow"><div><div class="slabel">Export to iCal</div><div class="ssub">Download tasks as .ics</div></div><button onclick="exportToICal()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Export</button></div>
           <div class="srow" style="border:none"><div><div class="slabel">Export all data</div><div class="ssub">Download as JSON</div></div><button onclick="exportData()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Export</button></div>
           <div class="srow" style="border:none"><div><div class="slabel">Encrypted backup</div><div class="ssub">Password-protected JSON (Web Crypto)</div></div><button type="button" onclick="exportEncryptedBackup()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Export encrypted</button></div>
+          <div class="srow" style="border:none"><div><div class="slabel">Import encrypted backup</div><div class="ssub">Merge tasks, grades &amp; notes — passphrase required</div></div><button type="button" onclick="document.getElementById('importEncryptedFile').click()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Choose file</button></div>
           <div class="srow" style="border:none"><div><div class="slabel">Improvement catalog</div><div class="ssub">Roadmap status for 100+ ideas</div></div><a href="IMPROVEMENTS.md" target="_blank" rel="noopener" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">View →</a></div>
           <div class="srow" style="border:none"><div><div class="slabel">Changelog</div><div class="ssub">Recent releases</div></div><a href="CHANGELOG.md" target="_blank" rel="noopener" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">View →</a></div>
         </div>
@@ -1627,6 +1662,8 @@
     <span style="color:var(--accent)">N</span> task &nbsp;·&nbsp; <span style="color:var(--accent)">S</span> session &nbsp;·&nbsp; <span style="color:var(--accent)">⌘⇧K</span> search &nbsp;·&nbsp; <span style="color:var(--accent)">⌘K</span> palette &nbsp;·&nbsp; <span style="color:var(--accent)">1-6</span> sections
   </div>
 
+<input type="file" id="importEncryptedFile" accept=".json,application/json" style="display:none" aria-hidden="true" onchange="if(this.files&amp;&amp;this.files[0])importEncryptedBackup(this.files[0]);this.value=''">
+
 </div><!-- /app -->
 
 <!-- NEW TASK (full form) — opened from top bar ＋ -->
@@ -1644,7 +1681,7 @@
     </div>
     <div class="irow" style="margin-bottom:8px">
       <input type="date" id="taskDate">
-      <select id="taskType"><option value="hw">Homework</option><option value="test">Test</option><option value="quiz">Quiz</option><option value="project">Project</option><option value="essay">Essay</option><option value="lab">Lab</option><option value="other">Other</option></select>
+      <select id="taskType"><option value="hw">Homework</option><option value="test">Test</option><option value="quiz">Quiz</option><option value="project">Project</option><option value="essay">Essay</option><option value="lab">Lab</option><option value="reading">Reading</option><option value="other">Other</option></select>
     </div>
     <div class="irow" style="margin-bottom:8px">
       <input type="number" id="taskEstTime" placeholder="Est. minutes" min="5" max="480" style="flex:0 1 140px">
@@ -1672,7 +1709,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="mrow"><label>Subject</label><select id="editSubject"><option value="">No subject</option></select></div>
       <div class="mrow"><label>Priority</label><select id="editPriority"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></div>
-      <div class="mrow"><label>Type</label><select id="editType"><option value="hw">Homework</option><option value="test">Test</option><option value="quiz">Quiz</option><option value="project">Project</option><option value="essay">Essay</option><option value="lab">Lab</option><option value="other">Other</option></select></div>
+      <div class="mrow"><label>Type</label><select id="editType"><option value="hw">Homework</option><option value="test">Test</option><option value="quiz">Quiz</option><option value="project">Project</option><option value="essay">Essay</option><option value="lab">Lab</option><option value="reading">Reading</option><option value="other">Other</option></select></div>
       <div class="mrow"><label>Due Date</label><input type="date" id="editDue"></div>
       <div class="mrow"><label>Est. Minutes</label><input type="number" id="editEstTime" min="5" max="480"></div>
       <div class="mrow"><label>Difficulty (1–5)</label><input type="number" id="editDifficulty" min="1" max="5"></div>

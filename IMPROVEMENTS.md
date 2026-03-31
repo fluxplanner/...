@@ -15,7 +15,7 @@ This file tracks the **100+ improvement ideas**. Status: **Done** (in app), **Pa
 | 9 | Per-class color | Done — class colors |
 | 10 | Exam countdown | Done — dashboard card |
 | 11 | Syllabus → AI tasks | Roadmap |
-| 12 | Reading list mode | Roadmap |
+| 12 | Reading list mode | Partial — task type + dashboard filter |
 | 13 | Subtasks % complete | Partial — subtasks exist |
 | 14 | Time blocking / drag timeline | Roadmap |
 | 15 | Energy match suggestions | Partial — energy affects sort |
@@ -45,14 +45,14 @@ This file tracks the **100+ improvement ideas**. Status: **Done** (in app), **Pa
 | 39 | Study guide from notes | Partial — AI summarize |
 | 40 | GPA error bars | Roadmap |
 | 41 | Two-way Google Calendar | Roadmap |
-| 42 | ICS + alarms | Partial — ICS export |
+| 42 | ICS + alarms | Done — .ics + VALARM (day before) |
 | 43 | A/B exceptions | Partial — cycle + no-HW days |
 | 44 | Bell schedule variants | Partial |
 | 45 | Calendar print | Partial — print CSS |
 | 46 | Exam same-day conflict | Done — banner |
 | 47 | Travel time | Roadmap |
 | 48 | Sports recurring | Partial — weekly events |
-| 49 | Week numbers | Roadmap |
+| 49 | Week numbers | Partial — week # on calendar month label |
 | 50 | Time zones | Roadmap |
 | 51 | Next period in title | Roadmap |
 | 52 | Lunar calendar | Roadmap |
@@ -61,13 +61,13 @@ This file tracks the **100+ improvement ideas**. Status: **Done** (in app), **Pa
 | 55 | Study budget | Partial — daily goal |
 | 56 | Sleep debt | Roadmap |
 | 57 | Break reminders | Roadmap |
-| 58 | Pomodoro presets | Partial — timer modes |
+| 58 | Pomodoro presets | Done — 25 / 45 / 90 min quick-set |
 | 59 | Distraction log export | Roadmap |
 | 60 | Low-mood recovery | Roadmap |
-| 61 | Journal one-liner | Roadmap |
+| 61 | Journal one-liner | Done — Mood tab, per day |
 | 62 | Health app integration | Roadmap |
 | 63 | Local-first AI | Roadmap |
-| 64 | Citation helper | Roadmap |
+| 64 | Citation helper | Partial — MLA-style web line (Settings → Data) |
 | 65 | Flashcards + SRS | Partial |
 | 66 | Explain grade | Roadmap |
 | 67 | Voice AI | Roadmap |
@@ -77,10 +77,10 @@ This file tracks the **100+ improvement ideas**. Status: **Done** (in app), **Pa
 | 71 | Syllabus conflict check | Roadmap |
 | 72 | Offline AI queue | Roadmap |
 | 73 | Sync conflict UI | Roadmap |
-| 74 | Encrypted backup | Done — export |
+| 74 | Encrypted backup | Done — export + merge import |
 | 75 | Auto backup to Drive | Roadmap |
 | 76 | Task version history | Roadmap |
-| 77 | Guest storage quota meter | Roadmap |
+| 77 | Guest storage quota meter | Partial — localStorage size estimate (Data & info) |
 | 78 | localStorage repair | Roadmap |
 | 79 | E2E tests | Roadmap |
 | 80 | Feature flags | Roadmap |

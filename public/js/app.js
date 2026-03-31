@@ -332,6 +332,98 @@ async function fluxEncryptPayload(plainText,password){
   const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,enc.encode(plainText));
   return{v:1,salt:Array.from(salt),iv:Array.from(iv),data:Array.from(new Uint8Array(ct))};
 }
+async function fluxDecryptPayload(encObj,password){
+  if(!encObj||encObj.v!==1||!encObj.salt||!encObj.iv||!encObj.data)throw new Error('Invalid file');
+  const enc=new TextEncoder(),dec=new TextDecoder();
+  const salt=new Uint8Array(encObj.salt);
+  const iv=new Uint8Array(encObj.iv);
+  const data=new Uint8Array(encObj.data);
+  const keyMaterial=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits','deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:120000,hash:'SHA-256'},keyMaterial,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},key,data);
+  return dec.decode(pt);
+}
+async function importEncryptedBackup(file){
+  if(!window.crypto?.subtle){showToast('Import needs HTTPS','error');return;}
+  const pw=prompt('Passphrase for this file:');
+  if(!pw)return;
+  const text=await file.text();
+  let enc;try{enc=JSON.parse(text);}catch(e){showToast('Invalid JSON file','error');return;}
+  let raw;try{raw=await fluxDecryptPayload(enc,pw);}catch(e){showToast('Wrong passphrase or corrupt file','error');return;}
+  let d;try{d=JSON.parse(raw);}catch(e){showToast('Decrypted data invalid','error');return;}
+  if(!confirm('Merge tasks, grades, and notes from this backup into your planner? (Existing IDs are skipped.)'))return;
+  applyImportedPayloadMerge(d);
+}
+function applyImportedPayloadMerge(d){
+  const seen=new Set(tasks.map(t=>t.id));
+  (d.tasks||[]).forEach(t=>{if(t&&typeof t.id!=='undefined'&&!seen.has(t.id)){tasks.push(t);seen.add(t.id);}});
+  if(d.grades&&typeof d.grades==='object')Object.keys(d.grades).forEach(k=>{if(!grades[k])grades[k]=d.grades[k];});
+  save('tasks',tasks);save('flux_grades',grades);
+  if(Array.isArray(d.notes))d.notes.forEach(n=>{if(n&&n.id&&!notes.find(x=>x.id===n.id))notes.push(n);});
+  save('flux_notes',notes);
+  if(d.schoolInfo&&typeof d.schoolInfo==='object')schoolInfo={...schoolInfo,...d.schoolInfo};
+  save('flux_school',schoolInfo);
+  if(Array.isArray(d.classes)&&d.classes.length)classes=[...classes,...d.classes.filter(c=>!classes.find(x=>x.id===c.id))];
+  save('flux_classes',classes);
+  showToast('Merged backup data','success');
+  renderStats();renderTasks();renderCalendar();renderCountdown();renderGradeInputs();renderGradeOverview();populateSubjectSelects();
+  if(currentUser)syncToCloud();
+}
+function exportGradesCSV(){
+  const rows=[['Subject','Grade %']];
+  Object.entries(grades).forEach(([k,v])=>rows.push([k,String(v)]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-grades.csv';a.click();URL.revokeObjectURL(url);
+  showToast('Grades CSV exported','success');
+}
+function fluxISOWeekMidMonth(y,m){
+  const d=new Date(y,m,15);const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y1=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  return Math.ceil((((t-y1)/86400000)+1)/7);
+}
+function setTimerPresetMins(mins){
+  const el=document.getElementById('customWork');if(!el)return;
+  el.value=String(mins);updateTLengths();showToast(mins+' min focus','info');
+}
+function estimateStorageBytes(){
+  let n=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k)n+=(k.length+(localStorage.getItem(k)||'').length)*2;}}catch(e){}
+  return n;
+}
+function renderStorageMeter(){
+  const el=document.getElementById('storageMeter');if(!el)return;
+  const b=estimateStorageBytes();const mb=(b/1048576).toFixed(2);
+  el.innerHTML=`<span style="font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--accent)">~${mb} MB</span> <span style="font-size:.72rem;color:var(--muted)">(browser storage for this site)</span>`;
+}
+function saveJournalLine(){
+  const inp=document.getElementById('journalLine');if(!inp)return;
+  const line=inp.value.trim();if(!line)return;
+  const j=load('flux_journal_lines',{});
+  j[todayStr()]=line;save('flux_journal_lines',j);
+  showToast('Saved','success');
+}
+function loadJournalLineUI(){
+  const inp=document.getElementById('journalLine');if(!inp)return;
+  const j=load('flux_journal_lines',{});
+  inp.value=j[todayStr()]||'';
+}
+function generateMLACitation(){
+  const author=(document.getElementById('mlaAuthor')?.value||'').trim();
+  const title=(document.getElementById('mlaTitle')?.value||'').trim();
+  const year=(document.getElementById('mlaYear')?.value||'').trim();
+  const site=(document.getElementById('mlaSite')?.value||'').trim();
+  const url=(document.getElementById('mlaUrl')?.value||'').trim();
+  const out=document.getElementById('mlaOut');if(!out)return;
+  if(!title){out.textContent='Add at least a title.';return;}
+  let s='';
+  if(author)s+=author+'. ';
+  s+='"'+title+'." ';
+  if(site)s+=site+(year?', ':' ');
+  if(year)s+=year;
+  if(url)s+'. '+url;
+  s+='.';
+  out.textContent=s;
+}
 function pushQuickAddHistory(line){
   if(!line||!line.trim())return;
   let h=load('flux_quick_add_history',[]);
@@ -621,7 +713,7 @@ function nav(id,btn){
   const bni=document.querySelector(`.bnav-item[data-tab="${id}"]`);if(bni)bni.classList.add('active');
   updateNavAriaCurrent(id);
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();renderDynamicFocus();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderWeeklyReview();renderExamConflictBanner();},calendar:()=>{loadCalScheduleUI();renderCalendar();renderCalToday();renderCalUpcoming();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},gmail:()=>loadGmail()};
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();renderDynamicFocus();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderWeeklyReview();renderExamConflictBanner();},calendar:()=>{loadCalScheduleUI();renderCalendar();renderCalToday();renderCalUpcoming();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},gmail:()=>loadGmail()};
   fns[id]?.();
 }
 function navMob(id){closeDrawer();nav(id);}
@@ -882,6 +974,7 @@ function renderAboutStats(){
       <div style="font-size:1.1rem;font-weight:800;color:var(--accent)">${val}</div>
       <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace">${label}</div>
     </div>`).join('');
+  if(typeof renderStorageMeter==='function')renderStorageMeter();
 }
 
 function computeTaskCompletionStreak(){
@@ -1069,6 +1162,7 @@ function renderTasks(){
     if(taskFilter==='overdue')list=list.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now);
     if(taskFilter==='today')list=list.filter(t=>t.date&&t.date===todayStr());
     if(taskFilter==='high')list=list.filter(t=>!t.done&&t.priority==='high');
+    if(taskFilter==='reading')list=list.filter(t=>t.type==='reading');
     if(taskFilter!=='all')list=list.filter(t=>!isTaskSnoozed(t));
   }
   const energy=parseInt(localStorage.getItem('flux_energy')||'3');
@@ -1083,11 +1177,11 @@ function renderTasks(){
   });
   const el=document.getElementById('taskList');
   if(!list.length){
-    const msgs={active:'All clear — nothing to do right now',done:'No completed tasks yet',overdue:'No overdue tasks',today:'Nothing due today',high:'No high-priority tasks',snoozed:'Nothing snoozed',all:'No tasks yet'};
+    const msgs={active:'All clear — nothing to do right now',done:'No completed tasks yet',overdue:'No overdue tasks',today:'Nothing due today',high:'No high-priority tasks',reading:'No reading tasks — add one with type Reading',snoozed:'Nothing snoozed',all:'No tasks yet'};
     el.innerHTML=`<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">${msgs[taskFilter]||msgs.all}</div><div class="empty-sub">Use the <span class="kbd-hint">+</span> menu or quick add — <span class="kbd-hint">⌘⇧K</span> search · <span class="kbd-hint">⌘K</span> palette</div></div>`;
     return;
   }
-  const tm={hw:{l:'HW',c:'var(--muted)'},test:{l:'Test',c:'var(--red)'},quiz:{l:'Quiz',c:'var(--gold)'},project:{l:'Project',c:'var(--purple)'},essay:{l:'Essay',c:'var(--blue)'},lab:{l:'Lab',c:'var(--green)'},other:{l:'Other',c:'var(--muted)'}};
+  const tm={hw:{l:'HW',c:'var(--muted)'},test:{l:'Test',c:'var(--red)'},quiz:{l:'Quiz',c:'var(--gold)'},project:{l:'Project',c:'var(--purple)'},essay:{l:'Essay',c:'var(--blue)'},lab:{l:'Lab',c:'var(--green)'},reading:{l:'Reading',c:'var(--blue)'},other:{l:'Other',c:'var(--muted)'}};
   const todayS=todayStr();
   const active=list.filter(t=>!t.done);
   const done=list.filter(t=>t.done);
@@ -1218,7 +1312,8 @@ function submitCalTask(dateStr){
 }
 function renderCalendar(){
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('calMonthLabel').textContent=months[calMonth]+' '+calYear;
+  const wk=typeof fluxISOWeekMidMonth==='function'?fluxISOWeekMidMonth(calYear,calMonth):'';
+  document.getElementById('calMonthLabel').textContent=months[calMonth]+' '+calYear+(wk?' · W'+wk:'');
   const first=new Date(calYear,calMonth,1).getDay(),days=new Date(calYear,calMonth+1,0).getDate(),prevDays=new Date(calYear,calMonth,0).getDate();
   const now=new Date();now.setHours(0,0,0,0);
   const tMap={};tasks.filter(t=>t.date).forEach(t=>{const d=new Date(t.date+'T00:00:00');if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=d.getDate();if(!tMap[k])tMap[k]=[];tMap[k].push(t);}});
@@ -2516,7 +2611,7 @@ function applyCustomColor(){
 }
 
 // ══ SETTINGS ══
-function switchStab(id,el){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');const pane=document.getElementById('spane-'+id);if(pane)pane.classList.add('active');if(id==='appearance'){applyFontScale();applyReduceMotion();}}
+function switchStab(id,el){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');const pane=document.getElementById('spane-'+id);if(pane)pane.classList.add('active');if(id==='appearance'){applyFontScale();applyReduceMotion();}if(id==='data'&&typeof renderStorageMeter==='function')renderStorageMeter();}
 function toggleSetting(k,el){settings[k]=!settings[k];el.classList.toggle('on',settings[k]);save('flux_settings',settings);}
 function toggleNotifyBrowser(el){
   if(!('Notification' in window)){showToast('Notifications not supported','warning');return;}
@@ -2639,7 +2734,19 @@ function resetTabs(){
   const b=event?.target;if(b){b.textContent='✓ Reset!';setTimeout(()=>b.textContent='↺ Reset to defaults',1500);}
 }
 function exportData(){const data={tasks,grades,gpaPrior,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
-function exportToICal(){const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Flux Planner//EN'];tasks.filter(t=>t.date&&!t.done).forEach(t=>{const d=t.date.replace(/-/g,'');lines.push('BEGIN:VEVENT','DTSTART;VALUE=DATE:'+d,'SUMMARY:'+t.name,'END:VEVENT');});lines.push('END:VCALENDAR');const blob=new Blob([lines.join('\r\n')],{type:'text/calendar'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux.ics';a.click();URL.revokeObjectURL(url);}
+function exportToICal(){
+  const esc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Flux Planner//EN','CALSCALE:GREGORIAN'];
+  tasks.filter(t=>t.date&&!t.done).forEach(t=>{
+    const d=t.date.replace(/-/g,'');
+    lines.push('BEGIN:VEVENT','UID:flux-task-'+t.id+'@fluxplanner','DTSTART;VALUE=DATE:'+d,'SUMMARY:'+esc(t.name),
+      'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Flux reminder','TRIGGER:-P1D','END:VALARM','END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux.ics';a.click();URL.revokeObjectURL(url);
+  showToast('Calendar exported (with day-before alerts)','success');
+}
 function clearCache(){
   const inp=prompt('Type DELETE to confirm wiping all planner data. This cannot be undone.');
   if(inp!=='DELETE'){if(inp!==null)alert('Cancelled — you must type DELETE exactly.');return;}
@@ -3988,6 +4095,9 @@ function renderCmdResults(){
     {icon:'🎯',label:'Start Deep Work Mode',cat:'Actions',action:()=>{closeCommandPalette();startDeepWork();}},
     {icon:'📊',label:'Open Kanban View',cat:'Actions',action:()=>{closeCommandPalette();nav('dashboard');setTimeout(()=>showKanban(),200);}},
     {icon:'📆',label:'Explain my week (Flux AI)',cat:'Actions',action:()=>{closeCommandPalette();explainMyWeek();}},
+    {icon:'📥',label:'Export grades as CSV',cat:'Actions',action:()=>{closeCommandPalette();if(typeof exportGradesCSV==='function')exportGradesCSV();}},
+    {icon:'🖨',label:'Print / save as PDF',cat:'Actions',action:()=>{closeCommandPalette();window.print();}},
+    {icon:'🔐',label:'Import encrypted backup',cat:'Actions',action:()=>{closeCommandPalette();document.getElementById('importEncryptedFile')?.click();}},
   ];
   actions.forEach(a=>{if(!q||a.label.toLowerCase().includes(q))cmds.push(a);});
   
