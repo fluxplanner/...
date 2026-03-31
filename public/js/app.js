@@ -622,6 +622,7 @@ function addTask(){
   const task={id:Date.now(),name,date:document.getElementById('taskDate').value,subject:document.getElementById('taskSubject').value,priority:document.getElementById('taskPriority').value,type:document.getElementById('taskType').value,estTime:parseInt(document.getElementById('taskEstTime').value)||0,difficulty:parseInt(document.getElementById('taskDifficulty').value)||3,notes:document.getElementById('taskNotes').value.trim(),subtasks:[],done:false,rescheduled:0,createdAt:Date.now(),srsEnabled:document.getElementById('taskSRS')?.checked||false};
   task.urgencyScore=calcUrgency(task);tasks.unshift(task);save('tasks',tasks);if(task.subject)setTimeout(()=>injectGhostDraft(task),1500);
   document.getElementById('taskName').value='';document.getElementById('taskNotes').value='';
+  closeDashAddTaskModal();
   renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();panicCheck(task);
   syncKey('tasks',tasks);
 }
@@ -1042,25 +1043,38 @@ function buildSmartSugWhy(t,energy){
 }
 function renderSmartSug(){
   const active=tasks.filter(t=>!t.done).sort((a,b)=>(b.urgencyScore||0)-(a.urgencyScore||0));
-  const card=document.getElementById('smartSugCard');
-  const whyEl=document.getElementById('smartSugWhy');
+  const wrap=document.getElementById('topbarSmartSugWrap');
+  const lineEl=document.getElementById('topbarSmartSugLine');
   if(!active.length){
-    if(card)card.style.display='none';
-    if(whyEl){whyEl.textContent='';whyEl.hidden=true;}
+    if(wrap)wrap.style.display='none';
     return;
   }
-  if(card)card.style.display='block';
   const top=active[0];
   const sub=getSubjects()[top.subject];
   const energy=parseInt(localStorage.getItem('flux_energy')||'3');
-  const su=document.getElementById('smartSug');if(su)su.textContent=top.name+(sub?' · '+sub.short:'');
-  const subEl=document.getElementById('smartSugSub');
-  if(subEl)subEl.textContent=(top.type||'hw').toUpperCase()+(top.date?' · Due '+new Date(top.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'');
-  if(whyEl){
-    const line=buildSmartSugWhy(top,energy);
-    whyEl.textContent=line?'Why this first: '+line+'.':'';
-    whyEl.hidden=!line;
+  const titleLine=top.name+(sub?' · '+sub.short:'');
+  const metaLine=(top.type||'hw').toUpperCase()+(top.date?' · Due '+new Date(top.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'');
+  const whyLine=buildSmartSugWhy(top,energy);
+  const tip=[titleLine,metaLine,whyLine?'Why this first: '+whyLine+'.':''].filter(Boolean).join('\n');
+  if(wrap){
+    wrap.style.display='flex';
+    wrap.title=tip;
   }
+  if(lineEl){
+    lineEl.textContent=titleLine+' · '+metaLine;
+    lineEl.title=tip;
+  }
+}
+function openDashAddTaskModal(){
+  const m=document.getElementById('dashAddTaskModal');
+  if(!m)return;
+  populateSubjectSelects();
+  m.style.display='flex';
+  setTimeout(()=>document.getElementById('taskName')?.focus(),80);
+}
+function closeDashAddTaskModal(){
+  const m=document.getElementById('dashAddTaskModal');
+  if(m)m.style.display='none';
 }
 function renderCountdown(){const now=new Date();now.setHours(0,0,0,0);const next=tasks.filter(t=>!t.done&&(t.type==='test'||t.type==='quiz')&&t.date&&new Date(t.date+'T00:00:00')>=now).sort((a,b)=>new Date(a.date)-new Date(b.date))[0];const card=document.getElementById('countdownCard');if(!next){card.style.display='none';return;}card.style.display='block';const diff=Math.max(0,Math.floor((new Date(next.date+'T00:00:00')-now)/86400000));const sub=getSubjects()[next.subject];const statusC=diff<=2?'var(--red)':diff<=5?'var(--gold)':'var(--green)';document.getElementById('countdownLabel').textContent=next.name+(sub?' · '+sub.short:'');document.getElementById('countdownGrid').innerHTML=[[diff,'Days','var(--accent)'],[Math.floor(diff/7),'Weeks','var(--accent)'],[new Date(next.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}),'Date','var(--accent)'],[diff<=2?'SOON ⚠':diff<=5?'NEAR':'OK ✓','Status',statusC]].map(([n,l,c])=>`<div style="background:var(--card2);border-radius:10px;padding:10px 6px;text-align:center"><div style="font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:${c}">${n}</div><div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px">${l}</div></div>`).join('');}
 function setEnergy(v){localStorage.setItem('flux_energy',v);const emojis=['','😴','😕','😐','😊','🚀'];const labels=['','Very Low','Low','Neutral','Good','Peak'];const el=document.getElementById('energyEmoji');if(el)el.textContent=emojis[v];const lb=document.getElementById('energyLabel');if(lb)lb.textContent=labels[v];renderSmartSug();}
@@ -4580,6 +4594,7 @@ function showTemplateMenu(){
 }
 function applyTemplate(tpl){
   document.getElementById('templateMenu')?.remove();
+  openDashAddTaskModal();
   const ni=document.getElementById('taskName');const ti=document.getElementById('taskType');
   const ei=document.getElementById('taskEstTime');const di=document.getElementById('taskDifficulty');
   const pi=document.getElementById('taskPriority');
@@ -4848,7 +4863,7 @@ function applyCollapsedSections(){
 function startOnboardingTour(){
   if(isTourCompleted())return;
   const steps=[
-    {nav:'dashboard',sel:'[data-tab="dashboard"]',title:'Dashboard',body:'Your home base: today\'s tasks, streaks, focus cards, and quick-add at the top.'},
+    {nav:'dashboard',sel:'[data-tab="dashboard"]',title:'Dashboard',body:'Your home base: tasks, streaks, focus card, ＋ in the top bar for full add, or the FAB / ⌘ quick-add.'},
     {nav:'calendar',sel:'[data-tab="calendar"]',title:'Calendar',body:'Plan around classes and due dates. Sync Google Calendar from Settings if you use it.'},
     {nav:'school',sel:'[data-tab="school"]',title:'School & schedule',body:'Classes, bell schedule, and upload a timetable photo so AI can fill your classes.'},
     {nav:'grades',sel:'[data-tab="grades"]',title:'Grades & GPA',body:'Track subjects, weighted GPA, and import grades from a screenshot when you need to.'},
@@ -6753,11 +6768,12 @@ document.addEventListener('keydown',function(e){
     const qOpen=qa?.classList.contains('open');
     const sOpen=so?.classList.contains('open');
     if(pal||qOpen||sOpen)e.preventDefault();
+    closeDashAddTaskModal();
     closeGlobalSearch();
     closeQuickAdd();
     closeCommandPalette();
     document.querySelectorAll('.modal-overlay').forEach(m=>{
-      if(m.style.display!=='none'&&m.id)closeModal(m.id);
+      if(m.style.display!=='none'&&m.id&&m.id!=='dashAddTaskModal')closeModal(m.id);
     });
     if(typeof closeKanban==='function')closeKanban();
     return;
