@@ -1,11 +1,14 @@
 /* ── FLUX PLANNER · Service Worker — network-first fix ── */
-const CACHE = 'flux-v' + Date.now(); // Force new cache on every deploy
-const STATIC = 'flux-static-v23';
+const STATIC = 'flux-static-v24';
+/** Directory of this script (e.g. /Fluxplanner/ or /) — works on GitHub Pages and local dev */
+const APP_BASE = self.location.pathname.replace(/\/[^/]+$/, '/');
+const APP_ORIGIN = self.location.origin;
+const INDEX_HTML = APP_ORIGIN + APP_BASE + 'index.html';
 
 const PRECACHE = [
-  '/Fluxplanner/',
-  '/Fluxplanner/index.html',
-  '/Fluxplanner/manifest.json',
+  APP_ORIGIN + APP_BASE,
+  INDEX_HTML,
+  APP_ORIGIN + APP_BASE + 'manifest.json',
 ];
 
 // On install — cache only the bare minimum, skip waiting immediately
@@ -57,7 +60,7 @@ self.addEventListener('fetch', e => {
         .catch(() => {
           // Network failed — use cache as offline fallback
           return caches.match(e.request)
-            .then(cached => cached || caches.match('/Fluxplanner/index.html'));
+            .then(cached => cached || caches.match(INDEX_HTML));
         })
     );
     return;
@@ -73,7 +76,7 @@ self.addEventListener('fetch', e => {
           caches.open(STATIC).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => caches.match('/Fluxplanner/index.html'));
+      }).catch(() => caches.match(INDEX_HTML));
     })
   );
 });

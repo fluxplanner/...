@@ -16,10 +16,13 @@ const DATA_VERSION=3;
   }
 })();
 
-// ══ PWA — register service worker ══
+// ══ PWA — register service worker (path follows current app URL, not hardcoded /Fluxplanner/) ══
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/Fluxplanner/service-worker.js')
+    const isSecure=location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';
+    if(!isSecure)return;
+    const swUrl=new URL('service-worker.js',window.location.href);
+    navigator.serviceWorker.register(swUrl)
       .then(r=>console.log('✓ SW registered',r.scope))
       .catch(e=>console.warn('SW failed',e));
   });
