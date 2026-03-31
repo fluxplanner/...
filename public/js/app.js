@@ -3312,9 +3312,10 @@ function syncKey(key,val){
 
 // ══ ONBOARDING ══
 let obCurrentStep=1;
-const OB_TOTAL=4;
+const OB_TOTAL=5;
 let obSelectedGrade='10';
 let obSelectedTrack='';
+let obSelectedFocus='deadlines';
 let obScheduleImgData=null;
 let obExtractedClasses=[];
 
@@ -3345,6 +3346,7 @@ function selectObChip(el,key,val){
   el.classList.add('active');
   if(key==='obGrade')obSelectedGrade=val;
   if(key==='obTrack')obSelectedTrack=val;
+  if(key==='obFocus')obSelectedFocus=val;
 }
 function updateObPreview(){
   const name=(document.getElementById('obName')?.value||'').trim();
@@ -3373,6 +3375,13 @@ function obNext(){
     _updateSidebarName(name);
   }
   if(obCurrentStep===2){
+    const p=load('profile',{});
+    p.termFocus=obSelectedFocus||'deadlines';
+    const feats=Array.from(document.querySelectorAll('#obFeatureChips .ob-chip.active')).map(c=>c.dataset.feat).filter(Boolean);
+    p.plannerFeatures=feats.length?feats:['tasks'];
+    save('profile',p);
+  }
+  if(obCurrentStep===3){
     schoolInfo.schoolName=document.getElementById('obSchool')?.value.trim()||'';
     schoolInfo.counselor=document.getElementById('obCounselor')?.value.trim()||'';
     schoolInfo.locker=document.getElementById('obLocker')?.value.trim()||'';
@@ -3382,15 +3391,15 @@ function obNext(){
     p.program=obSelectedTrack||p.program||'';
     save('profile',p);
   }
-  if(obCurrentStep===3){
+  if(obCurrentStep===4){
     if(obExtractedClasses.length){classes=obExtractedClasses;save('flux_classes',classes);}
   }
-  if(obCurrentStep===4){obFinish();return;}
+  if(obCurrentStep===5){obFinish();return;}
   showObStep(obCurrentStep+1);
 }
 function obBack(){if(obCurrentStep>1)showObStep(obCurrentStep-1);}
 function obFinish(){
-  // Capture DNA + study goal from step 4 if set
+  // Capture DNA + study goal from step 5 if set
   const dnaChips=document.querySelectorAll('.ob-chip[data-dna].active');
   if(dnaChips.length){studyDNA=Array.from(dnaChips).map(c=>c.dataset.dna);save('flux_dna',studyDNA);}
   const goalSlider=document.getElementById('obStudyGoal');
@@ -3914,10 +3923,8 @@ function confirmGuestLogin(){
     if(!onboarded&&!hasData){
       showOnboarding();
     }else{
-      save('flux_tour_completed',true);
-      save('flux_tour_done',true);
-      document.getElementById('app').classList.add('visible');
-      renderSidebars();
+      showApp();
+      if(!isTourCompleted())setTimeout(()=>startOnboardingTour(),1600);
     }
     setSyncStatus('offline');
   };
@@ -4001,6 +4008,7 @@ function showLoginOrApp(){
   const wasGuest=load('flux_was_guest',false);
   if(wasGuest&&(onboarded||hasData)){
     showApp();
+    if(!isTourCompleted())setTimeout(()=>startOnboardingTour(),1600);
     setSyncStatus('offline');
   }else{
     showLoginScreen();
@@ -4095,6 +4103,7 @@ async function handleSignedIn(user,session){
     const ob=document.getElementById('onboarding');
     if(ob)ob.classList.remove('visible');
     showApp();
+    if(!isTourCompleted())setTimeout(()=>startOnboardingTour(),1600);
     // Call _updateUserUI AFTER showApp() so DOM elements are visible
     _updateUserUI(user, user.user_metadata?.full_name||user.email?.split('@')[0]||'');
   }
@@ -4354,7 +4363,7 @@ function initDashboardFeatures(){
   initFAB();
   initScrollLayout();
   showKeyHint();
-  setInterval(applyPanicGlow,5000);
+  setInterval(applyPanicGlow,25000);
 
   // ── FLOW: Splash (once per session) → Login → (1st time) Onboarding → App ──
   const afterSplash = () => initAuth();
@@ -4833,16 +4842,17 @@ function applyCollapsedSections(){
 function startOnboardingTour(){
   if(isTourCompleted())return;
   const steps=[
-    {nav:'dashboard',sel:'[data-tab="dashboard"]',title:'Dashboard',body:'Your home base: tasks, streaks, focus card, ＋ in the top bar for full add, or the FAB / ⌘ quick-add.'},
-    {nav:'calendar',sel:'[data-tab="calendar"]',title:'Calendar',body:'Plan around classes and due dates. Sync Google Calendar from Settings if you use it.'},
-    {nav:'school',sel:'[data-tab="school"]',title:'School & schedule',body:'Classes, bell schedule, and upload a timetable photo so AI can fill your classes.'},
-    {nav:'grades',sel:'[data-tab="grades"]',title:'Grades & GPA',body:'Track subjects, weighted GPA, and import grades from a screenshot when you need to.'},
-    {nav:'notes',sel:'[data-tab="notes"]',title:'Notes',body:'Subject-tagged notes linked to your courses — handy for review before tests.'},
-    {nav:'timer',sel:'[data-tab="timer"]',title:'Focus timer',body:'Pomodoro-style sessions with subject budgets and a simple study heatmap.'},
-    {nav:'ai',sel:'[data-tab="ai"]',title:'Flux AI',body:'Ask for plans, explanations, or flashcards. Type / in the chat for shortcuts.'},
-    {nav:'dashboard',sel:'.view-btn[data-view="list"]',title:'Task views',body:'Switch List, Board, Timeline, or Workload to match how you like to work.'},
-    {nav:'profile',sel:'[data-tab="profile"]',title:'Profile',body:'Your academic snapshot, energy, and habits — adjust as the term goes on.'},
-    {nav:'settings',sel:'[data-tab="settings"]',title:'Settings',body:'Theme, accent, sync, Google account, and data — sign in anytime to back up (guests too).'},
+    {nav:'dashboard',sel:'[data-tab="dashboard"]',title:'Dashboard',body:'Your home base: tasks, energy, and quick stats. Use ＋ New task in the top bar, the FAB, or quick-add to capture work fast.'},
+    {nav:'calendar',sel:'[data-tab="calendar"]',title:'Calendar',body:'Month view, A/B cycle days, and weekly activities. Link Google Calendar under Settings if you use it.'},
+    {nav:'school',sel:'[data-tab="school"]',title:'School & schedule',body:'Classes, bell schedule, and Vision import — snap a timetable and let AI fill your periods.'},
+    {nav:'grades',sel:'[data-tab="grades"]',title:'Grades & GPA',body:'Weighted GPA, categories, and grade import from screenshots when you need it.'},
+    {nav:'notes',sel:'[data-tab="notes"]',title:'Notes & flashcards',body:'Subject notes with flashcard mode for cram sessions before tests.'},
+    {nav:'timer',sel:'[data-tab="timer"]',title:'Focus timer',body:'Pomodoro-style sessions, subject budgets, and a weekly focus heatmap.'},
+    {nav:'ai',sel:'[data-tab="ai"]',title:'Flux AI',body:'Study plans, explanations, and chat scoped to your planner. Try /commands in the input.'},
+    {nav:'dashboard',sel:'.view-btn[data-view="list"]',title:'Task views',body:'Switch List, Board, or Timeline on the dashboard to match how you like to work.'},
+    {nav:'goals',sel:'[data-tab="goals"]',title:'Extracurriculars',body:'Activities, college list, and milestones — IB/AP progress lives here too when relevant.'},
+    {nav:'profile',sel:'[data-tab="profile"]',title:'Profile',body:'Academic snapshot, study DNA, and habits — keep it updated for better AI hints.'},
+    {nav:'settings',sel:'[data-tab="settings"]',title:'Settings',body:'Theme, accent, sync, account, exports, and replay this tour anytime under Data & info.'},
   ];
   let step=0;
   function placeTip(tip,target){

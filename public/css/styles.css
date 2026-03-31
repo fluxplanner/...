@@ -2663,25 +2663,6 @@ input[type=range]:active::-webkit-slider-thumb{
 #extraTypeChips button:hover{transform:translateY(-2px) scale(1.04)!important}
 #extraTypeChips button:active{transform:scale(.92)!important}
 
-/* ── PAGE LOAD: SIDEBAR ITEMS STAGGER ── */
-.nav-item{animation:navStagger .3s var(--ease) both}
-.nav-group:nth-child(1) .nav-item:nth-child(1){animation-delay:.05s}
-.nav-group:nth-child(1) .nav-item:nth-child(2){animation-delay:.08s}
-.nav-group:nth-child(1) .nav-item:nth-child(3){animation-delay:.11s}
-.nav-group:nth-child(2) .nav-item:nth-child(1){animation-delay:.14s}
-.nav-group:nth-child(2) .nav-item:nth-child(2){animation-delay:.16s}
-.nav-group:nth-child(2) .nav-item:nth-child(3){animation-delay:.18s}
-.nav-group:nth-child(2) .nav-item:nth-child(4){animation-delay:.20s}
-.nav-group:nth-child(3) .nav-item:nth-child(1){animation-delay:.22s}
-.nav-group:nth-child(3) .nav-item:nth-child(2){animation-delay:.24s}
-.nav-group:nth-child(3) .nav-item:nth-child(3){animation-delay:.26s}
-.nav-group:nth-child(3) .nav-item:nth-child(4){animation-delay:.28s}
-.nav-group:nth-child(3) .nav-item:nth-child(5){animation-delay:.30s}
-@keyframes navStagger{
-  from{opacity:0;transform:translateX(-10px)}
-  to{opacity:1;transform:none}
-}
-
 /* ── INPUTS: FOCUS GLOW RING ── */
 input:focus,select:focus,textarea:focus{
   box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1),0 0 16px rgba(var(--accent-rgb),.06)!important;

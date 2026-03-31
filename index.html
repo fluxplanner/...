@@ -194,8 +194,34 @@
         <button class="ob-btn" onclick="obNext()">Continue →</button>
       </div>
 
-      <!-- Step 2: School -->
+      <!-- Step 2: Quick questionnaire -->
       <div class="ob-step" id="ob-step-2">
+        <div style="font-size:2rem;margin-bottom:10px">✨</div>
+        <div class="ob-title">Tailor Flux to you</div>
+        <div class="ob-sub">Two quick questions — we use this for tips, AI context, and what to highlight on your dashboard.</div>
+        <span class="ob-label">Main focus this term</span>
+        <div class="ob-chip-wrap" id="obFocusChips">
+          <div class="ob-chip active" onclick="selectObChip(this,'obFocus','deadlines')">📌 Stay on deadlines</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obFocus','grades')">📈 Raise grades / GPA</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obFocus','balance')">⚖️ Less stress &amp; balance</div>
+          <div class="ob-chip" onclick="selectObChip(this,'obFocus','college')">🎓 College &amp; ECs</div>
+        </div>
+        <span class="ob-label" style="margin-top:16px">What you’ll use first <span style="color:var(--muted);font-weight:400">(pick any)</span></span>
+        <div class="ob-chip-wrap" id="obFeatureChips">
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="tasks">⚡ Tasks</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="calendar">📅 Calendar</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="grades">📊 Grades</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="notes">📝 Notes</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="ai">✦ Flux AI</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="timer">⏱ Focus</div>
+          <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="extras">🎯 Extracurriculars</div>
+        </div>
+        <button class="ob-btn" onclick="obNext()">Continue →</button>
+        <button class="ob-btn-sec" onclick="obBack()">← Back</button>
+      </div>
+
+      <!-- Step 3: School -->
+      <div class="ob-step" id="ob-step-3">
         <div style="font-size:2rem;margin-bottom:10px">🏫</div>
         <div class="ob-title">Your School</div>
         <div class="ob-sub">Tell us where you go so Flux can personalize your experience.</div>
@@ -215,8 +241,8 @@
         <button class="ob-btn-sec" onclick="obBack()">← Back</button>
       </div>
 
-      <!-- Step 3: Schedule upload -->
-      <div class="ob-step" id="ob-step-3">
+      <!-- Step 4: Schedule upload -->
+      <div class="ob-step" id="ob-step-4">
         <div style="font-size:2rem;margin-bottom:10px">📋</div>
         <div class="ob-title">Your Schedule</div>
         <div class="ob-sub">Upload a photo of your schedule and AI will read it automatically. Or skip and add classes manually later.</div>
@@ -246,8 +272,8 @@
         <div class="ob-skip" onclick="obNext()">Skip for now</div>
       </div>
 
-      <!-- Step 4: Study style -->
-      <div class="ob-step" id="ob-step-4">
+      <!-- Step 5: Study style -->
+      <div class="ob-step" id="ob-step-5">
         <div style="font-size:2rem;margin-bottom:10px">🧠</div>
         <div class="ob-title">How do you study?</div>
         <div class="ob-sub">Flux will personalize AI suggestions based on how you learn best.</div>
