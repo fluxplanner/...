@@ -426,11 +426,10 @@
           <button type="button" class="mob-menu-btn" onclick="openDrawer()">☰</button>
           <span class="topbar-title" id="topbarTitle">Dashboard</span>
         </div>
-        <div id="topbarSmartSugWrap" class="topbar-next-chip" style="display:none" role="status">
-          <span class="topbar-next-kicker">Next</span>
-          <span id="topbarSmartSugLine" class="topbar-next-text"></span>
-        </div>
-        <button type="button" class="btn-icon btn-icon--subtle topbar-add-btn" onclick="openDashAddTaskModal()" title="New task (full form)">＋</button>
+        <button type="button" class="topbar-new-task-btn" onclick="openDashAddTaskModal()" title="Add a new task (full form)">
+          <span class="topbar-new-task-icon" aria-hidden="true">＋</span>
+          <span class="topbar-new-task-label">New task</span>
+        </button>
       </div>
       <div class="topbar-right">
         <button type="button" class="btn-icon topbar-search-btn" onclick="openGlobalSearch()" title="Search tasks, notes, and classes (⌘⇧K or Ctrl+Shift+K)">🔍</button>

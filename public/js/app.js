@@ -1024,47 +1024,7 @@ ${stBar}${procras}
   }
   el.innerHTML=html;
 }
-function buildSmartSugWhy(t,energy){
-  const bits=[];
-  const now=new Date();
-  if(t.date){
-    const due=new Date(t.date+'T23:59:59');
-    const h=(due-now)/3600000;
-    if(h>0&&h<=12)bits.push('due within 12h');
-    else if(h>12&&h<=36)bits.push('due in ~1–2 days');
-    else if(h>36)bits.push('deadline approaching');
-  }
-  if(t.priority==='high')bits.push('high priority');
-  if((t.rescheduled||0)>=2)bits.push('rescheduled often');
-  if(energy<=2)bits.push('fits a low-energy block');
-  else if(energy>=4)bits.push('good for harder work now');
-  if(!bits.length)bits.push('top of your urgency sort');
-  return bits.slice(0,3).join(' · ');
-}
-function renderSmartSug(){
-  const active=tasks.filter(t=>!t.done).sort((a,b)=>(b.urgencyScore||0)-(a.urgencyScore||0));
-  const wrap=document.getElementById('topbarSmartSugWrap');
-  const lineEl=document.getElementById('topbarSmartSugLine');
-  if(!active.length){
-    if(wrap)wrap.style.display='none';
-    return;
-  }
-  const top=active[0];
-  const sub=getSubjects()[top.subject];
-  const energy=parseInt(localStorage.getItem('flux_energy')||'3');
-  const titleLine=top.name+(sub?' · '+sub.short:'');
-  const metaLine=(top.type||'hw').toUpperCase()+(top.date?' · Due '+new Date(top.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'');
-  const whyLine=buildSmartSugWhy(top,energy);
-  const tip=[titleLine,metaLine,whyLine?'Why this first: '+whyLine+'.':''].filter(Boolean).join('\n');
-  if(wrap){
-    wrap.style.display='flex';
-    wrap.title=tip;
-  }
-  if(lineEl){
-    lineEl.textContent=titleLine+' · '+metaLine;
-    lineEl.title=tip;
-  }
-}
+function renderSmartSug(){}
 function openDashAddTaskModal(){
   const m=document.getElementById('dashAddTaskModal');
   if(!m)return;
