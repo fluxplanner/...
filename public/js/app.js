@@ -2235,30 +2235,30 @@ const THEMES={
   },
 };
 
-function applyTheme(key){
+/** Apply palette from a named theme. When `withPresetAccent` is true (settings button), theme accent + glass hue update. */
+function applyThemeVars(key,withPresetAccent){
   const theme=THEMES[key];if(!theme)return;
   const root=document.documentElement;
-  // Remove theme vars but NEVER touch --accent or --accent-rgb
-  Object.keys(THEMES.dark.vars)
-    .filter(k=>k!=='--accent'&&k!=='--accent-rgb')
-    .forEach(k=>root.style.removeProperty(k));
-  // Apply theme vars but skip accent
-  Object.entries(theme.vars)
-    .filter(([k])=>k!=='--accent'&&k!=='--accent-rgb')
-    .forEach(([k,v])=>root.style.setProperty(k,v));
+  Object.keys(THEMES.dark.vars).forEach(k=>root.style.removeProperty(k));
+  const entries=Object.entries(theme.vars).filter(([k])=>
+    withPresetAccent||k!=='--accent'&&k!=='--accent-rgb');
+  entries.forEach(([k,v])=>root.style.setProperty(k,v));
+}
+
+function applyTheme(key){
+  const theme=THEMES[key];if(!theme)return;
+  applyThemeVars(key,true);
   document.body.setAttribute('data-theme',key);
   localStorage.setItem('flux_theme',key);
-  // Apply custom color overrides (accent excluded from this object now)
   const custom=load('flux_custom_colors',{});
   Object.entries(custom)
     .filter(([k])=>k!=='--accent'&&k!=='--accent-rgb')
-    .forEach(([k,v])=>root.style.setProperty(k,v));
-  // Always apply saved accent on top of everything
-  const savedAccent=localStorage.getItem('flux_accent')||'#00bfff';
-  const savedRgb=localStorage.getItem('flux_accent_rgb')||'0,191,255';
-  root.style.setProperty('--accent',savedAccent);
-  root.style.setProperty('--accent-rgb',savedRgb);
-  updateLogoColor(savedAccent);
+    .forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  if(theme.vars['--accent']){
+    localStorage.setItem('flux_accent',theme.vars['--accent']);
+    localStorage.setItem('flux_accent_rgb',theme.vars['--accent-rgb']||hexToRgb(theme.vars['--accent']));
+  }
+  updateLogoColor(theme.vars['--accent']||localStorage.getItem('flux_accent')||'#00bfff');
 }
 function themeDark(){applyTheme('dark');}
 function themeCrimson(){applyTheme('ember');}
@@ -2270,22 +2270,25 @@ function applyThemeByName(name){
   if(name&&name!=='dark'&&name!=='midnight')document.body.classList.add(name);
 }
 function loadTheme(){
-  // Clean any stale accent from flux_custom_colors (old bug residue)
   const custom=load('flux_custom_colors',{});
   if(custom['--accent']||custom['--accent-rgb']){
     delete custom['--accent'];delete custom['--accent-rgb'];
     save('flux_custom_colors',custom);
   }
-  const key=localStorage.getItem('flux_theme')||'dark';
-  // Strip stale JSON quotes from accent values (old save() bug wrote "#hex" instead of #hex)
-  let acc=(localStorage.getItem('flux_accent')||'#00bfff').replace(/^"|"$/g,'');
-  let rgb=(localStorage.getItem('flux_accent_rgb')||'0,191,255').replace(/^"|"$/g,'');
+  const raw=localStorage.getItem('flux_theme')||'dark';
+  const key=THEMES[raw]?raw:'dark';
+  const theme=THEMES[key];
+  applyThemeVars(key,false);
+  document.body.setAttribute('data-theme',key);
+  Object.entries(custom)
+    .filter(([k])=>k!=='--accent'&&k!=='--accent-rgb')
+    .forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  let acc=(localStorage.getItem('flux_accent')||theme.vars['--accent']||'#00bfff').replace(/^"|"$/g,'');
+  let rgb=(localStorage.getItem('flux_accent_rgb')||theme.vars['--accent-rgb']||'0,191,255').replace(/^"|"$/g,'');
   localStorage.setItem('flux_accent',acc);
   localStorage.setItem('flux_accent_rgb',rgb);
-  // Set accent on root BEFORE applyTheme
   document.documentElement.style.setProperty('--accent',acc);
   document.documentElement.style.setProperty('--accent-rgb',rgb);
-  applyTheme(key); // applyTheme now never overwrites accent
   setTimeout(()=>updateLogoColor(acc),0);
 }
 
@@ -2303,12 +2306,21 @@ function resetCustomColors(){
   applyTheme(key);
   const b=event?.target;if(b){b.textContent='✓ Reset!';setTimeout(()=>b.textContent='↺ Reset colors',1500);}
 }
+function accent2FromHex(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  if(isNaN(r))return'#7ae8ff';
+  const lift=n=>Math.min(255,Math.round(n+(255-n)*.38));
+  return`rgb(${lift(r)},${lift(g)},${lift(b)})`;
+}
 function updateLogoColor(hex){
   if(!hex)return;
   const rgb=hexToRgb(hex);
+  const a2=accent2FromHex(hex);
   // 1. Set on documentElement inline style (overrides stylesheet)
   document.documentElement.style.setProperty('--accent',hex);
   document.documentElement.style.setProperty('--accent-rgb',rgb);
+  document.documentElement.style.setProperty('--accent2',a2);
+  document.documentElement.style.setProperty('--accent-glow',`rgba(${rgb},.34)`);
   // 2. Inject/update persistent <style> tag with !important
   let styleTag=document.getElementById('fluxAccentStyle');
   if(!styleTag){
@@ -2317,8 +2329,8 @@ function updateLogoColor(hex){
     document.head.appendChild(styleTag);
   }
   styleTag.textContent=`
-    :root{--accent:${hex}!important;--accent-rgb:${rgb}!important}
-    html{--accent:${hex}!important;--accent-rgb:${rgb}!important}
+    :root{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
+    html{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
     .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke]{stroke:${hex}!important}
     #fluxWG stop:nth-child(2),#fluxCG stop:nth-child(2){stop-color:${hex}!important}
     #fluxWG stop:nth-child(3){stop-color:${hex}aa!important}
@@ -3258,9 +3270,7 @@ async function syncFromCloud(){
     localStorage.setItem('flux_accent',syncAccent);
     localStorage.setItem('flux_accent_rgb',syncRgb);
     if(d.theme)localStorage.setItem('flux_theme',d.theme);
-    // Now apply theme (it will read the accent we just wrote above)
-    applyTheme(localStorage.getItem('flux_theme')||'dark');
-    updateLogoColor(syncAccent);
+    loadTheme();
     // Mark active swatch
     document.querySelectorAll('.swatch').forEach(s=>{
       s.classList.toggle('active', s.style.background===syncAccent||s.getAttribute('onclick')?.includes(syncAccent));
