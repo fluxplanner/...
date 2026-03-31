@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Flux Planner — AI-powered student planner for tasks, grades, calendar, notes, and focus.">
+<meta property="og:title" content="Flux Planner">
+<meta property="og:description" content="Your school life, organized. Tasks, GPA, calendar, Flux AI, and more.">
+<meta property="og:type" content="website">
+<title>Flux Planner</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+  :root{font-family:system-ui,-apple-system,sans-serif;background:#0c0d12;color:#e8e9ef;--a:#00bfff;}
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;line-height:1.6;}
+  .card{max-width:520px;text-align:center;}
+  h1{font-size:1.75rem;font-weight:800;margin:0 0 12px;letter-spacing:-.03em;}
+  p{color:#9aa0b4;margin:0 0 24px;font-size:1rem;}
+  a{display:inline-block;padding:14px 28px;background:linear-gradient(135deg,var(--a),#3b82f6);color:#fff;text-decoration:none;font-weight:700;border-radius:14px;font-size:1rem;}
+  a:hover{filter:brightness(1.08);}
+  .sub{font-size:.85rem;color:#6b7280;margin-top:20px;}
+</style>
+<script>
+(function(){
+  try{
+    var m=document.createElement('meta');
+    m.setAttribute('property','og:image');
+    m.setAttribute('content', new URL('icons/icon-512.png', location.href).href);
+    document.head.appendChild(m);
+  }catch(e){}
+})();
+</script>
+</head>
+<body>
+  <div class="card">
+    <h1>Flux Planner</h1>
+    <p>AI-powered student planner — tasks, grades, calendar, notes, focus timer, and Flux AI. Open the app to get started.</p>
+    <a href="index.html">Open Flux Planner</a>
+    <p class="sub">Install from the browser menu for a home-screen app (PWA).</p>
+  </div>
+</body>
+</html>

@@ -7,13 +7,29 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Flux">
-<meta name="description" content="Your AI-powered student school planner">
+<meta name="description" content="Your AI-powered student school planner — tasks, grades, calendar, notes, focus, and Flux AI.">
 <meta name="author" content="Azfer Mohammed">
+<meta property="og:title" content="Flux Planner — AI-powered student planner">
+<meta property="og:description" content="Tasks, grades, calendar, notes, focus timer, and Flux AI. Built for students.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Flux Planner">
+<meta name="twitter:description" content="Your AI-powered student school planner.">
 <title>Flux Planner</title>
+<script>
+(function(){
+  try{
+    var m=document.createElement('meta');
+    m.setAttribute('property','og:image');
+    m.setAttribute('content', new URL('icons/icon-512.png', location.href).href);
+    document.head.appendChild(m);
+  }catch(e){}
+})();
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" crossorigin>
 <link rel="stylesheet" href="public/css/styles.css">
 <link rel="stylesheet" href="public/css/login.css">
 <link rel="stylesheet" href="public/css/flux-motion.css">
@@ -445,11 +461,12 @@
 
   <!-- ── MAIN CONTENT ── -->
   <div class="main-content">
+    <div id="connectivityBanner" class="connectivity-banner" style="display:none" role="status" aria-live="polite"></div>
     <!-- Topbar -->
     <div class="topbar">
       <div class="topbar-left-cluster">
         <div class="topbar-title-wrap">
-          <button type="button" class="mob-menu-btn" onclick="openDrawer()">☰</button>
+          <button type="button" class="mob-menu-btn" onclick="openDrawer()" aria-label="Open menu">☰</button>
           <span class="topbar-title" id="topbarTitle">Dashboard</span>
         </div>
         <button type="button" class="topbar-new-task-btn" onclick="openDashAddTaskModal()" title="Add a new task (full form)">
@@ -492,6 +509,14 @@
         </div>
         <div class="time-poverty-banner" id="timePovertyBanner"></div>
       </div>
+
+      <section class="weekly-review-card" id="weeklyReviewSection" aria-label="This week">
+        <div class="weekly-review-head">
+          <span class="weekly-review-title">This week</span>
+          <span class="weekly-review-hint">Tests, due work, and priorities in the next 7 days</span>
+        </div>
+        <div id="weeklyReviewBody" class="weekly-review-body"></div>
+      </section>
 
       <section class="dash-v2-pulse" aria-label="Today at a glance">
         <div class="dash-v2-pulse-top">
@@ -1251,7 +1276,8 @@
         <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:.75rem;color:var(--muted2);flex-shrink:0">
           📷 <input type="file" accept="image/*" id="aiImgUpload" style="display:none;width:auto;margin:0" onchange="handleAIImg(event)">
         </label>
-        <button onclick="clearAIChat()" style="padding:5px 10px;font-size:.72rem;background:transparent;border:1px solid var(--border2);color:var(--muted2);flex-shrink:0">Clear</button>
+        <button type="button" onclick="clearAIChat()" style="padding:5px 10px;font-size:.72rem;background:transparent;border:1px solid var(--border2);color:var(--muted2);flex-shrink:0">Clear</button>
+        <button type="button" onclick="explainMyWeek()" title="Summarize the week with your planner context" style="padding:5px 10px;font-size:.7rem;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.3);color:var(--accent);border-radius:8px;flex-shrink:0;white-space:nowrap">Explain my week</button>
       </div>
       </div>
       <!-- Messages — scrollable -->
@@ -1365,7 +1391,14 @@
         <div class="card">
           <h3>Alerts</h3>
           <div class="srow"><div><div class="slabel">🚨 Panic Mode</div><div class="ssub">Alert when task due within 12 hours</div></div><button class="toggle on" id="panicToggle" onclick="toggleSetting('panic',this)"></button></div>
-          <div class="srow"><div><div class="slabel">🔕 Quiet Hours</div><div class="ssub">Silence during school hours</div></div><button class="toggle on" id="quietToggle" onclick="toggleSetting('quiet',this)"></button></div>
+          <div class="srow"><div><div class="slabel">🔕 Quiet Hours</div><div class="ssub">Silence during school hours</div></div><button type="button" class="toggle on" id="quietToggle" onclick="toggleSetting('quiet',this)"></button></div>
+          <div class="srow"><div><div class="slabel">🔔 Browser notifications</div><div class="ssub">Due-soon reminders (respects quiet hours)</div></div><button type="button" class="toggle" id="notifyBrowserToggle" onclick="toggleNotifyBrowser(this)"></button></div>
+          <div class="srow" style="border:none;padding-top:4px">
+            <div style="flex:1">
+              <div id="notifyStatusLine" style="font-size:.72rem;color:var(--muted2);line-height:1.5;margin-bottom:8px"></div>
+              <button type="button" onclick="requestFluxNotifications()" class="btn-sec" style="padding:6px 12px;font-size:.76rem">Enable notifications</button>
+            </div>
+          </div>
           <div class="srow" style="border:none">
             <div style="flex:1"><div class="slabel">Quiet period</div>
               <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
@@ -1474,6 +1507,7 @@
             <div><span style="color:var(--accent)">⌘K</span> / Ctrl+K — Command palette</div>
             <div><span style="color:var(--accent)">N</span> or <span style="color:var(--accent)">T</span> — Focus quick add (from dashboard)</div>
             <div><span style="color:var(--accent)">Esc</span> — Close search, quick add, palette, modals</div>
+            <div style="margin-top:8px">Flux AI → <strong>Explain my week</strong> summarizes deadlines &amp; priorities (command palette too).</div>
           </div>
         </div>
         <div class="card">
@@ -1636,11 +1670,11 @@
   <div class="quick-add-hint">Enter to add · Esc to close · <span class="quick-add-hint-strong">Natural language</span> — dates, priorities, subjects, types, “30min” · <span class="quick-add-hint-strong">⌘⇧K</span> search · <span class="quick-add-hint-strong">⌘K</span> palette</div>
 </div>
 
-<!-- Load scripts -->
-<script src="public/js/splash.js"></script>
-<script src="public/js/login-motion.js"></script>
-<script src="public/js/app.js"></script>
-<script src="public/js/flux-master-backlog.js"></script>
-<script src="public/js/owner-suite.js"></script>
+<!-- Load scripts (deferred — order preserved) -->
+<script defer src="public/js/splash.js"></script>
+<script defer src="public/js/login-motion.js"></script>
+<script defer src="public/js/app.js"></script>
+<script defer src="public/js/flux-master-backlog.js"></script>
+<script defer src="public/js/owner-suite.js"></script>
 </body>
 </html>
