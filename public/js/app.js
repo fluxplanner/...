@@ -22,7 +22,7 @@ if('serviceWorker' in navigator){
     const isSecure=location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';
     if(!isSecure)return;
     const swUrl=new URL('service-worker.js',window.location.href);
-    navigator.serviceWorker.register(swUrl)
+    navigator.serviceWorker.register(swUrl,{updateViaCache:'none'})
       .then(r=>console.log('✓ SW registered',r.scope))
       .catch(e=>console.warn('SW failed',e));
   });
