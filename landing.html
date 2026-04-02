@@ -8,7 +8,7 @@
 <meta property="og:description" content="Your school life, organized. Tasks, GPA, calendar, Flux AI, and more.">
 <meta property="og:type" content="website">
 <title>Flux Planner</title>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/Fluxplanner/icons/icon-192.png">
 <style>
   :root{font-family:system-ui,-apple-system,sans-serif;background:#0c0d12;color:#e8e9ef;--a:#00bfff;}
   body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;line-height:1.6;}
@@ -24,7 +24,7 @@
   try{
     var m=document.createElement('meta');
     m.setAttribute('property','og:image');
-    m.setAttribute('content', new URL('icons/icon-512.png', location.href).href);
+    m.setAttribute('content', location.origin + '/Fluxplanner/icons/icon-512.png');
     document.head.appendChild(m);
   }catch(e){}
 })();
