@@ -378,7 +378,7 @@
         <div class="nav-group-label">Main</div>
         <button class="nav-item active" onclick="nav('dashboard',this)" data-tab="dashboard"><span class="ni">⚡</span><span class="nl">Dashboard</span></button>
         <button class="nav-item" onclick="nav('calendar',this)" data-tab="calendar"><span class="ni">📅</span><span class="nl">Calendar</span></button>
-        <button class="nav-item" onclick="nav('ai',this)" data-tab="ai"><span class="ni">✦</span><span class="nl">Flux AI</span></button>
+        <button class="nav-item" onclick="nav('ai',this)" data-tab="ai"><span class="ni">✦</span><span class="nl">Flux Agent</span></button>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">School</div>
@@ -451,7 +451,7 @@
         <div class="nav-group-label" style="padding:8px 16px 4px">Main</div>
         <button class="nav-item" onclick="navMob('dashboard')"><span class="ni">⚡</span><span class="nl">Dashboard</span></button>
         <button class="nav-item" onclick="navMob('calendar')"><span class="ni">📅</span><span class="nl">Calendar</span></button>
-        <button class="nav-item" onclick="navMob('ai')"><span class="ni">✦</span><span class="nl">Flux AI</span></button>
+        <button class="nav-item" onclick="navMob('ai')"><span class="ni">✦</span><span class="nl">Flux Agent</span></button>
       </div>
       <div class="nav-group">
         <div class="nav-group-label" style="padding:8px 16px 4px">School</div>
@@ -487,7 +487,7 @@
           <button type="button" class="mob-menu-btn" onclick="openDrawer()" aria-label="Open menu">☰</button>
           <span class="topbar-title" id="topbarTitle">Dashboard</span>
         </div>
-        <button type="button" class="topbar-new-task-btn" onclick="openDashAddTaskModal()" title="Add a new task (full form)">
+        <button type="button" class="topbar-new-task-btn" onclick="openDashAddTaskModal()" title="Add a new task — Flux Agent can help plan or break it down in the AI tab">
           <span class="topbar-new-task-icon" aria-hidden="true">＋</span>
           <span class="topbar-new-task-label">New task</span>
         </button>
@@ -1305,8 +1305,8 @@
       <div class="flux-ai-head" style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;flex-shrink:0">
         <div class="ai-orb" style="width:28px;height:28px;flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:.95rem;background:linear-gradient(90deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Chat</div>
-          <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;-webkit-text-fill-color:var(--muted)">Image · clear · history in tabs</div>
+          <div style="font-weight:800;font-size:.95rem;background:linear-gradient(90deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Flux Agent</div>
+          <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;-webkit-text-fill-color:var(--muted)">Full planner context · any tab · image · tabs</div>
         </div>
         <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:.75rem;color:var(--muted2);flex-shrink:0">
           📷 <input type="file" accept="image/*" id="aiImgUpload" style="display:none;width:auto;margin:0" onchange="handleAIImg(event)">
@@ -1325,12 +1325,12 @@
       <!-- Input -->
       <div style="padding:10px 14px 12px;flex-shrink:0;border-top:1px solid var(--border)">
         <div class="ai-irow">
-          <textarea id="aiInput" rows="1" placeholder="Ask anything — tutoring, flashcards, exam prep..."
+          <textarea id="aiInput" rows="1" placeholder="Ask Flux Agent anything in your planner — tasks, grades, calendar, notes, timer, school, ECs…"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
           <button class="ai-send" id="aiSendBtn" onclick="sendAI()">↑</button>
         </div>
-        <div style="font-size:.58rem;color:var(--muted);text-align:center;padding:4px 0;font-family:'JetBrains Mono',monospace">Flux AI · g = 10 m/s²</div>
+        <div style="font-size:.58rem;color:var(--muted);text-align:center;padding:4px 0;font-family:'JetBrains Mono',monospace">Flux Agent sees your planner snapshot · g = 10 m/s² physics</div>
       </div>
     </div>
 
@@ -1650,7 +1650,7 @@
     <button class="bnav-item active" onclick="nav('dashboard',this)" data-tab="dashboard"><span class="bni">⚡</span>Dashboard</button>
     <button class="bnav-item" onclick="nav('calendar',this)" data-tab="calendar"><span class="bni">📅</span>Calendar</button>
     <button class="bnav-item" onclick="nav('school',this)" data-tab="school"><span class="bni">🏫</span>School</button>
-    <button class="bnav-item" onclick="nav('ai',this)" data-tab="ai"><span class="bni">✦</span>AI</button>
+    <button class="bnav-item" onclick="nav('ai',this)" data-tab="ai"><span class="bni">✦</span>Agent</button>
     <button class="bnav-item" onclick="nav('gmail',this)" data-tab="gmail"><span class="bni">📧</span>Gmail</button>
     <button class="bnav-item" onclick="openDrawer()" id="moreBtn"><span class="bni">☰</span>More</button>
   </div>
@@ -1658,19 +1658,24 @@
   <!-- Ambient: cursor glow + Flux AI chip (shown while #app.visible) -->
   <div id="appCursorGlow" class="app-cursor-glow" aria-hidden="true"></div>
   <div class="app-ai-corner" id="appAiCorner" aria-hidden="true">
-    <span class="app-ai-corner__label">Flux AI</span>
-    <button type="button" class="app-ai-corner__orb" onclick="nav('ai',document.querySelector('.sidebar-nav [data-tab=ai]')||document.querySelector('[data-tab=ai]'))" title="Open Flux AI" aria-label="Open Flux AI">✦</button>
+    <span class="app-ai-corner__label">Flux Agent</span>
+    <button type="button" class="app-ai-corner__orb" onclick="openFluxAgent({})" title="Flux Agent — ask anything in your planner" aria-label="Open Flux Agent">✦</button>
   </div>
 
-  <!-- ── FAB — FLOATING ACTION BUTTON ── -->
+  <!-- ── FAB — Flux Agent + quick actions ── -->
   <div id="fabContainer" class="fab-container">
     <div id="fabMenu" class="fab-menu">
-      <button class="fab-action" onclick="_sessionStart?endSession():startSession()" id="fabSessionBtn"><span class="fab-action-icon">📍</span> Start Session</button>
-      <button class="fab-action" onclick="fabFocus()"><span class="fab-action-icon">⏱</span> Focus Session</button>
-      <button class="fab-action" onclick="fabAddGrade()"><span class="fab-action-icon">📊</span> Add Grade</button>
-      <button class="fab-action fab-action-primary" onclick="fabAddTask()"><span class="fab-action-icon">✦</span> New Task</button>
+      <button type="button" class="fab-action fab-action-agent" onclick="closeFAB();openFluxAgent({})"><span class="fab-action-icon">✦</span><span class="fab-action-text"><span class="fab-action-title">Flux Agent</span><span class="fab-action-hint">Ask anything — full planner context</span></span></button>
+      <button type="button" class="fab-action" onclick="closeFAB();openFluxAgent({prefill:'Given my tasks, calendar, classes, and energy, what should I work on right now and for how long?'})"><span class="fab-action-icon">🎯</span><span class="fab-action-text"><span class="fab-action-title">Coach: priorities now</span><span class="fab-action-hint">AI picks your next move</span></span></button>
+      <button type="button" class="fab-action fab-action-primary" onclick="fabAddTask()"><span class="fab-action-icon">＋</span><span class="fab-action-text"><span class="fab-action-title">New task</span><span class="fab-action-hint">Quick add — then ask Agent to plan</span></span></button>
+      <button type="button" class="fab-action" onclick="closeFAB();fabFocus()"><span class="fab-action-icon">⏱</span><span class="fab-action-text"><span class="fab-action-title">Focus timer</span><span class="fab-action-hint">Open timer tab</span></span></button>
+      <button type="button" class="fab-action" onclick="closeFAB();fabAddGrade()"><span class="fab-action-icon">📊</span><span class="fab-action-text"><span class="fab-action-title">Add grade</span><span class="fab-action-hint">Log a score</span></span></button>
+      <button type="button" class="fab-action" onclick="_sessionStart?endSession():startSession()" id="fabSessionBtn"><span class="fab-action-icon">📍</span><span class="fab-action-text"><span class="fab-action-title" id="fabSessionLabel">Class session</span><span class="fab-action-hint">Track this period</span></span></button>
     </div>
-    <button id="fabBtn" class="fab-trigger" aria-label="Quick actions"></button>
+    <button type="button" id="fabBtn" class="fab-trigger" aria-label="Flux Agent and quick actions" aria-haspopup="true" aria-expanded="false" title="Flux Agent ✦ quick adds">
+      <span class="fab-trigger__spark" aria-hidden="true">✦</span>
+      <span class="fab-trigger__badge" aria-hidden="true">+</span>
+    </button>
   </div>
 
   <!-- ── KEYBOARD HINT ── -->
@@ -1763,7 +1768,7 @@
   </div>
   <div id="quickAddPreviewTitle" class="quick-add-preview-title" aria-live="polite"></div>
   <div id="quickAddParsed" class="quick-add-parsed"></div>
-  <div class="quick-add-hint">Enter to add · Esc to close · <span class="quick-add-hint-strong">Natural language</span> — dates, priorities, subjects, types, “30min” · <span class="quick-add-hint-strong">⌘⇧K</span> search · <span class="quick-add-hint-strong">⌘K</span> palette</div>
+  <div class="quick-add-hint">Enter to add · Esc to close · <span class="quick-add-hint-strong">Natural language</span> — dates, priorities, subjects, types, “30min” · <span class="quick-add-hint-strong">⌘⇧K</span> search · <span class="quick-add-hint-strong">⌘K</span> palette · <button type="button" class="quick-add-agent-link" onclick="closeQuickAdd();openFluxAgent({prefill:document.getElementById('quickAddInput')?.value?('Help me refine this task idea: '+document.getElementById('quickAddInput').value):'Help me turn a rough idea into a clear task with date, priority, and subject.'})">Flux Agent</button></div>
 </div>
 
 <div id="toastLive" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>

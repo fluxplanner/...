@@ -485,7 +485,7 @@ function SUBJECTS_GET(){return getSubjects();}
 const SUBJECTS={};  // kept for compat, real data via getSubjects()
 const noHomeworkDays=load('flux_no_hw_days',[]);
 const AFFIRMATIONS=["You are capable of amazing things.","Every expert was once a beginner.","Progress, not perfection.","Hard work compounds. Keep going.","Your future self is grateful for today's effort.","Difficult roads lead to beautiful destinations.","You've got this, one step at a time.","Consistency beats intensity. Show up today.","Your potential is limitless.","Rest is part of the process too."];
-const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',gmail:'Gmail',settings:'Settings'};
+const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux Agent',gmail:'Gmail',settings:'Settings'};
 
 function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
@@ -602,7 +602,7 @@ function migrateCompletedAtBackfill(){
 const DEFAULT_TABS=[
   {id:'dashboard',icon:'⚡',label:'Dashboard',visible:true},
   {id:'calendar',icon:'📅',label:'Calendar',visible:true},
-  {id:'ai',icon:'✦',label:'Flux AI',visible:true},
+  {id:'ai',icon:'✦',label:'Flux Agent',visible:true},
   {id:'school',icon:'🏫',label:'School Info',visible:true},
   {id:'grades',icon:'📊',label:'Grades',visible:true},
   {id:'notes',icon:'📝',label:'Notes',visible:true},
@@ -3139,7 +3139,7 @@ function clearAIChat(){
 function fmtAI(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^### (.+)$/gm,'<strong style="display:block;margin-top:8px;margin-bottom:2px">$1</strong>').replace(/^- (.+)$/gm,'<li style="margin-left:14px;margin-bottom:3px">$1</li>').replace(/Q:\s*(.+)/g,'<strong style="color:var(--accent)">Q:</strong> $1').replace(/A:\s*(.+)/g,'<strong style="color:var(--green)">A:</strong> $1').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');}
 function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const f=isBot?fmtAI(content):esc(content);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
-function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","Make me a study plan","Create flashcards for my next test","Help with my essay outline","What should I work on now?","Generate a 3-day exam prep plan","Quiz me on my hardest subject","Summarize what I have coming up"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
+function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","Plan my afternoon around classes","Make a study plan from my tasks","What should I work on right now?","Explain my grades and what to fix","Help with my schedule / calendar","Summarize my notes for an exam","Create flashcards for my next test","Timer & focus: what block should I run?","Extracurriculars — what am I missing?","Settings: how should I tune Flux?","Gmail / inbox — what should I tackle?"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
 function handleAIImg(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
@@ -3180,7 +3180,7 @@ function buildAIPrompt(){
   const calEvents=calEvAi.map(e=>`- [EVENT|${e.date}${e.time?' '+e.time:''}|${fluxEventScope(e)==='school'?'SCHOOL':'OUT'}]: ${e.title}`).join('\n')||'None';
   const todayClasses=classes.filter(c=>c.name).map(c=>`P${c.period}: ${c.name}${c.teacher?' ('+c.teacher+')':''}`).join(', ')||'Not set up';
 
-  return`You are Flux AI — a brilliant, warm AI tutor and planner assistant built into Flux Planner.
+  return`You are Flux Agent — a brilliant, warm AI tutor and planner assistant built into Flux Planner.
 Student: ${name}${grade?' · Grade '+grade:''}${program?' · '+program:''}
 Today: ${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
 ${mood?`Latest mood check-in: ${mood.mood}/5, stress ${mood.stress}/10, sleep ${mood.sleep}h`:''}
@@ -3200,7 +3200,7 @@ ${buildFullPlannerContextForAI({maxTotalChars:24000})}
 ---
 
 RULES:
-- You have a comprehensive planner snapshot above (tasks, grades, notes, mood, timer, school, ECs, IB flags, settings, linked integrations flags, etc.). Use it to answer questions about ANY area of the planner. Reference specific items when helpful.
+- You have a comprehensive planner snapshot above (tasks, grades, notes, mood, timer, school, ECs, IB flags, settings, linked integrations flags, etc.). Use it to answer questions about ANY area of the planner — Dashboard, Calendar, Flux Agent (this chat), School, Grades, Notes, Focus timer, Profile, Extracurriculars, Mood, Gmail (if linked), Settings, command palette, quick-add, and navigation. There is no topic off-limits as long as it helps the student use Flux or their school life. Reference specific items when helpful.
 - The **Extracurriculars** sidebar tab is labeled in the snapshot as **Extracurriculars tab** / **My activities** / **EC target schools** (the app’s internal panel id is \`goals\`).
 - Google Calendar events from the user's Google account load live in the Calendar tab and are not fully mirrored in this export; custom Flux calendar entries appear under "Calendar events" in the snapshot.
 - Be warm, concise, and helpful. Call the student by name naturally.
@@ -3935,6 +3935,26 @@ async function handleEmailAuth(){
   }
 }
 
+/** Open Flux Agent (AI tab) with optional prefill. Agent has full planner context via buildAIPrompt. */
+function openFluxAgent(opts){
+  opts=opts||{};
+  const aiBtn=document.querySelector('.sidebar-nav [data-tab=ai]')||document.querySelector('[data-tab=ai]');
+  nav('ai',aiBtn);
+  const placeholder=opts.placeholder||'Ask Flux Agent anything — tasks, grades, calendar, notes, timer, school, ECs, Gmail, settings…';
+  const delay=typeof opts.delay==='number'?opts.delay:140;
+  setTimeout(()=>{
+    const inp=document.getElementById('aiInput');
+    if(!inp)return;
+    inp.placeholder=placeholder;
+    if(opts.prefill!=null&&opts.prefill!=='')inp.value=opts.prefill;
+    else if(opts.clearInput)inp.value='';
+    inp.focus();
+    try{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,120)+'px';}catch(e){}
+    const wrap=document.getElementById('aiMsgsWrap');
+    if(wrap)wrap.scrollTop=wrap.scrollHeight;
+  },delay);
+}
+
 // ══ FAB — FLOATING ACTION BUTTON ══
 function initFAB(){
   const fab=document.getElementById('fabBtn');
@@ -3944,6 +3964,7 @@ function initFAB(){
   function setOpen(v){
     open=v;
     fab.classList.toggle('open',open);
+    fab.setAttribute('aria-expanded',open?'true':'false');
     menu.classList.toggle('open',open);
   }
   fab.addEventListener('click',e=>{
@@ -4074,7 +4095,7 @@ function renderCmdResults(){
   const navItems=[
     {icon:'⚡',label:'Dashboard',action:()=>{nav('dashboard');closeCommandPalette();}},
     {icon:'📅',label:'Calendar',action:()=>{nav('calendar');closeCommandPalette();}},
-    {icon:'✦',label:'Flux AI',action:()=>{nav('ai');closeCommandPalette();}},
+    {icon:'✦',label:'Flux Agent',action:()=>{nav('ai');closeCommandPalette();}},
     {icon:'🏫',label:'School Info',action:()=>{nav('school');closeCommandPalette();}},
     {icon:'📊',label:'Grades',action:()=>{nav('grades');closeCommandPalette();}},
     {icon:'📝',label:'Notes',action:()=>{nav('notes');closeCommandPalette();}},
@@ -5306,7 +5327,7 @@ function startOnboardingTour(){
     {nav:'grades',sel:'[data-tab="grades"]',title:'Grades & GPA',body:'Weighted GPA, categories, and grade import from screenshots when you need it.'},
     {nav:'notes',sel:'[data-tab="notes"]',title:'Notes & flashcards',body:'Subject notes with flashcard mode for cram sessions before tests.'},
     {nav:'timer',sel:'[data-tab="timer"]',title:'Focus timer',body:'Pomodoro-style sessions, subject budgets, and a weekly focus heatmap.'},
-    {nav:'ai',sel:'[data-tab="ai"]',title:'Flux AI',body:'Study plans, explanations, and chat scoped to your planner. Try /commands in the input.'},
+    {nav:'ai',sel:'[data-tab="ai"]',title:'Flux Agent',body:'Ask anything about your planner — study help, scheduling, grades, and more. Full context from your snapshot.'},
     {nav:'dashboard',sel:'.view-btn[data-view="list"]',title:'Task views',body:'Switch List, Board, or Timeline on the dashboard to match how you like to work.'},
     {nav:'goals',sel:'[data-tab="goals"]',title:'Extracurriculars',body:'Activities, college list, and milestones — IB/AP progress lives here too when relevant.'},
     {nav:'profile',sel:'[data-tab="profile"]',title:'Profile',body:'Academic snapshot, study DNA, and habits — keep it updated for better AI hints.'},
@@ -7178,5 +7199,5 @@ document.addEventListener('keydown',function(e){
 const _origInitFAB=typeof initFAB==='function'?initFAB:null;
 if(typeof fabAddTask==='function'){
   const _origFabAddTask=fabAddTask;
-  window.fabAddTask=function(){openQuickAdd();};
+  window.fabAddTask=function(){closeFAB();openQuickAdd();};
 }
