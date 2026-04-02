@@ -247,7 +247,6 @@
 }
 .fab-trigger::before,.fab-trigger::after{display:none!important;content:none!important}
 .fab-trigger__spark{color:#fff!important;text-shadow:0 0 16px rgba(255,255,255,.5)!important}
-.fab-trigger__badge{background:#fff!important;color:var(--accent)!important}
 @keyframes fabIdleGlow{
   0%,100%{box-shadow:0 8px 32px rgba(var(--accent-rgb),.45),0 0 0 1px rgba(255,255,255,.1) inset,0 0 36px rgba(var(--accent-rgb),.2)}
   50%{box-shadow:0 10px 40px rgba(var(--accent-rgb),.55),0 0 0 1px rgba(255,255,255,.14) inset,0 0 52px rgba(var(--purple-rgb),.2)}

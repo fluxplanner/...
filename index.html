@@ -1655,12 +1655,6 @@
     <button class="bnav-item" onclick="openDrawer()" id="moreBtn"><span class="bni">☰</span>More</button>
   </div>
 
-  <!-- Flux Agent chip (shown while #app.visible) -->
-  <div class="app-ai-corner" id="appAiCorner" aria-hidden="true">
-    <span class="app-ai-corner__label">Flux Agent</span>
-    <button type="button" class="app-ai-corner__orb" onclick="openFluxAgent({})" title="Flux Agent — ask anything in your planner" aria-label="Open Flux Agent">✦</button>
-  </div>
-
   <!-- ── FAB — Flux Agent + quick actions ── -->
   <div id="fabContainer" class="fab-container">
     <div id="fabMenu" class="fab-menu">
@@ -1671,9 +1665,8 @@
       <button type="button" class="fab-action" onclick="closeFAB();fabAddGrade()"><span class="fab-action-icon">📊</span><span class="fab-action-text"><span class="fab-action-title">Add grade</span><span class="fab-action-hint">Log a score</span></span></button>
       <button type="button" class="fab-action" onclick="_sessionStart?endSession():startSession()" id="fabSessionBtn"><span class="fab-action-icon">📍</span><span class="fab-action-text"><span class="fab-action-title" id="fabSessionLabel">Class session</span><span class="fab-action-hint">Track this period</span></span></button>
     </div>
-    <button type="button" id="fabBtn" class="fab-trigger" aria-label="Flux Agent and quick actions" aria-haspopup="true" aria-expanded="false" title="Flux Agent ✦ quick adds">
+    <button type="button" id="fabBtn" class="fab-trigger" aria-label="Quick actions — Flux Agent, new task, timer…" aria-haspopup="true" aria-expanded="false" title="Quick actions">
       <span class="fab-trigger__spark" aria-hidden="true">✦</span>
-      <span class="fab-trigger__badge" aria-hidden="true">+</span>
     </button>
   </div>
 
