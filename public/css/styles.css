@@ -95,16 +95,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 #app{display:none;position:relative;z-index:1}
 #app.visible{display:flex;min-height:100vh}
 
-/* Ambient chrome — cursor glow + Flux AI (same vibe as splash; above content, below modals) */
-.app-cursor-glow{
-  position:fixed;left:0;top:0;width:80px;height:80px;margin:-40px 0 0 -40px;pointer-events:none;z-index:150;
-  background:radial-gradient(circle closest-side,rgba(0,210,255,.11) 0%,rgba(124,92,255,.045) 42%,transparent 72%);
-  opacity:0;mix-blend-mode:screen;transition:opacity .2s ease;
-}
-#app.visible .app-cursor-glow{opacity:.88}
-@media (prefers-reduced-motion:reduce){
-  .app-cursor-glow{display:none!important}
-}
+/* Flux Agent corner chip */
 .app-ai-corner{
   position:fixed;right:max(18px,env(safe-area-inset-right));
   bottom:calc(86px + 56px + 14px + env(safe-area-inset-bottom,0px));

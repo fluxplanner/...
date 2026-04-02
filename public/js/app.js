@@ -4434,22 +4434,6 @@ function showLoginOrApp(){
     showLoginScreen();
   }
 }
-/** Cursor-follow glow + ensures ambient chrome runs once the main shell is visible */
-function initAppAmbientChrome(){
-  if(window._fluxAppAmbientInit)return;
-  window._fluxAppAmbientInit=true;
-  const glow=document.getElementById('appCursorGlow');
-  if(!glow)return;
-  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  function move(e){
-    glow.style.left=e.clientX+'px';
-    glow.style.top=e.clientY+'px';
-  }
-  document.addEventListener('pointermove',move,{passive:true});
-  document.addEventListener('pointerdown',move,{passive:true});
-  move({clientX:window.innerWidth/2,clientY:window.innerHeight/2});
-}
-
 function showLoginScreen(){
   const ls=document.getElementById('loginScreen');
   const app=document.getElementById('app');
@@ -4465,7 +4449,6 @@ function showApp(){
   if(typeof stopLoginAmbient==='function')stopLoginAmbient();
   if(ls){ls.style.display='none';ls.classList.remove('visible');}
   if(app)app.classList.add('visible');
-  initAppAmbientChrome();
   renderSidebars();
   populateSubjectSelects();
   initModFeatures();
