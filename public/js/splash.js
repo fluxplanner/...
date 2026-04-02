@@ -23,6 +23,9 @@ function runShortSplash(callback){
   const drift=reduce?'none':'splashDrift 14s ease-in-out infinite alternate';
   const barAnim=reduce?'none':'splashBar 1.1s ease-in-out infinite';
   splash.innerHTML=`
+    ${reduce?'':`<div id="splashCursorGlow" style="position:fixed;left:0;top:0;width:72px;height:72px;margin:-36px 0 0 -36px;pointer-events:none;z-index:1;
+      background:radial-gradient(circle closest-side,rgba(0,210,255,.1) 0%,rgba(124,92,255,.04) 38%,transparent 68%);
+      opacity:.85;transition:opacity .15s ease;mix-blend-mode:screen"></div>`}
     <div style="position:absolute;inset:0;pointer-events:none;background:
       radial-gradient(ellipse 90% 70% at 50% -10%,rgba(0,120,200,.22),transparent 55%),
       radial-gradient(ellipse 60% 50% at 85% 75%,rgba(110,70,255,.16),transparent 50%),
@@ -36,7 +39,15 @@ function runShortSplash(callback){
       background-size:40px 40px;mask-image:radial-gradient(ellipse 75% 65% at 50% 42%,#000 18%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 75% 65% at 50% 42%,#000 18%,transparent 70%)"></div>
     <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.5) 100%)"></div>
 
-    <div class="splash-loader-card" style="position:relative;z-index:2;width:min(360px,90vw);padding:2px;border-radius:24px;
+    <div class="splash-ai-corner" aria-hidden="true" style="position:fixed;bottom:max(20px,env(safe-area-inset-bottom));right:max(18px,env(safe-area-inset-right));z-index:4;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
+      <div style="font-size:.58rem;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:rgba(150,175,215,.45)">Flux AI</div>
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#00c8ff,#6366f1);
+        box-shadow:0 6px 22px rgba(0,194,255,.32),0 0 0 1px rgba(255,255,255,.1) inset;display:flex;align-items:center;justify-content:center;
+        font-size:1.15rem;color:#fff;line-height:1;text-shadow:0 0 12px rgba(255,255,255,.4)">✦</div>
+    </div>
+
+    <div style="position:relative;z-index:2;width:100%;max-width:min(400px,94vw);margin:0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:0 12px">
+    <div class="splash-loader-card" style="position:relative;width:100%;max-width:360px;padding:2px;border-radius:24px;
       background:linear-gradient(135deg,rgba(0,194,255,.45),rgba(124,92,255,.35),rgba(34,255,136,.25));
       box-shadow:0 32px 100px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06) inset;
       animation:splashFadeIn .6s cubic-bezier(.22,1,.36,1) both">
@@ -44,9 +55,9 @@ function runShortSplash(callback){
         background:linear-gradient(165deg,rgba(12,16,28,.94) 0%,rgba(6,8,16,.98) 100%);
         backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);
         box-shadow:inset 0 1px 0 rgba(255,255,255,.08)">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 38" width="248" height="64" aria-label="Flux" style="max-width:min(248px,82vw);height:auto;display:block;filter:drop-shadow(0 8px 24px rgba(0,194,255,.2))">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:20px;width:100%">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;text-align:center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 38" width="248" height="64" aria-label="Flux" style="max-width:min(248px,85vw);width:min(248px,85vw);height:auto;display:block;margin:0 auto;filter:drop-shadow(0 8px 24px rgba(0,194,255,.2))">
               <defs>
                 <linearGradient id="fluxWGSplash" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#ffffff"/>
@@ -88,16 +99,40 @@ function runShortSplash(callback){
         </div>
       </div>
     </div>
+    </div>
     <style>
       @keyframes splashFadeIn{from{opacity:0;transform:translateY(20px) scale(.98)}to{opacity:1;transform:none}}
       @keyframes splashDrift{0%{transform:translate(-50%,-50%) rotate(0deg) scale(1)}100%{transform:translate(-50%,-50%) rotate(12deg) scale(1.08)}}
       @keyframes splashBar{0%{transform:translateX(-100%)}45%{transform:translateX(35%)}100%{transform:translateX(220%)}}
+      @keyframes splashAiPulse{0%,100%{box-shadow:0 6px 22px rgba(0,194,255,.28),0 0 0 1px rgba(255,255,255,.1) inset}50%{box-shadow:0 8px 28px rgba(124,92,255,.3),0 0 0 1px rgba(255,255,255,.12) inset}}
     </style>`;
+  const glowEl=document.getElementById('splashCursorGlow');
+  function splashPointerMove(e){
+    if(!glowEl)return;
+    glowEl.style.left=e.clientX+'px';
+    glowEl.style.top=e.clientY+'px';
+  }
+  if(!reduce&&glowEl){
+    splash.addEventListener('pointermove',splashPointerMove);
+    splash.addEventListener('pointerdown',splashPointerMove);
+    splashPointerMove({clientX:window.innerWidth/2,clientY:window.innerHeight/2});
+  }
+  const aiOrb=document.querySelector('.splash-ai-corner div:last-child');
+  if(aiOrb&&!reduce){
+    aiOrb.style.animation='splashAiPulse 3.2s ease-in-out infinite';
+  }
   const dur=reduce?520:980;
   setTimeout(()=>{
     splash.style.transition='opacity .38s cubic-bezier(.22,1,.36,1)';
     splash.style.opacity='0';
-    setTimeout(()=>{splash.style.display='none';splash.innerHTML='';splash.style.opacity='1';callback();},380);
+    setTimeout(()=>{
+      splash.removeEventListener('pointermove',splashPointerMove);
+      splash.removeEventListener('pointerdown',splashPointerMove);
+      splash.style.display='none';
+      splash.innerHTML='';
+      splash.style.opacity='1';
+      callback();
+    },380);
   },dur);
 }
 
