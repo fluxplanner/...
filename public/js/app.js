@@ -23,7 +23,13 @@ if('serviceWorker' in navigator){
     if(!isSecure)return;
     const swUrl=new URL('service-worker.js',window.location.href);
     navigator.serviceWorker.register(swUrl,{updateViaCache:'none'})
-      .then(r=>console.log('✓ SW registered',r.scope))
+      .then(r=>{
+        console.log('✓ SW registered',r.scope);
+        r.update();
+        document.addEventListener('visibilitychange',()=>{
+          if(document.visibilityState==='visible')r.update();
+        });
+      })
       .catch(e=>console.warn('SW failed',e));
   });
 }

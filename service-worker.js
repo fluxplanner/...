@@ -1,5 +1,5 @@
 /* ── FLUX PLANNER · Service Worker — network-first fix ── */
-const STATIC = 'flux-static-v30';
+const STATIC = 'flux-static-v31';
 /** Directory of this script (e.g. /Fluxplanner/ or /) — works on GitHub Pages and local dev */
 const APP_BASE = self.location.pathname.replace(/\/[^/]+$/, '/');
 const APP_ORIGIN = self.location.origin;
@@ -11,11 +11,20 @@ const PRECACHE = [
   APP_ORIGIN + APP_BASE + 'manifest.json',
 ];
 
-// On install — cache only the bare minimum, skip waiting immediately
+// On install — precache with no-store so install never picks a stale index from HTTP cache
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(STATIC)
-      .then(c => c.addAll(PRECACHE))
+      .then(c =>
+        Promise.all(
+          PRECACHE.map(url =>
+            fetch(url, { cache: 'no-store' }).then(res => {
+              if (!res.ok) throw new Error('precache failed ' + url + ' ' + res.status);
+              return c.put(url, res);
+            })
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
@@ -43,12 +52,18 @@ self.addEventListener('fetch', e => {
     url.includes('cdn.jsdelivr')
   ) return;
 
-  // For HTML, JS, CSS — always try network first, fall back to cache
-  const isAppFile = url.includes('.html') || url.includes('.js') || url.includes('.css');
+  // Top-level navigations to /repo/ have no ".html" in the URL — must be network-first too
+  const isDocument =
+    e.request.mode === 'navigate' || e.request.destination === 'document';
+  const isAppFile =
+    isDocument ||
+    url.includes('.html') ||
+    url.includes('.js') ||
+    url.includes('.css');
 
   if (isAppFile) {
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request, { cache: 'no-store' })
         .then(res => {
           // Cache the fresh response
           if (res && res.status === 200) {
