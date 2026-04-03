@@ -148,12 +148,10 @@
 /* ── LOGO ── */
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px;position:relative;z-index:1}
 .login-logo{
-  font-size:3rem;font-weight:800;letter-spacing:-2px;
-  background:linear-gradient(135deg,#fff,var(--accent) 42%,var(--purple));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   line-height:1;display:block;text-align:center;
   filter:drop-shadow(0 2px 14px rgba(var(--accent-rgb),.28));
 }
+.login-logo svg{display:block;margin:0 auto;max-width:100%;height:auto}
 .login-tagline{
   font-size:.62rem;color:rgba(255,255,255,.3);
   font-family:'JetBrains Mono',monospace;letter-spacing:3px;

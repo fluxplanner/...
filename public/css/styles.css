@@ -1178,6 +1178,23 @@ button:active:not(:disabled){transform:scale(.97)!important}
   }
 }
 
+/* Settings — single .stabs in app: solid bar pinned to top of panel scroll (no glass “float”) */
+#settings.flux-page .stabs{
+  position:sticky!important;
+  top:0!important;
+  z-index:25!important;
+  background:var(--bg)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  box-shadow:0 4px 20px rgba(0,0,0,.22)!important;
+}
+[data-theme="light"] #settings.flux-page .stabs{
+  background:var(--bg)!important;
+  border-color:rgba(0,0,0,.1)!important;
+  box-shadow:0 4px 18px rgba(0,0,0,.07)!important;
+}
+
 /* MOBILE */
 @media(max-width:768px){
   html,body{overflow-x:hidden!important;width:100%!important}
@@ -1224,6 +1241,7 @@ button:active:not(:disabled){transform:scale(.97)!important}
     align-items:stretch!important;
   }
   .stabs{position:sticky!important;top:50px!important;z-index:10!important;background:var(--bg)!important}
+  #settings.flux-page .stabs{top:50px!important;z-index:25!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
   #fabContainer{position:fixed!important;bottom:calc(78px + env(safe-area-inset-bottom))!important;right:max(14px, env(safe-area-inset-right))!important;z-index:300!important}
   .stats-row{grid-template-columns:repeat(2,1fr)!important}
   .irow{flex-direction:column!important}

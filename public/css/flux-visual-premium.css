@@ -126,15 +126,7 @@ html::after{
   mix-blend-mode:soft-light;
   opacity:.5;
 }
-.sidebar-logo svg circle:nth-child(-n+4){
-  animation:fluxOrbPulse 10s ease-in-out infinite;
-}
-.sidebar-logo svg circle:nth-child(3){animation-delay:1.2s}
-.sidebar-logo svg circle:nth-child(4){animation-delay:2.4s}
-@keyframes fluxOrbPulse{
-  0%,100%{opacity:.35}
-  50%{opacity:.85}
-}
+/* Wordmark + beam logo — no orb rings */
 .nav-item.active::before{
   transition:height .35s var(--flux-ease-out-expo),box-shadow .35s ease!important;
   height:22px!important;

@@ -2482,9 +2482,9 @@ function updateLogoColor(hex){
   styleTag.textContent=`
     :root{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
     html{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
-    .sidebar-logo svg circle[stroke],.sidebar-logo svg line,.sidebar-logo svg path[stroke]{stroke:${hex}!important}
-    #fluxWG stop:nth-child(2),#fluxCG stop:nth-child(2){stop-color:${hex}!important}
-    #fluxWG stop:nth-child(3){stop-color:${hex}aa!important}
+    .sidebar-logo svg circle[stroke],.sidebar-logo svg path[stroke]{stroke:${hex}!important}
+    #fluxWG stop:nth-child(2),#fluxWG2 stop:nth-child(2),#fluxWG3 stop:nth-child(2),#fluxCG stop:nth-child(2),#fluxCG2 stop:nth-child(2),#fluxCG3 stop:nth-child(2){stop-color:${hex}!important}
+    #fluxWG stop:nth-child(3),#fluxWG2 stop:nth-child(3),#fluxWG3 stop:nth-child(3){stop-color:${hex}aa!important}
     #fabBtn{background:${hex}!important;box-shadow:0 6px 24px rgba(${rgb},.45)!important}
     .bottom-nav .bnav-item.active{color:${hex}!important}
     .nav-item.active{color:${hex}!important;background:rgba(${rgb},.12)!important}
@@ -2525,7 +2525,7 @@ function setAccent(hex,rgb,el){
   });
   // Update SVG logo if present
   const svgLogo=document.querySelector('.sidebar-logo svg, .flux-logo-svg');
-  if(svgLogo){const stops=svgLogo.querySelectorAll('stop');stops.forEach(s=>s.setAttribute('stop-color',hex));}
+  if(svgLogo){/* Gradients tuned via updateLogoColor(#fluxWG / #fluxCG); do not flatten all stops */}
   const tp=document.getElementById('topbarTaskPill');
   if(tp)tp.style.borderColor=`rgba(${rgb},.3)`;
   // Persist to localStorage as raw strings (NOT via save() which JSON.stringify wraps in quotes)

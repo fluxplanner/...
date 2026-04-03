@@ -144,7 +144,28 @@
     <div class="login-right">
       <div class="login-card">
         <div class="login-logo-wrap">
-          <span class="login-logo">Flux</span>
+          <span class="login-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="200" height="48" aria-label="Flux Planner">
+  <defs>
+    <linearGradient id="fluxWG3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E8F4FC"/>
+      <stop offset="55%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <radialGradient id="fluxCG3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#4A90E2"/>
+      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="fluxNodeGlow3" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <text x="0" y="31" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG3)">Flux</text>
+  <line x1="0" y1="38.5" x2="188" y2="38.5" stroke="url(#fluxWG3)" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="188" cy="38.5" r="3.8" fill="url(#fluxCG3)" filter="url(#fluxNodeGlow3)"/>
+  <text x="0" y="45.5" font-family="'JetBrains Mono',monospace" font-size="7" letter-spacing="0.38em" fill="#5c6b82" opacity="0.72">PLANNER</text>
+</svg></span>
           <span class="login-tagline">YOUR SMART SCHOOL PLANNER</span>
         </div>
 
@@ -342,38 +363,27 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
     <div class="sidebar-header">
-      <span class="sidebar-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 38" width="148" height="38" aria-label="Flux">
+      <span class="sidebar-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="160" height="39" aria-label="Flux Planner">
   <defs>
     <linearGradient id="fluxWG" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="0%" stop-color="#E8F4FC"/>
       <stop offset="55%" stop-color="#00d4ff"/>
       <stop offset="100%" stop-color="#3b82f6"/>
     </linearGradient>
     <radialGradient id="fluxCG" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="40%" stop-color="#00e5ff"/>
-      <stop offset="100%" stop-color="#0040ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#4A90E2"/>
+      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
     </radialGradient>
+    <filter id="fluxNodeGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <circle cx="19" cy="19" r="17" fill="none" stroke="#00d4ff" stroke-width="0.5" opacity="0.18"/>
-  <circle cx="19" cy="19" r="13" fill="none" stroke="#00ccff" stroke-width="0.8" opacity="0.28"/>
-  <circle cx="19" cy="19" r="9"  fill="none" stroke="#00ddff" stroke-width="1"   opacity="0.45"/>
-  <circle cx="19" cy="19" r="5.5" fill="none" stroke="#00eeff" stroke-width="1.3" opacity="0.65"/>
-  <path d="M19 2.2A16.8 16.8 0 0 1 31.5 7"  fill="none" stroke="#00c8ff" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
-  <path d="M19 35.8A16.8 16.8 0 0 1 6.5 31" fill="none" stroke="#00c8ff" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
-  <line x1="19" y1="1"  x2="19" y2="5.5"  stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <line x1="19" y1="32.5" x2="19" y2="37" stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <line x1="1"  y1="19" x2="5.5" y2="19"  stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <line x1="32.5" y1="19" x2="37" y2="19"  stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <circle cx="19" cy="19" r="9" fill="url(#fluxCG)" opacity="0.4"/>
-  <circle cx="19" cy="19" r="2.5" fill="#00eeff" opacity="0.9"/>
-  <circle cx="19" cy="19" r="1.2" fill="white"/>
-  <text x="46" y="27"
-    font-family="'Plus Jakarta Sans',system-ui,sans-serif"
-    font-size="22"
-    font-weight="800"
-    letter-spacing="-1"
-    fill="url(#fluxWG)">Flux</text>
+  <text x="0" y="31" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG)">Flux</text>
+  <line x1="0" y1="38.5" x2="188" y2="38.5" stroke="url(#fluxWG)" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="188" cy="38.5" r="3.8" fill="url(#fluxCG)" filter="url(#fluxNodeGlow)"/>
+  <text x="0" y="45.5" font-family="'JetBrains Mono',monospace" font-size="7" letter-spacing="0.38em" fill="#5c6b82" opacity="0.72">PLANNER</text>
 </svg></span>
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">☰</button>
     </div>
@@ -415,38 +425,27 @@
   <div class="mob-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
   <div class="mob-drawer" id="mobDrawer">
     <div class="mob-drawer-header">
-      <span class="mob-drawer-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 38" width="148" height="38" aria-label="Flux">
+      <span class="mob-drawer-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="160" height="39" aria-label="Flux Planner">
   <defs>
     <linearGradient id="fluxWG2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="0%" stop-color="#E8F4FC"/>
       <stop offset="55%" stop-color="#00d4ff"/>
       <stop offset="100%" stop-color="#3b82f6"/>
     </linearGradient>
     <radialGradient id="fluxCG2" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="40%" stop-color="#00e5ff"/>
-      <stop offset="100%" stop-color="#0040ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#4A90E2"/>
+      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
     </radialGradient>
+    <filter id="fluxNodeGlow2" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <circle cx="19" cy="19" r="17" fill="none" stroke="#00d4ff" stroke-width="0.5" opacity="0.18"/>
-  <circle cx="19" cy="19" r="13" fill="none" stroke="#00ccff" stroke-width="0.8" opacity="0.28"/>
-  <circle cx="19" cy="19" r="9"  fill="none" stroke="#00ddff" stroke-width="1"   opacity="0.45"/>
-  <circle cx="19" cy="19" r="5.5" fill="none" stroke="#00eeff" stroke-width="1.3" opacity="0.65"/>
-  <path d="M19 2.2A16.8 16.8 0 0 1 31.5 7"  fill="none" stroke="#00c8ff" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
-  <path d="M19 35.8A16.8 16.8 0 0 1 6.5 31" fill="none" stroke="#00c8ff" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
-  <line x1="19" y1="1"  x2="19" y2="5.5"  stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <line x1="19" y1="32.5" x2="19" y2="37" stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <line x1="1"  y1="19" x2="5.5" y2="19"  stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <line x1="32.5" y1="19" x2="37" y2="19"  stroke="#00d4ff" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <circle cx="19" cy="19" r="9" fill="url(#fluxCG2)" opacity="0.4"/>
-  <circle cx="19" cy="19" r="2.5" fill="#00eeff" opacity="0.9"/>
-  <circle cx="19" cy="19" r="1.2" fill="white"/>
-  <text x="46" y="27"
-    font-family="'Plus Jakarta Sans',system-ui,sans-serif"
-    font-size="22"
-    font-weight="800"
-    letter-spacing="-1"
-    fill="url(#fluxWG2)">Flux</text>
+  <text x="0" y="31" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG2)">Flux</text>
+  <line x1="0" y1="38.5" x2="188" y2="38.5" stroke="url(#fluxWG2)" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="188" cy="38.5" r="3.8" fill="url(#fluxCG2)" filter="url(#fluxNodeGlow2)"/>
+  <text x="0" y="45.5" font-family="'JetBrains Mono',monospace" font-size="7" letter-spacing="0.38em" fill="#5c6b82" opacity="0.72">PLANNER</text>
 </svg></span>
       <button class="mob-drawer-close" onclick="closeDrawer()">✕</button>
     </div>
