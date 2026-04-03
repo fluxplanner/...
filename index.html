@@ -78,6 +78,7 @@
 <!-- ══ LOGIN SCREEN ══ -->
 <div id="loginScreen" style="display:none">
   <canvas id="loginParticles" class="login-particles" aria-hidden="true"></canvas>
+  <div id="loginCursorGlow" class="login-cursor-glow" aria-hidden="true"></div>
   <div class="login-bg"></div>
   <div class="login-grid-pattern"></div>
   <div class="login-glow login-glow-1"></div>
@@ -89,9 +90,13 @@
     <!-- LEFT SIDE — showcase -->
     <div class="login-left">
       <div class="login-left-inner">
-        <div class="login-badge">✦ AI-Powered Student Planner</div>
         <div class="login-left-headline">Your school life,<br><span class="login-gradient-text">organized.</span></div>
-        <div class="login-left-sub">The all-in-one workspace for tasks, grades, notes, calendar, and extracurriculars — powered by AI.</div>
+        <div class="login-left-sub">The all-in-one workspace for tasks, grades, notes, calendar, and extracurriculars — powered by Flux AI.</div>
+        <div class="login-badge login-badge--after-hero">✦ AI-Powered Student Planner</div>
+        <div class="login-hero-demo login-demo-wrap" aria-live="polite">
+          <div class="login-demo-label">What Flux can do</div>
+          <p class="login-demo-line" id="loginDemoLineLeft"></p>
+        </div>
 
         <!-- Interactive feature cards -->
         <div class="login-features" id="loginFeatures">
@@ -156,7 +161,7 @@
     <div class="login-right">
       <div class="login-card">
         <div class="login-logo-wrap">
-          <span class="login-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="200" height="48" aria-label="Flux Planner">
+          <span class="login-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="200" height="50" aria-label="Flux Planner">
   <defs>
     <linearGradient id="fluxWG3" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#E8F4FC"/>
@@ -173,12 +178,16 @@
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <text x="0" y="31" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG3)">Flux</text>
-  <circle cx="6" cy="38.5" r="3.8" fill="url(#fluxCG3)" filter="url(#fluxNodeGlow3)"/>
-  <rect x="10" y="36.75" width="178" height="4" rx="2" fill="url(#fluxWG3)"/>
-  <text x="0" y="45.5" font-family="'JetBrains Mono',monospace" font-size="8" letter-spacing="0.32em" fill="#9eb0c8" opacity="0.95">PLANNER</text>
+  <text x="0" y="22" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG3)">Flux</text>
+  <circle cx="6" cy="32" r="3.8" fill="url(#fluxCG3)" filter="url(#fluxNodeGlow3)"/>
+  <rect x="10" y="30" width="178" height="4" rx="2" fill="url(#fluxWG3)"/>
+  <text x="0" y="44" font-family="'JetBrains Mono',monospace" font-size="8" letter-spacing="0.18em" fill="#c5d4e8" opacity="0.92">Planner</text>
 </svg></span>
           <span class="login-tagline">YOUR SMART SCHOOL PLANNER</span>
+        </div>
+        <div class="login-demo-wrap login-demo-wrap--card" aria-live="polite">
+          <div class="login-demo-label">What Flux can do</div>
+          <p class="login-demo-line" id="loginDemoLineCard"></p>
         </div>
 
         <button class="login-google-btn" onclick="signInWithGoogle()">
@@ -229,7 +238,7 @@
             <span class="login-trust-label">Cloud Sync</span>
           </div>
         </div>
-        <p class="login-dev-credit">Azfer Mohammed</p>
+        <p class="login-dev-credit">Developed by Azfer Mohammed</p>
       </div>
     </div>
 
@@ -375,7 +384,7 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
     <div class="sidebar-header">
-      <span class="sidebar-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="160" height="39" aria-label="Flux Planner">
+      <span class="sidebar-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="160" height="40" aria-label="Flux Planner">
   <defs>
     <linearGradient id="fluxWG" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#E8F4FC"/>
@@ -392,10 +401,10 @@
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <text x="0" y="31" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG)">Flux</text>
-  <circle cx="6" cy="38.5" r="3.8" fill="url(#fluxCG)" filter="url(#fluxNodeGlow)"/>
-  <rect x="10" y="36.75" width="178" height="4" rx="2" fill="url(#fluxWG)"/>
-  <text x="0" y="45.5" font-family="'JetBrains Mono',monospace" font-size="8" letter-spacing="0.32em" fill="#c5d4e8" opacity="0.92">PLANNER</text>
+  <text x="0" y="22" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG)">Flux</text>
+  <circle cx="6" cy="32" r="3.8" fill="url(#fluxCG)" filter="url(#fluxNodeGlow)"/>
+  <rect x="10" y="30" width="178" height="4" rx="2" fill="url(#fluxWG)"/>
+  <text x="0" y="44" font-family="'JetBrains Mono',monospace" font-size="8" letter-spacing="0.18em" fill="#c5d4e8" opacity="0.92">Planner</text>
 </svg></span>
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">☰</button>
     </div>
@@ -437,7 +446,7 @@
   <div class="mob-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
   <div class="mob-drawer" id="mobDrawer">
     <div class="mob-drawer-header">
-      <span class="mob-drawer-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="160" height="39" aria-label="Flux Planner">
+      <span class="mob-drawer-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="160" height="40" aria-label="Flux Planner">
   <defs>
     <linearGradient id="fluxWG2" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#E8F4FC"/>
@@ -454,10 +463,10 @@
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <text x="0" y="31" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG2)">Flux</text>
-  <circle cx="6" cy="38.5" r="3.8" fill="url(#fluxCG2)" filter="url(#fluxNodeGlow2)"/>
-  <rect x="10" y="36.75" width="178" height="4" rx="2" fill="url(#fluxWG2)"/>
-  <text x="0" y="45.5" font-family="'JetBrains Mono',monospace" font-size="8" letter-spacing="0.32em" fill="#c5d4e8" opacity="0.92">PLANNER</text>
+  <text x="0" y="22" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG2)">Flux</text>
+  <circle cx="6" cy="32" r="3.8" fill="url(#fluxCG2)" filter="url(#fluxNodeGlow2)"/>
+  <rect x="10" y="30" width="178" height="4" rx="2" fill="url(#fluxWG2)"/>
+  <text x="0" y="44" font-family="'JetBrains Mono',monospace" font-size="8" letter-spacing="0.18em" fill="#c5d4e8" opacity="0.92">Planner</text>
 </svg></span>
       <button class="mob-drawer-close" onclick="closeDrawer()">✕</button>
     </div>
@@ -695,10 +704,10 @@
     <!-- ADD EVENT MODAL -->
     <div id="addEventModal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeAddEventModal()">
       <div class="modal-card">
-        <div class="modal-title">Add to Calendar</div>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-          <button id="addEventTypeTask" onclick="setAddEventType('task')" style="flex:1;background:var(--accent)">📋 Task</button>
-          <button id="addEventTypeEvent" onclick="setAddEventType('event')" style="flex:1" class="btn-sec">📅 Event</button>
+        <div class="modal-title" id="addEventModalTitle">Add to Calendar</div>
+        <div id="addEventTypeRow" style="display:flex;gap:8px;margin-bottom:16px">
+          <button type="button" id="addEventTypeTask" onclick="setAddEventType('task')" style="flex:1;background:var(--accent)">📋 Task</button>
+          <button type="button" id="addEventTypeEvent" onclick="setAddEventType('event')" style="flex:1" class="btn-sec">📅 Event</button>
         </div>
         <div class="mrow"><label>Title</label><input type="text" id="addEventTitle" placeholder="Assignment, exam, event..."></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -719,7 +728,7 @@
           <input type="hidden" id="addEventScopeValue" value="school">
         </div>
         <div class="mrow"><label>Notes</label><textarea id="addEventNotes" style="min-height:60px" placeholder="Optional notes..."></textarea></div>
-        <div class="mactions"><button onclick="closeAddEventModal()" class="btn-sec">Cancel</button><button onclick="saveAddEvent()">Add</button></div>
+        <div class="mactions"><button onclick="closeAddEventModal()" class="btn-sec">Cancel</button><button type="button" id="addEventPrimaryBtn" onclick="saveAddEvent()">Add</button></div>
       </div>
     </div>
 
@@ -749,7 +758,7 @@
         <h3>My Classes</h3>
         <div id="classesList"></div>
         <div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px;align-items:end;margin-top:10px">
-          <div><label style="font-size:.7rem;color:var(--muted)">Period</label><input type="number" id="classPeriod" min="1" max="8" placeholder="#" style="width:52px;margin:0;padding:8px 6px"></div>
+          <div><label style="font-size:.7rem;color:var(--muted)">Period <span style="color:var(--muted2);font-weight:400">(A4, B4…)</span></label><input type="text" id="classPeriod" inputmode="text" autocomplete="off" placeholder="4 or B4" style="width:76px;min-width:64px;margin:0;padding:8px 6px" title="Type a number, or A3 / B4 for A-day or B-day period"></div>
           <div><label style="font-size:.7rem;color:var(--muted)">Class Name</label><input type="text" id="className" placeholder="e.g. Chemistry" style="margin:0"></div>
           <div><label style="font-size:.7rem;color:var(--muted)">Teacher</label><input type="text" id="classTeacher" placeholder="e.g. Mr. Smith" style="margin:0"></div>
           <button onclick="addClass()" style="padding:10px 14px;align-self:end">+</button>
@@ -1284,10 +1293,10 @@
     <!-- ─── SETTINGS ─── -->
     <div id="settings" class="panel flux-page">
       <header class="flux-page-header flux-page-header--lead">
-        <p class="flux-page-sub">Theme, alerts, account, tabs, and data &amp; info.</p>
+        <p class="flux-page-sub">Look, alerts, account, tabs, and data &amp; info.</p>
       </header>
       <div class="stabs flux-settings-stabs" role="tablist" aria-label="Settings sections">
-        <button type="button" class="stab active" role="tab" aria-selected="true" onclick="switchStab('appearance',this)">Theme</button>
+        <button type="button" class="stab active" role="tab" aria-selected="true" onclick="switchStab('appearance',this)">Look</button>
         <button type="button" class="stab" role="tab" aria-selected="false" onclick="switchStab('notifications',this)">Alerts</button>
         <button type="button" class="stab" role="tab" aria-selected="false" onclick="switchStab('account',this)">Account</button>
         <button type="button" class="stab" role="tab" aria-selected="false" onclick="switchStab('tabs',this)">Tabs</button>
@@ -1295,13 +1304,6 @@
       </div>
       <div class="flux-stack flux-settings-panes">
       <div class="spane active" id="spane-appearance">
-        <!-- Theme presets -->
-        <div class="card">
-          <h3>Panel layout</h3>
-          <p style="font-size:.75rem;color:var(--muted2);margin:0 0 12px;line-height:1.55">Reorder major blocks on the <strong>Dashboard</strong> and <strong>Calendar</strong>. Preference is saved on this device.</p>
-          <div id="fluxPanelLayoutSettings"></div>
-          <button type="button" class="btn-sec" style="width:100%;margin-top:12px;font-size:.78rem" onclick="if(window.FluxPersonal&&FluxPersonal.resetPanelLayouts)FluxPersonal.resetPanelLayouts()">↺ Reset layouts to defaults</button>
-        </div>
         <div class="card">
           <h3>Effects</h3>
           <div class="srow" style="border:none;padding-top:0">
@@ -1395,6 +1397,12 @@
             <div><div class="slabel">Reduce motion</div><div class="ssub">Minimize animations (also respects system setting)</div></div>
             <button type="button" class="toggle" id="reduceMotionToggle" onclick="toggleReduceMotion()"></button>
           </div>
+        </div>
+        <div class="card">
+          <h3>Panel layout</h3>
+          <p style="font-size:.75rem;color:var(--muted2);margin:0 0 12px;line-height:1.55">Reorder major blocks on the <strong>Dashboard</strong> and <strong>Calendar</strong>. Preference is saved on this device.</p>
+          <div id="fluxPanelLayoutSettings"></div>
+          <button type="button" class="btn-sec" style="width:100%;margin-top:12px;font-size:.78rem" onclick="if(window.FluxPersonal&&FluxPersonal.resetPanelLayouts)FluxPersonal.resetPanelLayouts()">↺ Reset layouts to defaults</button>
         </div>
       </div>
       <div class="spane" id="spane-notifications">

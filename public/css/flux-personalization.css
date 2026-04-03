@@ -45,7 +45,7 @@ html[data-mood-tint]{transition:color .4s ease}
 .p-avatar.flux-avatar--evo-4{border-width:3px;box-shadow:0 0 0 2px rgba(var(--purple-rgb),.35),0 0 16px rgba(var(--accent-rgb),.2)}
 .p-avatar.flux-avatar--evo-5{border-width:3px;box-shadow:0 0 0 3px rgba(var(--gold-rgb),.4),0 0 20px rgba(var(--accent-rgb),.25)}
 
-/* Liquid glass off — global (Settings → Theme → Effects) */
+/* Liquid glass off — global (Settings → Look → Effects) */
 html[data-flux-glass="off"]{
   --glass:none !important;
   --glass-soft:none !important;

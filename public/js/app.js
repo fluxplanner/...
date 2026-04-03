@@ -237,6 +237,14 @@ function toggleReveal(fieldId,btnId){
   const field=document.getElementById(fieldId);
   const btn=document.getElementById(btnId);
   if(!field||!btn)return;
+  if(field.tagName==='INPUT'){
+    const show=field.type==='password';
+    field.type=show?'text':'password';
+    btn.textContent=show?'🙈':'👁';
+    btn.setAttribute('title',show?'Hide':'Show');
+    if(show)field.focus();
+    return;
+  }
   const isHidden=field.dataset.hidden==='true';
   field.dataset.hidden=isHidden?'false':'true';
   if(isHidden){
@@ -612,6 +620,25 @@ function getWeeklyRules(){return load('flux_weekly_events',[]);}
 /** 'school' | 'outside' — default school when unset. */
 function fluxEventScope(o){if(!o)return'school';return o.scope==='outside'?'outside':'school';}
 function fluxScopeSortKey(o){return fluxEventScope(o)==='outside'?1:0;}
+/** Minutes since midnight for calendar ordering; missing time sorts last within the same scope. */
+function fluxTimeSortMinutes(t){
+  if(t==null||t==='')return 24*60;
+  const m=String(t).trim().match(/^(\d{1,2}):(\d{2})/);
+  if(!m)return 24*60;
+  const h=parseInt(m[1],10),min=parseInt(m[2],10);
+  if(h>23||min>59)return 24*60;
+  return h*60+min;
+}
+/** Compact display for HTML time values (HH:MM) e.g. 3:30p */
+function formatCalTimeShort(t){
+  if(!t)return'';
+  const m=String(t).trim().match(/^(\d{1,2}):(\d{2})/);
+  if(!m)return String(t);
+  let h=parseInt(m[1],10),mins=m[2];
+  const ap=h>=12?'p':'a';
+  const hr=h%12||12;
+  return mins==='00'?`${hr}${ap}`:`${hr}:${mins}${ap}`;
+}
 function weeklyVirtualEventsForDate(dateStr){
   const d=fluxParseLocalYMD(dateStr);
   if(!d)return[];
@@ -1378,9 +1405,9 @@ function renderCalendar(){
   }
   let html=['S','M','T','W','T','F','S'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let i=first-1;i>=0;i--)html+=`<div class="cal-day other"><div class="cal-dn">${prevDays-i}</div></div>`;
-  for(let d=1;d<=days;d++){const dt=new Date(calYear,calMonth,d),ds=fluxLocalYMD(dt);const isToday=dt.getTime()===now.getTime(),isNP=isBreak(ds),rk=isNP?restDayKind(ds)||'lazy':null,ab=getCycleDayLabel(ds);const rawT=tMap[d]||[],rawE=evMap[d]||[];const tlist=[...rawT].sort((a,b)=>fluxScopeSortKey(a)-fluxScopeSortKey(b));const elist=[...rawE].sort((a,b)=>fluxScopeSortKey(a)-fluxScopeSortKey(b));// Task bars — school items first
-const taskBars=tlist.slice(0,3).map(t=>{const s=getSubjects()[t.subject];const c=s?s.color:'var(--accent)';const out=fluxEventScope(t)==='outside';return`<div class="cal-task-bar" style="background:${c}22;border-left:2px solid ${c};opacity:${out?0.75:(t.done?0.5:1)};text-decoration:${t.done?'line-through':'none'}">${esc(t.name)}</div>`;}).join('');
-const eventBars=elist.slice(0,2).map(e=>{const out=fluxEventScope(e)==='outside';const wk=e._weekly;const bg=wk?(out?'rgba(148,163,184,.1)':'rgba(0,194,255,.12)'):(out?'rgba(148,163,184,.12)':'rgba(192,132,252,.15)');const br=wk?(out?'var(--border2)':'var(--accent)'):(out?'var(--muted2)':'var(--purple)');return`<div class="cal-task-bar" style="background:${bg};border-left:2px solid ${br}">${esc(e.title||'Event')}</div>`;}).join('');
+  for(let d=1;d<=days;d++){const dt=new Date(calYear,calMonth,d),ds=fluxLocalYMD(dt);const isToday=dt.getTime()===now.getTime(),isNP=isBreak(ds),rk=isNP?restDayKind(ds)||'lazy':null,ab=getCycleDayLabel(ds);const rawT=tMap[d]||[],rawE=evMap[d]||[];const tlist=[...rawT].sort((a,b)=>fluxScopeSortKey(a)-fluxScopeSortKey(b)||fluxTimeSortMinutes(a.time)-fluxTimeSortMinutes(b.time));const elist=[...rawE].sort((a,b)=>fluxScopeSortKey(a)-fluxScopeSortKey(b)||fluxTimeSortMinutes(a.time)-fluxTimeSortMinutes(b.time));// Task bars — school items first
+const taskBars=tlist.slice(0,3).map(t=>{const s=getSubjects()[t.subject];const c=s?s.color:'var(--accent)';const out=fluxEventScope(t)==='outside';const tm=t.time?formatCalTimeShort(t.time):'';const lab=tm?`${esc(t.name)} · ${esc(tm)}`:esc(t.name);return`<div class="cal-task-bar" style="background:${c}22;border-left:2px solid ${c};opacity:${out?0.75:(t.done?0.5:1)};text-decoration:${t.done?'line-through':'none'}">${lab}</div>`;}).join('');
+const eventBars=elist.slice(0,2).map(e=>{const out=fluxEventScope(e)==='outside';const wk=e._weekly;const bg=wk?(out?'rgba(148,163,184,.1)':'rgba(0,194,255,.12)'):(out?'rgba(148,163,184,.12)':'rgba(192,132,252,.15)');const br=wk?(out?'var(--border2)':'var(--accent)'):(out?'var(--muted2)':'var(--purple)');const tm=e.time?formatCalTimeShort(e.time):'';const title=e.title||'Event';const lab=tm?`${esc(title)} · ${esc(tm)}`:esc(title);return`<div class="cal-task-bar" style="background:${bg};border-left:2px solid ${br}">${lab}</div>`;}).join('');
 const allCount=tlist.length+elist.length;const dots=taskBars+eventBars;const abCol=ab==='A'?'var(--accent)':ab==='B'?'var(--green)':ab?'var(--gold)':'var(--muted)';const abLabel=ab?`<div style="font-size:${ab.length>2?'.4rem':'.45rem'};font-family:'JetBrains Mono',monospace;color:${abCol};line-height:1;margin-top:1px;max-width:100%;text-overflow:ellipsis;overflow:hidden">${esc(ab)}</div>`:'';const overFlag=tlist.some(t=>!t.done&&new Date(t.date+'T00:00:00')<now)?'<div style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--red)"></div>':'';const countBadge=allCount>3?`<div class="cal-day-count">+${allCount-3}</div>`:'';const restCls=isNP?` no-hw ${rk==='sick'?'rest-sick':'rest-lazy'}`:'';html+=`<div class="cal-day ${isToday?'today ':''}${d===calSelected?'selected ':''}${restCls}" data-cal-date="${ds}" data-rest-kind="${rk||''}" ondragover="fluxCalDragOver(event)" ondragleave="fluxCalDragLeave(event)" ondrop="fluxCalDrop(event)" onclick="selectDay(${d})" style="position:relative">${overFlag}<div class="cal-dn">${d}</div>${abLabel}<div class="cal-dots">${dots}</div>${countBadge}</div>`;}
   document.getElementById('calGrid').innerHTML=html;
   renderCalDay();
@@ -1405,23 +1432,24 @@ function renderCalDay(){
   if(!day.length&&!events.length&&!weekly.length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:4px 0">Nothing scheduled.</div>';return;}
   const blocks=[];weekly.forEach(w=>blocks.push({k:'w',o:w}));events.forEach(e=>blocks.push({k:'e',o:e}));day.forEach(t=>blocks.push({k:'t',o:t}));
   const ord={w:0,e:1,t:2};
-  blocks.sort((a,b)=>{const s=fluxScopeSortKey(a.o)-fluxScopeSortKey(b.o);if(s!==0)return s;return ord[a.k]-ord[b.k];});
+  blocks.sort((a,b)=>{const s=fluxScopeSortKey(a.o)-fluxScopeSortKey(b.o);if(s!==0)return s;const ta=fluxTimeSortMinutes(a.o.time),tb=fluxTimeSortMinutes(b.o.time);if(ta!==tb)return ta-tb;return ord[a.k]-ord[b.k];});
   el.innerHTML=blocks.map(({k,o})=>{
     if(k==='w'){
       const sch=fluxEventScope(o)==='school';
-      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,194,255,.08);border:1px solid rgba(var(--accent-rgb),.25);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">🔁</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--accent)">Every week</div><div style="font-size:.85rem;font-weight:600">${esc(o.title)}</div>${o.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</div>`:''}</div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleWeeklyRuleScope('${o.ruleId}')" title="School vs outside">${sch?'🏫':'🌐'}</button><button type="button" onclick="deleteWeeklyRule('${o.ruleId}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px" title="Remove">✕</button></div>`;
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,194,255,.08);border:1px solid rgba(var(--accent-rgb),.25);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">🔁</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--accent)">Every week</div><div style="font-size:.85rem;font-weight:600">${esc(o.title)}</div>${o.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(formatCalTimeShort(o.time))}</div>`:''}</div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleWeeklyRuleScope('${o.ruleId}')" title="School vs outside">${sch?'🏫':'🌐'}</button><button type="button" onclick="deleteWeeklyRule('${o.ruleId}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px" title="Remove">✕</button></div>`;
     }
     if(k==='e'){
       const sch=fluxEventScope(o)==='school';
-      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">📅</span><div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600">${esc(o.title)}</div>${o.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</div>`:''}</div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleOneOffEventScope('${o.id}')" title="School vs outside">${sch?'🏫':'🌐'}</button><button type="button" onclick="deleteEvent('${o.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px">✕</button></div>`;
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2);border-radius:10px;margin-bottom:6px"><span style="font-size:.85rem">📅</span><div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600">${esc(o.title)}</div>${o.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(formatCalTimeShort(o.time))}</div>`:''}</div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleOneOffEventScope('${o.id}')" title="School vs outside">${sch?'🏫':'🌐'}</button><button type="button" onclick="event.stopPropagation();openEditCalendarEventModal('${o.id}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:.85rem;padding:2px 4px" title="Edit time &amp; details">✎</button><button type="button" onclick="deleteEvent('${o.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px">✕</button></div>`;
     }
     const sch=fluxEventScope(o)==='school';
-    return`<div class="task-item" style="margin-bottom:6px;display:flex;align-items:center;gap:6px"><div class="check ${o.done?'done':''}" onclick="toggleTask(${o.id})">${o.done?'✓':''}</div><div class="task-body" style="flex:1;min-width:0"><div class="task-text ${o.done?'done':''}">${esc(o.name)}</div></div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${o.id})" title="School vs outside">${sch?'🏫':'🌐'}</button><button class="btn-sm btn-del" onclick="deleteTask(${o.id})">✕</button></div>`;
+    return`<div class="task-item" style="margin-bottom:6px;display:flex;align-items:center;gap:6px"><div class="check ${o.done?'done':''}" onclick="toggleTask(${o.id})">${o.done?'✓':''}</div><div class="task-body" style="flex:1;min-width:0"><div class="task-text ${o.done?'done':''}">${esc(o.name)}</div>${o.time?`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(formatCalTimeShort(o.time))}</div>`:''}</div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${o.id})" title="School vs outside">${sch?'🏫':'🌐'}</button><button class="btn-sm btn-del" onclick="deleteTask(${o.id})">✕</button></div>`;
   }).join('');
 }
 
 // ── Add event modal ──
 let addEventType='task';
+let editCalendarEventId=null;
 function setAddEventScope(scope){
   const inp=document.getElementById('addEventScopeValue');
   if(inp)inp.value=scope==='outside'?'outside':'school';
@@ -1433,14 +1461,42 @@ function setAddEventScope(scope){
 }
 function openAddEventModal(){
   const modal=document.getElementById('addEventModal');if(!modal)return;
+  editCalendarEventId=null;
   document.getElementById('addEventDate').value=new Date(calYear,calMonth,calSelected).toISOString().slice(0,10);
   document.getElementById('addEventTitle').value='';
   document.getElementById('addEventNotes').value='';
+  const te=document.getElementById('addEventTime');if(te)te.value='';
+  const mt=document.getElementById('addEventModalTitle');if(mt)mt.textContent='Add to Calendar';
+  const pb=document.getElementById('addEventPrimaryBtn');if(pb)pb.textContent='Add';
+  const trow=document.getElementById('addEventTypeRow');if(trow)trow.style.display='flex';
   setAddEventScope('school');
   setAddEventType('task');
   modal.style.display='flex';
 }
-function closeAddEventModal(){document.getElementById('addEventModal').style.display='none';}
+function openEditCalendarEventModal(id){
+  const events=load('flux_events',[]);
+  const ev=events.find(x=>String(x.id)===String(id));
+  if(!ev)return;
+  editCalendarEventId=ev.id;
+  const modal=document.getElementById('addEventModal');if(!modal)return;
+  const mt=document.getElementById('addEventModalTitle');if(mt)mt.textContent='Edit calendar event';
+  const pb=document.getElementById('addEventPrimaryBtn');if(pb)pb.textContent='Save';
+  const trow=document.getElementById('addEventTypeRow');if(trow)trow.style.display='none';
+  document.getElementById('addEventDate').value=ev.date||'';
+  document.getElementById('addEventTitle').value=ev.title||'';
+  document.getElementById('addEventTime').value=ev.time||'';
+  document.getElementById('addEventNotes').value=ev.notes||'';
+  setAddEventScope(ev.scope==='outside'?'outside':'school');
+  setAddEventType('event');
+  modal.style.display='flex';
+}
+function closeAddEventModal(){
+  const modal=document.getElementById('addEventModal');if(modal)modal.style.display='none';
+  editCalendarEventId=null;
+  const trow=document.getElementById('addEventTypeRow');if(trow)trow.style.display='flex';
+  const mt=document.getElementById('addEventModalTitle');if(mt)mt.textContent='Add to Calendar';
+  const pb=document.getElementById('addEventPrimaryBtn');if(pb)pb.textContent='Add';
+}
 function setAddEventType(type){
   addEventType=type;
   document.getElementById('addEventTypeTask').style.background=type==='task'?'var(--accent)':'';
@@ -1449,6 +1505,11 @@ function setAddEventType(type){
   document.getElementById('addEventTypeEvent').className=type==='event'?'':'btn-sec';
   document.getElementById('addEventSubjectRow').style.display=type==='task'?'block':'none';
   document.getElementById('addEventPriorityRow').style.display=type==='task'?'block':'none';
+  const tr=document.getElementById('addEventTimeRow');
+  if(tr){
+    const lab=tr.querySelector('label');
+    if(lab)lab.textContent=type==='task'?'Due time (optional)':'Time (optional)';
+  }
 }
 function saveAddEvent(){
   const title=document.getElementById('addEventTitle').value.trim();if(!title)return;
@@ -1457,14 +1518,25 @@ function saveAddEvent(){
   const notes=document.getElementById('addEventNotes').value.trim();
   const sc=document.getElementById('addEventScopeValue')?.value;
   const scope=sc==='outside'?'outside':'school';
+  if(editCalendarEventId){
+    const events=load('flux_events',[]);
+    const ix=events.findIndex(x=>String(x.id)===String(editCalendarEventId));
+    if(ix>=0){
+      events[ix]={...events[ix],title,date,time:time||'',notes,scope};
+      save('flux_events',events);
+      syncKey('events',1);
+    }
+    closeAddEventModal();renderCalendar();showToast('✓ Event updated');return;
+  }
   if(addEventType==='task'){
-    const task={id:Date.now(),name:title,date,subject:document.getElementById('addEventSubject').value,priority:document.getElementById('addEventPriority').value,type:'hw',notes,done:false,rescheduled:0,createdAt:Date.now(),scope};
+    const task={id:Date.now(),name:title,date,time:time||'',subject:document.getElementById('addEventSubject').value,priority:document.getElementById('addEventPriority').value,type:'hw',notes,done:false,rescheduled:0,createdAt:Date.now(),scope};
     task.urgencyScore=calcUrgency(task);tasks.unshift(task);save('tasks',tasks);
     renderStats();renderTasks();
   }else{
     const events=load('flux_events',[]);
-    events.push({id:String(Date.now()),title,date,time,notes,scope});
+    events.push({id:String(Date.now()),title,date,time:time||'',notes,scope});
     save('flux_events',events);
+    syncKey('events',1);
   }
   syncKey('tasks',tasks);
   closeAddEventModal();renderCalendar();
@@ -1590,24 +1662,48 @@ function addGCalEventAsTask(encodedName,date){
 }
 
 // ══ SCHOOL INFO ══
+/** Parse period field: "4", "B4", "a 3" → { period, days }. Letter+number sets A Day / B Day; plain number uses fallbackDays (Days dropdown). */
+function parseClassPeriodInput(raw,fallbackDays){
+  const fb=fallbackDays||'';
+  const s=String(raw||'').trim().replace(/\s+/g,'');
+  if(!s)return{period:1,days:fb};
+  const ab=s.match(/^([AB])(\d{1,2})$/i);
+  if(ab){
+    const num=parseInt(ab[2],10);
+    if(num>=1&&num<=24)return{period:Math.min(24,num),days:ab[1].toUpperCase()==='A'?'A Day':'B Day'};
+  }
+  if(/^\d{1,2}$/.test(s)){
+    const num=parseInt(s,10);
+    if(!isNaN(num))return{period:Math.min(24,Math.max(1,num)),days:fb};
+  }
+  const n=parseInt(s,10);
+  return{period:!isNaN(n)&&n>=1?Math.min(24,n):1,days:fb};
+}
+function formatClassPeriodField(c){
+  if(!c)return'';
+  if(c.days==='A Day')return'A'+c.period;
+  if(c.days==='B Day')return'B'+c.period;
+  return String(c.period??'');
+}
 function saveSchoolInfo(){schoolInfo={locker:document.getElementById('inputLocker').value.trim(),combo:document.getElementById('inputCombo').value.trim(),counselor:document.getElementById('inputCounselor').value.trim(),studentID:document.getElementById('inputStudentID').value.trim()};save('flux_school',schoolInfo);renderSchool();syncKey('school',schoolInfo);const b=event?.target;if(b){b.textContent='✓ Saved!';setTimeout(()=>b.textContent='Save Info',1500);}}
 function addClass(){
-  const period=document.getElementById('classPeriod').value;
+  const rawPeriod=document.getElementById('classPeriod').value;
+  const fallbackDays=document.getElementById('classDays').value;
+  const {period,days}=parseClassPeriodInput(rawPeriod,fallbackDays);
   const name=document.getElementById('className').value.trim();
   const teacher=document.getElementById('classTeacher').value.trim();
   const room=document.getElementById('classRoom').value.trim();
-  const days=document.getElementById('classDays').value;
   const timeStart=document.getElementById('classTimeStart').value;
   const timeEnd=document.getElementById('classTimeEnd').value;
   const color=document.getElementById('classColor')?.value||'';
   if(!name)return;
   const COLORS=['#3b82f6','#f43f5e','#10d9a0','#fbbf24','#a78bfa','#fb923c','#e879f9','#22d3ee'];
   const cleanedName=cleanClassName(name);
-  classes.push({id:Date.now(),period:parseInt(period)||classes.length+1,name:cleanedName,teacher,room,days,timeStart,timeEnd,color:color||COLORS[classes.length%COLORS.length]});
+  classes.push({id:Date.now(),period,name:cleanedName,teacher,room,days,timeStart,timeEnd,color:color||COLORS[classes.length%COLORS.length]});
   classes.sort((a,b)=>a.period-b.period);
   save('flux_classes',classes);
+  const cd=document.getElementById('classDays');if(cd)cd.value=days;
   ['classPeriod','className','classTeacher','classRoom'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  const cd=document.getElementById('classDays');if(cd)cd.value='';
   const cs=document.getElementById('classTimeStart');if(cs)cs.value='';
   const ce=document.getElementById('classTimeEnd');if(ce)ce.value='';
   renderSchool();populateSubjectSelects();syncKey('classes',classes);
@@ -1616,16 +1712,22 @@ function deleteClass(id){classes=classes.filter(c=>c.id!==id);save('flux_classes
 function addTeacherNote(){const teacher=document.getElementById('tNoteTeacher').value.trim(),note=document.getElementById('tNoteText').value.trim();if(!teacher||!note)return;teacherNotes.push({id:Date.now(),teacher,note});save('flux_teacher_notes',teacherNotes);document.getElementById('tNoteTeacher').value='';document.getElementById('tNoteText').value='';renderSchool();}
 function deleteTeacherNote(id){teacherNotes=teacherNotes.filter(n=>n.id!==id);save('flux_teacher_notes',teacherNotes);renderSchool();}
 function renderSchool(){
-  const comboEl=document.getElementById('displayCombo');
-  const sidEl=document.getElementById('displayStudentID');
-  if(comboEl){comboEl.dataset.value=schoolInfo.combo||'';comboEl.dataset.hidden='true';comboEl.textContent=schoolInfo.combo?'•'.repeat(Math.min(schoolInfo.combo.length,10)):'—';}
-  if(sidEl){sidEl.dataset.value=schoolInfo.studentID||'';sidEl.dataset.hidden='true';sidEl.textContent=schoolInfo.studentID?'•'.repeat(Math.min(schoolInfo.studentID.length,10)):'—';}
-  document.getElementById('displayLocker').textContent=schoolInfo.locker||'—';
-  document.getElementById('displayCounselor').textContent=schoolInfo.counselor||'—';
-  document.getElementById('inputLocker').value=schoolInfo.locker||'';
-  document.getElementById('inputCombo').value=schoolInfo.combo||'';
-  document.getElementById('inputCounselor').value=schoolInfo.counselor||'';
-  document.getElementById('inputStudentID').value=schoolInfo.studentID||'';
+  const lockerEl=document.getElementById('inputLocker');
+  const comboEl=document.getElementById('inputCombo');
+  const counselorEl=document.getElementById('inputCounselor');
+  const sidEl=document.getElementById('inputStudentID');
+  if(lockerEl)lockerEl.value=schoolInfo.locker||'';
+  if(comboEl){
+    comboEl.value=schoolInfo.combo||'';
+    comboEl.type='password';
+    const cb=document.getElementById('revealComboBtn');if(cb){cb.textContent='👁';cb.setAttribute('title','Show');}
+  }
+  if(counselorEl)counselorEl.value=schoolInfo.counselor||'';
+  if(sidEl){
+    sidEl.value=schoolInfo.studentID||'';
+    sidEl.type='password';
+    const sb=document.getElementById('revealSIDBtn');if(sb){sb.textContent='👁';sb.setAttribute('title','Show');}
+  }
   const cl=document.getElementById('classesList');
   if(!cl)return;
   if(!classes.length){cl.innerHTML='<div class="empty"><div class="empty-icon">📚</div><div class="empty-title">No classes yet</div><div class="empty-sub">Add classes below or import from a photo</div></div>';}
@@ -1636,8 +1738,8 @@ function renderSchool(){
     // Check if any class uses A Day / B Day scheduling
     const hasAB=classes.some(c=>c.days&&(c.days==='A Day'||c.days==='B Day'));
     if(hasAB){
-      const aClasses=classes.filter(c=>!c.days||c.days===''||c.days==='A Day'||c.days==='Mon-Fri'||c.days==='Mon/Wed/Fri'||c.days==='Tue/Thu'||(!c.days.includes('B Day')));
-      const bClasses=classes.filter(c=>c.days&&c.days==='B Day');
+      const aClasses=classes.filter(c=>!c.days||c.days===''||c.days==='A Day'||c.days==='Mon-Fri'||c.days==='Mon/Wed/Fri'||c.days==='Tue/Thu'||(!c.days.includes('B Day'))).sort((a,b)=>a.period-b.period);
+      const bClasses=classes.filter(c=>c.days&&c.days==='B Day').sort((a,b)=>a.period-b.period);
       const renderClassRow=(c,col)=>{
         const timeStr=c.timeStart?`${fmtTime(c.timeStart)}${c.timeEnd?' – '+fmtTime(c.timeEnd):''}` :'';
         const meta=[c.teacher,timeStr,c.room].filter(Boolean).join(' · ');
@@ -1684,7 +1786,7 @@ function editClass(id){
     m.innerHTML=`<div class="modal-card">
       <div class="modal-title">Edit Class</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="mrow"><label>Period</label><input type="number" id="ecPeriod" min="1" max="12"></div>
+        <div class="mrow"><label>Period</label><input type="text" id="ecPeriod" placeholder="e.g. 4 or A4 or B4"></div>
         <div class="mrow"><label>Color</label><input type="color" id="ecColor" style="width:100%;height:40px;margin:0;border-radius:8px;cursor:pointer;border:1px solid var(--border2)"></div>
         <div class="mrow" style="grid-column:span 2"><label>Class Name</label><input type="text" id="ecName"></div>
         <div class="mrow"><label>Teacher</label><input type="text" id="ecTeacher"></div>
@@ -1709,7 +1811,7 @@ function editClass(id){
     document.body.appendChild(m);
   }
   document.getElementById('editClassModal').dataset.classId=id;
-  document.getElementById('ecPeriod').value=c.period||'';
+  document.getElementById('ecPeriod').value=formatClassPeriodField(c);
   document.getElementById('ecName').value=c.name||'';
   document.getElementById('ecTeacher').value=c.teacher||'';
   document.getElementById('ecRoom').value=c.room||'';
@@ -1723,11 +1825,14 @@ function saveEditClass(){
   const id=parseInt(document.getElementById('editClassModal').dataset.classId);
   const c=classes.find(x=>x.id===id);
   if(!c)return;
-  c.period=parseInt(document.getElementById('ecPeriod').value)||c.period;
+  const rawP=document.getElementById('ecPeriod').value;
+  const fbDays=document.getElementById('ecDays').value;
+  const parsed=parseClassPeriodInput(rawP,fbDays);
+  c.period=parsed.period;
+  c.days=parsed.days;
   c.name=document.getElementById('ecName').value.trim()||c.name;
   c.teacher=document.getElementById('ecTeacher').value.trim();
   c.room=document.getElementById('ecRoom').value.trim();
-  c.days=document.getElementById('ecDays').value;
   c.timeStart=document.getElementById('ecStart').value;
   c.timeEnd=document.getElementById('ecEnd').value;
   c.color=document.getElementById('ecColor').value;
@@ -4343,6 +4448,40 @@ function showLoginOrApp(){
     showLoginScreen();
   }
 }
+
+let _loginDemoInterval=null;
+const LOGIN_DEMO_LINES=[
+  'Break down assignments into steps with Flux AI study plans.',
+  'Snap a syllabus or schedule — Vision Import turns it into tasks.',
+  'Sync Google Calendar and see tasks beside class blocks.',
+  'Track weighted GPA with honors/AP and semester what-ifs.',
+  'Log extracurriculars and get school-fit suggestions.',
+  'Capture notes with tags, then ask Flux AI to quiz you.',
+  'Use the focus timer and streaks to build study habits.',
+  'See exam conflicts and cognitive load at a glance.'
+];
+function stopLoginDemoRotator(){
+  if(_loginDemoInterval){clearInterval(_loginDemoInterval);_loginDemoInterval=null;}
+}
+function initLoginDemoRotator(){
+  stopLoginDemoRotator();
+  const left=document.getElementById('loginDemoLineLeft');
+  const card=document.getElementById('loginDemoLineCard');
+  if(!left&&!card)return;
+  let idx=0;
+  function apply(){
+    const line=LOGIN_DEMO_LINES[idx%LOGIN_DEMO_LINES.length];
+    if(left)left.textContent=line;
+    if(card)card.textContent=line;
+    idx++;
+  }
+  apply();
+  try{
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  }catch(_){}
+  _loginDemoInterval=setInterval(apply,4200);
+}
+
 function showLoginScreen(){
   const ls=document.getElementById('loginScreen');
   const app=document.getElementById('app');
@@ -4350,12 +4489,16 @@ function showLoginScreen(){
   if(app)app.classList.remove('visible');
   initFeaturePills();
   initLoginFeatureCards();
-  setTimeout(()=>{if(typeof initLoginAmbient==='function')initLoginAmbient();},40);
+  setTimeout(()=>{
+    if(typeof initLoginAmbient==='function')initLoginAmbient();
+    initLoginDemoRotator();
+  },40);
 }
 function showApp(){
   const ls=document.getElementById('loginScreen');
   const app=document.getElementById('app');
   if(typeof stopLoginAmbient==='function')stopLoginAmbient();
+  stopLoginDemoRotator();
   if(ls){ls.style.display='none';ls.classList.remove('visible');}
   if(app)app.classList.add('visible');
   renderSidebars();
@@ -4411,6 +4554,7 @@ async function handleSignedIn(user,session){
   }
   // hide login immediately
   const _ls=document.getElementById('loginScreen');if(_ls){_ls.style.display='none';_ls.classList.remove('visible');}
+  stopLoginDemoRotator();
   const name=user.user_metadata?.full_name||user.email?.split('@')[0]||'Student';
   const firstName=name.split(' ')[0];
   localStorage.setItem('flux_user_name',firstName);
@@ -4433,7 +4577,13 @@ async function handleSignedIn(user,session){
   const isFirstTime=!onboarded&&!hasLocalData;
 
   if(isFirstTime){
-    showOnboarding();
+    const sp=document.getElementById('splash');
+    if(sp)sp.style.display='block';
+    if(typeof window.runSplash==='function'){
+      window.runSplash(()=>showOnboarding(),true);
+    }else{
+      showOnboarding();
+    }
   }else{
     const ob=document.getElementById('onboarding');
     if(ob)ob.classList.remove('visible');
@@ -5222,7 +5372,7 @@ function startOnboardingTour(){
     {nav:'dashboard',sel:'.view-btn[data-view="list"]',title:'Task views',body:'Switch List, Board, or Timeline on the dashboard to match how you like to work.'},
     {nav:'goals',sel:'[data-tab="goals"]',title:'Extracurriculars',body:'Activities, college list, and milestones — IB/AP progress lives here too when relevant.'},
     {nav:'profile',sel:'[data-tab="profile"]',title:'Profile',body:'Academic snapshot, study DNA, and habits — keep it updated for better AI hints.'},
-    {nav:'settings',sel:'[data-tab="settings"]',title:'Settings',body:'Theme, accent, sync, account, exports, and replay this tour anytime under Data & info.'},
+    {nav:'settings',sel:'[data-tab="settings"]',title:'Settings',body:'Look & theme, accent, sync, account, exports, and replay this tour anytime under Data & info.'},
   ];
   let step=0;
   function cleanupTour(){
