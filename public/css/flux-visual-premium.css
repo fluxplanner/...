@@ -66,7 +66,7 @@ html::after{
 /* ═══ Glass: cards, stats, notes surfaces ═══ */
 .card,.stat,.flux-page .note-card,.cal-hero-card,
 .flux-dash-card-inner,.flux-ai-strip-inner,.flux-mega-card,.flux-patterns-card,
-#flux100IntelHub,.dash-v2-pulse,.dash-v2-insight .dash-v2-focus-slot,.dash-v2-countdown-card{
+.dash-v2-pulse,.dash-v2-insight .dash-v2-focus-slot,.dash-v2-countdown-card{
   background:
     linear-gradient(165deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.02) 42%,rgba(0,0,0,.06) 100%),
     var(--glass-tint),var(--card)!important;
@@ -95,11 +95,11 @@ html::after{
 }
 
 /* Slow highlight sweep on intel / mega cards */
-.flux-dash-card-inner,.flux-mega-card,#flux100IntelHub,.flux-ai-strip-inner{
+.flux-dash-card-inner,.flux-mega-card,.flux-ai-strip-inner{
   position:relative;
   overflow:hidden;
 }
-.flux-dash-card-inner::after,.flux-mega-card::after,#flux100IntelHub::after,.flux-ai-strip-inner::after{
+.flux-dash-card-inner::after,.flux-mega-card::after,.flux-ai-strip-inner::after{
   content:'';
   position:absolute;
   inset:-40% -30%;

@@ -110,7 +110,6 @@
     attachTaskRowUX();
     updateStickyFocus();
     if(window.FluxIntel&&FluxIntel.refreshStreakBadge)FluxIntel.refreshStreakBadge();
-    if(window.FluxMega&&FluxMega.render&&document.getElementById('dashboard')?.classList.contains('active'))FluxMega.render();
   };
 
   window.fluxAfterRenderCalendar=function(){

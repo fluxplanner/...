@@ -269,7 +269,7 @@
   function prod68(){return intel04();}
   function prod69(){
     const n=safeLoad(STORAGE.DISTRACT,0);
-    return n?'Distraction logs this week: '+n+' — use Focus Mode when studying.':'Tap ⚡ Focus in the shell to log a distraction-free block.';
+    return n?'Distraction logs this week: '+n+' — use Focus Mode when studying.':'Log distractions from the command palette (⌘K) if you enable the habit.';
   }
   function prod70(){
     return 'Momentum: streak completions in-session raise your zone (see momentum UI).';
@@ -403,58 +403,6 @@
     });
   }
 
-  function injectShell(){
-    if(document.getElementById('flux100Shell'))return;
-    const shell=document.createElement('div');
-    shell.id='flux100Shell';
-    shell.innerHTML=`
-      <div id="flux100MiniTimer" class="flux100-mini-timer" hidden><span class="flux100-mt-label">Focus</span><span id="flux100MtDisplay">25:00</span></div>
-      <div id="flux100Notif" class="flux100-notif-panel" hidden>
-        <div class="flux100-notif-head"><span>Activity</span><button type="button" id="flux100NotifClose">×</button></div>
-        <div id="flux100NotifBody" class="flux100-notif-body"></div>
-      </div>
-      <button type="button" id="flux100NotifOpen" class="flux100-notif-btn" aria-label="Open activity">🔔</button>
-      <div class="flux100-os-bar">
-        <button type="button" id="flux100FocusToggle" class="flux100-os-btn">⚡ Focus</button>
-        <button type="button" id="flux100DistPlus" class="flux100-os-btn" title="Log distraction">📵</button>
-      </div>`;
-    document.body.appendChild(shell);
-    document.getElementById('flux100FocusToggle').addEventListener('click',()=>{
-      document.body.classList.toggle('flux-os-focus');
-      showToast(document.body.classList.contains('flux-os-focus')?'Focus Mode on':'Focus Mode off','info');
-      logActivity('focus_toggle',document.body.classList.contains('flux-os-focus')?'on':'off');
-    });
-    document.getElementById('flux100DistPlus').addEventListener('click',()=>{
-      const n=safeLoad(STORAGE.DISTRACT,0)+1;
-      safeSave(STORAGE.DISTRACT,n);
-      showToast('Distraction logged ('+n+')','info');
-    });
-    document.getElementById('flux100NotifOpen').addEventListener('click',()=>{
-      const p=document.getElementById('flux100Notif');
-      const b=document.getElementById('flux100NotifBody');
-      p.hidden=!p.hidden;
-      if(!p.hidden){
-        const a=safeLoad(STORAGE.ACTIVITY,[]).slice(-40).reverse();
-        b.innerHTML=a.length?a.map(x=>`<div class="flux100-act-row"><span class="flux100-act-t">${new Date(x.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span><span>${esc(x.detail)}</span></div>`).join(''):'<div class="flux100-empty">No activity yet.</div>';
-      }
-    });
-    document.getElementById('flux100NotifClose').addEventListener('click',()=>{document.getElementById('flux100Notif').hidden=true;});
-  }
-
-  function pollMiniTimer(){
-    const disp=document.getElementById('flux100MtDisplay');
-    const wrap=document.getElementById('flux100MiniTimer');
-    if(!disp||!wrap)return;
-    setInterval(()=>{
-      const main=document.getElementById('tDisplay');
-      if(main&&main.textContent&&main.textContent.indexOf(':')>0){
-        disp.textContent=main.textContent;
-        const running=document.getElementById('timerBtn')&&document.getElementById('timerBtn').textContent.includes('Pause');
-        wrap.hidden=!running;
-      }else wrap.hidden=true;
-    },800);
-  }
-
   function onNavAfter(id){
     const main=document.getElementById('flux-main')||document.querySelector('.main-content');
     if(!main)return;
@@ -560,8 +508,6 @@
     const out=[];
     const test=(label,cat,fn)=>{if(!qq||label.toLowerCase().includes(qq))out.push({icon:'✨',label,cat,action:fn});};
     test('Toggle Focus Mode','Flux100',()=>{document.body.classList.toggle('flux-os-focus');closeCommandPalette();showToast('Focus Mode','info');});
-    test('Open Activity','Flux100',()=>{document.getElementById('flux100Notif').hidden=false;document.getElementById('flux100NotifOpen').click();closeCommandPalette();});
-    test('Weekly intel refresh','Flux100',()=>{renderIntelHub();renderTop3();closeCommandPalette();showToast('Intel refreshed','success');});
     test('Switch: List view','Views',()=>{switchView('list');closeCommandPalette();});
     test('Switch: Board view','Views',()=>{switchView('kanban');closeCommandPalette();});
     test('Switch: Timeline view','Views',()=>{switchView('timeline');closeCommandPalette();});
@@ -571,8 +517,6 @@
   }
 
   function onTasksRendered(){
-    renderIntelHub();
-    renderTop3();
     document.querySelectorAll('.task-item[data-task-id]').forEach(row=>{
       const id=row.getAttribute('data-task-id');
       const t=ctxTasks().find(x=>String(x.id)===String(id));
@@ -622,8 +566,6 @@
   function init(){
     if(window._flux100Inited)return;
     window._flux100Inited=true;
-    injectShell();
-    pollMiniTimer();
     document.documentElement.classList.add('flux100-ambient');
     applyPersonalizationVisuals();
     setInterval(applyPersonalizationVisuals,36e5);

@@ -170,16 +170,15 @@
     if(!wrap)return;
     const c=loadNavCounts();
     const weight=name=>{
-      const base={intel:10,mega:9,patterns:8,pulse:7,focus:6,countdown:5,tasks:11};
+      const base={pulse:8,focus:7,countdown:6,tasks:11};
       const b=base[name]||8;
       let w=b;
       if(name==='pulse')w+=Math.min(4,(c.calendar||0)*0.15);
       if(name==='focus'||name==='countdown')w+=Math.min(5,(c.timer||0)*0.2);
-      if(name==='tasks'||name==='intel')w+=Math.min(6,(c.dashboard||0)*0.12);
-      if(name==='mega')w+=Math.min(3,(c.ai||0)*0.1);
+      if(name==='tasks')w+=Math.min(6,(c.dashboard||0)*0.12);
       return w;
     };
-    ['intel','mega','patterns','pulse','focus','countdown','tasks'].forEach(name=>{
+    ['pulse','focus','countdown','tasks'].forEach(name=>{
       const child=wrap.querySelector('[data-flux-section="'+name+'"]');
       if(child)child.style.order=String(Math.round(24-weight(name)));
     });
