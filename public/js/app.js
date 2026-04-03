@@ -410,11 +410,6 @@ function exportGradesCSV(){
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-grades.csv';a.click();URL.revokeObjectURL(url);
   showToast('Grades CSV exported','success');
 }
-function fluxISOWeekMidMonth(y,m){
-  const d=new Date(y,m,15);const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
-  const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y1=new Date(Date.UTC(t.getUTCFullYear(),0,1));
-  return Math.ceil((((t-y1)/86400000)+1)/7);
-}
 function setTimerPresetMins(mins){
   const el=document.getElementById('customWork');if(!el)return;
   el.value=String(mins);updateTLengths();showToast(mins+' min focus','info');
@@ -692,6 +687,8 @@ const DEFAULT_TABS=[
 let tabConfig=load('flux_tabs',DEFAULT_TABS);
 // Ensure new tabs get added if missing
 DEFAULT_TABS.forEach(dt=>{if(!tabConfig.find(t=>t.id===dt.id))tabConfig.push({...dt});});
+// Legacy tab label (older builds / stored flux_tabs)
+tabConfig.forEach(t=>{if(t.id==='ai'&&/flux\s*agent/i.test(String(t.label||'')))t.label='Flux AI';});
 save('flux_tabs',tabConfig);
 
 let taskFilter='active',editingId=null,editingGoalId=null;
@@ -797,7 +794,7 @@ function nav(id,btn){
   const bni=document.querySelector(`.bnav-item[data-tab="${id}"]`);if(bni)bni.classList.add('active');
   updateNavAriaCurrent(id);
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{loadCalScheduleUI();renderCalendar();renderCalToday();renderCalUpcoming();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},gmail:()=>loadGmail()};
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},gmail:()=>loadGmail()};
   fns[id]?.();
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
   if(window.Flux100&&typeof Flux100.onNavAfter==='function')try{Flux100.onNavAfter(id);}catch(e){}
@@ -1365,8 +1362,7 @@ function submitCalTask(dateStr){
 }
 function renderCalendar(){
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const wk=typeof fluxISOWeekMidMonth==='function'?fluxISOWeekMidMonth(calYear,calMonth):'';
-  document.getElementById('calMonthLabel').textContent=months[calMonth]+' '+calYear+(wk?' · W'+wk:'');
+  document.getElementById('calMonthLabel').textContent=months[calMonth]+' '+calYear;
   const first=new Date(calYear,calMonth,1).getDay(),days=new Date(calYear,calMonth+1,0).getDate(),prevDays=new Date(calYear,calMonth,0).getDate();
   const now=new Date();now.setHours(0,0,0,0);
   const tMap={};tasks.filter(t=>t.date).forEach(t=>{const d=new Date(t.date+'T00:00:00');if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=d.getDate();if(!tMap[k])tMap[k]=[];tMap[k].push(t);}});
@@ -1388,8 +1384,6 @@ const eventBars=elist.slice(0,2).map(e=>{const out=fluxEventScope(e)==='outside'
 const allCount=tlist.length+elist.length;const dots=taskBars+eventBars;const abCol=ab==='A'?'var(--accent)':ab==='B'?'var(--green)':ab?'var(--gold)':'var(--muted)';const abLabel=ab?`<div style="font-size:${ab.length>2?'.4rem':'.45rem'};font-family:'JetBrains Mono',monospace;color:${abCol};line-height:1;margin-top:1px;max-width:100%;text-overflow:ellipsis;overflow:hidden">${esc(ab)}</div>`:'';const overFlag=tlist.some(t=>!t.done&&new Date(t.date+'T00:00:00')<now)?'<div style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--red)"></div>':'';const countBadge=allCount>3?`<div class="cal-day-count">+${allCount-3}</div>`:'';const restCls=isNP?` no-hw ${rk==='sick'?'rest-sick':'rest-lazy'}`:'';html+=`<div class="cal-day ${isToday?'today ':''}${d===calSelected?'selected ':''}${restCls}" data-cal-date="${ds}" data-rest-kind="${rk||''}" ondragover="fluxCalDragOver(event)" ondragleave="fluxCalDragLeave(event)" ondrop="fluxCalDrop(event)" onclick="selectDay(${d})" style="position:relative">${overFlag}<div class="cal-dn">${d}</div>${abLabel}<div class="cal-dots">${dots}</div>${countBadge}</div>`;}
   document.getElementById('calGrid').innerHTML=html;
   renderCalDay();
-  renderCalToday();
-  renderCalUpcoming();
   if(typeof fluxAfterRenderCalendar==='function')fluxAfterRenderCalendar();
 }
 
@@ -1423,67 +1417,6 @@ function renderCalDay(){
     }
     const sch=fluxEventScope(o)==='school';
     return`<div class="task-item" style="margin-bottom:6px;display:flex;align-items:center;gap:6px"><div class="check ${o.done?'done':''}" onclick="toggleTask(${o.id})">${o.done?'✓':''}</div><div class="task-body" style="flex:1;min-width:0"><div class="task-text ${o.done?'done':''}">${esc(o.name)}</div></div><button type="button" class="scope-pill ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${o.id})" title="School vs outside">${sch?'🏫':'🌐'}</button><button class="btn-sm btn-del" onclick="deleteTask(${o.id})">✕</button></div>`;
-  }).join('');
-}
-
-function renderCalToday(){
-  const ts=todayStr();
-  const todayEl=document.getElementById('calTodayTasks');
-  const badgeEl=document.getElementById('todayDateBadge');
-  if(badgeEl)badgeEl.textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-  const todayTasks=tasks.filter(t=>t.date===ts&&!t.done);
-  const todayEvents=(load('flux_events',[])).filter(e=>e.date===ts);
-  const wToday=weeklyVirtualEventsForDate(ts);
-  if(!todayEl)return;
-  if(!todayTasks.length&&!todayEvents.length&&!wToday.length){todayEl.innerHTML='<div style="color:var(--muted);font-size:.82rem">Nothing due today 🎉</div>';return;}
-  const blocks=[];wToday.forEach(o=>blocks.push({k:'w',o}));todayEvents.forEach(o=>blocks.push({k:'e',o}));todayTasks.forEach(o=>blocks.push({k:'t',o}));
-  const ord={w:0,e:1,t:2};
-  blocks.sort((a,b)=>{const s=fluxScopeSortKey(a.o)-fluxScopeSortKey(b.o);if(s!==0)return s;return ord[a.k]-ord[b.k];});
-  todayEl.innerHTML=blocks.map(({k,o})=>{
-    if(k==='w'){
-      const sch=fluxEventScope(o)==='school';
-      return`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(0,194,255,.08);border-radius:10px;margin-bottom:5px;border:1px solid rgba(var(--accent-rgb),.2)"><span>🔁</span><div style="flex:1;font-size:.82rem;font-weight:600;min-width:0">${esc(o.title)} <span style="font-size:.65rem;color:var(--muted);font-weight:500">(weekly)</span></div>${o.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</span>`:''}<button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleWeeklyRuleScope('${o.ruleId}')">${sch?'🏫':'🌐'}</button>`;
-    }
-    if(k==='e'){
-      const sch=fluxEventScope(o)==='school';
-      return`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(192,132,252,.08);border-radius:10px;margin-bottom:5px"><span>📅</span><div style="flex:1;font-size:.82rem;font-weight:600;min-width:0">${esc(o.title)}</div>${o.time?`<span style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${esc(o.time)}</span>`:''}<button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleOneOffEventScope('${o.id}')">${sch?'🏫':'🌐'}</button>`;
-    }
-    const sub=getSubjects()[o.subject];const pc=o.priority==='high'?'var(--red)':o.priority==='med'?'var(--gold)':'var(--green)';
-    const sch=fluxEventScope(o)==='school';
-    return`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--card2);border-radius:10px;margin-bottom:5px;border-left:3px solid ${pc}"><div class="check ${o.done?'done':''}" onclick="toggleTask(${o.id})" style="width:18px;height:18px;border-radius:5px;font-size:10px;flex-shrink:0">${o.done?'✓':''}</div><div style="flex:1;font-size:.82rem;font-weight:500;min-width:0">${esc(o.name)}</div>${sub?`<span style="font-size:.65rem;color:${sub.color};font-family:'JetBrains Mono',monospace">${sub.short}</span>`:''}<button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${o.id})">${sch?'🏫':'🌐'}</button>`;
-  }).join('');
-}
-
-function renderCalUpcoming(){
-  const el=document.getElementById('calUpcomingTasks');if(!el)return;
-  const now=new Date();now.setHours(0,0,0,0);
-  const in7=new Date(now);in7.setDate(now.getDate()+7);
-  const upcoming=tasks.filter(t=>{if(!t.date||t.done)return false;const d=new Date(t.date+'T00:00:00');return d>now&&d<=in7;}).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const upEvents=(load('flux_events',[])).filter(e=>{if(!e.date)return false;const d=new Date(e.date+'T00:00:00');return d>now&&d<=in7;}).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const upWeekly=[];
-  for(let i=1;i<=7;i++){
-    const x=new Date(now);x.setDate(now.getDate()+i);
-    const ds=fluxLocalYMD(x);
-    weeklyVirtualEventsForDate(ds).forEach(e=>upWeekly.push({...e,date:ds,_type:'weekly'}));
-  }
-  const all=[...upEvents.map(e=>({...e,_type:'event'})),...upWeekly,...upcoming.map(t=>({...t,_type:'task'}))].sort((a,b)=>{
-    if(fluxScopeSortKey(a)!==fluxScopeSortKey(b))return fluxScopeSortKey(a)-fluxScopeSortKey(b);
-    return new Date(a.date)-new Date(b.date);
-  });
-  if(!all.length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem">Nothing coming up 🎉</div>';return;}
-  el.innerHTML=all.map(item=>{
-    const d=new Date(item.date+'T00:00:00');const dStr=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-    if(item._type==='weekly'){
-      const sch=fluxEventScope(item)==='school';
-      return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">🔁</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600">${esc(item.title)} <span style="color:var(--muted);font-weight:500">(weekly)</span></div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${item.time?' · '+esc(item.time):''}</div></div><button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleWeeklyRuleScope('${item.ruleId}')">${sch?'🏫':'🌐'}</button></div>`;
-    }
-    if(item._type==='event'){
-      const sch=fluxEventScope(item)==='school';
-      return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">📅</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600">${esc(item.title)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}</div></div><button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="toggleOneOffEventScope('${item.id}')">${sch?'🏫':'🌐'}</button></div>`;
-    }
-    const sub=getSubjects()[item.subject];const pc=item.priority==='high'?'var(--red)':item.priority==='med'?'var(--gold)':'var(--green)';
-    const sch=fluxEventScope(item)==='school';
-    return`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><div style="width:4px;height:32px;border-radius:2px;background:${pc};flex-shrink:0"></div><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(item.name)}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${dStr}${sub?' · '+sub.short:''}</div></div><button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${item.id})">${sch?'🏫':'🌐'}</button></div>`;
   }).join('');
 }
 
@@ -1633,14 +1566,14 @@ async function syncGoogleCalendar(){
     const items=data.items||[];
     if(statusEl)statusEl.innerHTML=`<div class="sync-badge synced">✓ Synced ${items.length} events</div>`;
     if(eventsEl){
-      if(!items.length){eventsEl.innerHTML='<div style="color:var(--muted);font-size:.82rem">No upcoming events</div>';return;}
+      if(!items.length){eventsEl.innerHTML='<div style="color:var(--muted);font-size:.68rem">No upcoming events</div>';return;}
       eventsEl.innerHTML=items.map(ev=>{
         const start=ev.start?.dateTime||ev.start?.date||'';
         const d=start?new Date(start).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
-        return`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px"></div>
-          <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ev.summary||'(no title)')}</div><div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${d}</div></div>
-          <button onclick="addGCalEventAsTask('${encodeURIComponent(ev.summary||'')}','${start.slice(0,10)}')" style="padding:3px 8px;font-size:.68rem;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.25);color:var(--accent);border-radius:7px;flex-shrink:0">+ Task</button>
+        return`<div style="display:flex;gap:6px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--border)">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px"></div>
+          <div style="flex:1;min-width:0"><div style="font-size:.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ev.summary||'(no title)')}</div><div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace">${d}</div></div>
+          <button onclick="addGCalEventAsTask('${encodeURIComponent(ev.summary||'')}','${start.slice(0,10)}')" style="padding:2px 6px;font-size:.62rem;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.25);color:var(--accent);border-radius:6px;flex-shrink:0">+ Task</button>
         </div>`;
       }).join('');
     }
@@ -2259,11 +2192,20 @@ function renderSubjectBudget(){
 function renderFocusHeatmap(){const el=document.getElementById('focusHeatmap');if(!el)return;el.classList.add('flux-focus-heatmap');const weekStart=new Date(TODAY);weekStart.setDate(TODAY.getDate()-TODAY.getDay()+1);const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];el.innerHTML=days.map((day,i)=>{const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);const ds=d.toISOString().slice(0,10);const mins=sessionLog.filter(s=>s.date===ds).reduce((sum,s)=>sum+s.mins,0);const intensity=Math.min(mins/180,1);const isToday=ds===todayStr();const txt=intensity>.08?'var(--text)':'var(--muted2)';return`<div class="flux-fh-cell" style="flex:1;text-align:center"><div class="flux-fh-block" style="height:44px;border-radius:10px;background:linear-gradient(180deg,rgba(var(--accent-rgb),${(intensity*.92+.08).toFixed(3)}),rgba(var(--purple-rgb),${(intensity*.55).toFixed(3)}));border:1px solid ${isToday?'var(--accent)':'var(--border)'};box-shadow:${mins>60?'0 0 12px rgba(var(--accent-rgb),.15)':'none'};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:'JetBrains Mono',monospace;color:${txt};font-weight:700">${mins>0?mins+'m':'—'}</div><div style="font-size:.58rem;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace">${day}</div></div>`;}).join('');}
 
 // ══ PROFILE ══
+function normalizeProgramList(raw){
+  if(Array.isArray(raw))return[...new Set(raw.filter(x=>typeof x==='string'&&x.trim()))];
+  if(typeof raw==='string'&&raw.trim())return[raw.trim()];
+  return[];
+}
+function formatProgramsDisplay(programs){
+  return normalizeProgramList(programs).join(' · ');
+}
+
 function saveProfile(){
   const p={
     name:document.getElementById('name').value.trim(),
     grade:document.getElementById('grade').value,
-    program:document.getElementById('program').value,
+    program:Array.from(document.querySelectorAll('input[name="programOpt"]:checked')).map(i=>i.value),
     school:document.getElementById('profileSchool').value.trim(),
   };
   localStorage.setItem('profile',JSON.stringify(p));
@@ -2278,9 +2220,11 @@ function saveProfile(){
 function checkProgramUpgrade(p){
   if(!p)return;
   const grade=parseInt(p.grade)||0;
-  const prog=p.program||'';
-  if(grade>=11&&prog==='IB MYP'){
-    p.program='IB DP';
+  let programs=normalizeProgramList(p.program);
+  if(grade>=11&&programs.includes('IB MYP')){
+    programs=programs.filter(x=>x!=='IB MYP');
+    if(!programs.includes('IB DP'))programs.push('IB DP');
+    p.program=programs;
     localStorage.setItem('profile',JSON.stringify(p));
     // Show upgrade notification
     const notif=document.createElement('div');
@@ -2294,24 +2238,23 @@ function checkProgramUpgrade(p){
 
 function renderProfile(){
   const p=load('profile',{});
+  if(p.grade)checkProgramUpgrade(p);
   const name=p.name||localStorage.getItem('flux_user_name')||'Student';
   const grade=p.grade||'';
-  const program=p.program||'';
+  const programs=normalizeProgramList(p.program);
+  const programDisplay=formatProgramsDisplay(programs);
   const school=p.school||'';
 
-  // Auto-check upgrade on render
-  if(p.grade)checkProgramUpgrade(p);
-
-  const subline=[grade?`Grade ${grade}`:'',program,school].filter(Boolean).join(' · ');
+  const subline=[grade?`Grade ${grade}`:'',programDisplay,school].filter(Boolean).join(' · ');
   const profileNameEl=document.getElementById('profileName');if(profileNameEl)profileNameEl.textContent=name;
   const profileSubEl=document.getElementById('profileSubline');if(profileSubEl)profileSubEl.textContent=subline||'Set up your profile';
 
   if(p.name){
     const nameEl=document.getElementById('name');if(nameEl)nameEl.value=p.name;
     const gradeEl=document.getElementById('grade');if(gradeEl)gradeEl.value=p.grade||'';
-    const progEl=document.getElementById('program');if(progEl)progEl.value=p.program||'';
     const schoolEl=document.getElementById('profileSchool');if(schoolEl)schoolEl.value=p.school||'';
   }
+  document.querySelectorAll('input[name="programOpt"]').forEach(cb=>{cb.checked=programs.includes(cb.value);});
 
   const pic=localStorage.getItem('flux_profile_pic');
   const av=document.getElementById('pAvatar');
@@ -2324,8 +2267,8 @@ function renderProfile(){
   if(gpa!==null&&gpa>=3.7)badges.push({t:'🏆 Honor Roll',c:'badge-gold'});
   if(done>=20)badges.push({t:'✓ Task Master',c:'badge-green'});
   if(tStreak>=7)badges.push({t:'🔥 Study Streak',c:'badge-red'});
-  if(program==='IB DP')badges.push({t:'📚 IB DP',c:'badge-blue'});
-  if(program==='IB MYP')badges.push({t:'📖 IB MYP',c:'badge-purple'});
+  if(programs.includes('IB DP'))badges.push({t:'📚 IB DP',c:'badge-blue'});
+  if(programs.includes('IB MYP'))badges.push({t:'📖 IB MYP',c:'badge-purple'});
   if(notes.length>=10)badges.push({t:'📝 Note Taker',c:'badge-purple'});
   const badgeEl=document.getElementById('profileBadges');
   if(badgeEl)badgeEl.innerHTML=badges.length?badges.map(b=>`<span class="badge ${b.c}">${b.t}</span>`).join(''):'<span style="font-size:.75rem;color:var(--muted)">Complete tasks to earn badges!</span>';
@@ -2541,7 +2484,15 @@ function applyCustomColor(){
 }
 
 // ══ SETTINGS ══
-function switchStab(id,el){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');const pane=document.getElementById('spane-'+id);if(pane)pane.classList.add('active');if(id==='appearance'){applyFontScale();applyReduceMotion();}if(id==='data'&&typeof renderStorageMeter==='function')renderStorageMeter();}
+function switchStab(id,el){
+  document.querySelectorAll('#settings .stab').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false');});
+  document.querySelectorAll('#settings .spane').forEach(p=>p.classList.remove('active'));
+  if(el){el.classList.add('active');el.setAttribute('aria-selected','true');}
+  const pane=document.getElementById('spane-'+id);
+  if(pane)pane.classList.add('active');
+  if(id==='appearance'){applyFontScale();applyReduceMotion();if(window.FluxPersonal&&FluxPersonal.renderPanelLayoutSettings)FluxPersonal.renderPanelLayoutSettings();}
+  if(id==='data'&&typeof renderStorageMeter==='function')renderStorageMeter();
+}
 function toggleSetting(k,el){settings[k]=!settings[k];el.classList.toggle('on',settings[k]);save('flux_settings',settings);}
 function toggleNotifyBrowser(el){
   if(!('Notification' in window)){showToast('Notifications not supported','warning');return;}
@@ -3111,7 +3062,7 @@ function buildAIPrompt(){
   const name=localStorage.getItem('flux_user_name')||'Student';
   const p=load('profile',{});
   const grade=p.grade||'';
-  const program=p.program||'';
+  const program=formatProgramsDisplay(p.program);
   const now=new Date();now.setHours(0,0,0,0);
   const gpa=calcGPA(grades);
   const mood=moodHistory.slice(-1)[0];
@@ -3739,7 +3690,11 @@ function obNext(){
     schoolInfo.combo=document.getElementById('obCombo')?.value.trim()||'';
     save('flux_school',schoolInfo);
     const p=load('profile',{});
-    p.program=obSelectedTrack||p.program||'';
+    if(obSelectedTrack){
+      const existing=normalizeProgramList(p.program);
+      if(!existing.includes(obSelectedTrack))existing.push(obSelectedTrack);
+      p.program=existing;
+    }
     save('profile',p);
   }
   if(obCurrentStep===4){

@@ -19,30 +19,30 @@ function runShortSplash(callback){
   const splash=document.getElementById('splash');
   if(!splash){callback();return;}
   const reduce=prefersReducedMotion();
-  splash.style.cssText='position:fixed;inset:0;background:#0B0E14;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;overflow:hidden';
+  splash.style.cssText='position:fixed;inset:0;background:#0B0E14;z-index:9999;display:flex;flex-direction:column;align-items:stretch;justify-content:center;width:100%;height:100%;min-height:100dvh;overflow:hidden';
   const laserAnim=reduce?'none':'fluxLaserGrow 1.35s cubic-bezier(.22,1,.36,1) forwards';
   splash.innerHTML=`
-    <div style="position:absolute;inset:0;pointer-events:none;opacity:.35;background:radial-gradient(ellipse 80% 55% at 50% 20%,rgba(74,144,226,.12),transparent 55%)"></div>
-    <div style="position:relative;z-index:1;width:min(300px,92vw);padding:0 20px;box-sizing:border-box;animation:splashFadeIn .55s cubic-bezier(.22,1,.36,1) both">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 32" width="100%" height="auto" style="max-width:280px;display:block;margin:0;filter:drop-shadow(0 6px 28px rgba(74,144,226,.15))" aria-hidden="true">
-        <defs>
-          <linearGradient id="fluxWGSplash" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#E8F4FC"/>
-            <stop offset="55%" stop-color="#00d4ff"/>
-            <stop offset="100%" stop-color="#4A90E2"/>
-          </linearGradient>
-        </defs>
-        <text x="0" y="26" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="26" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWGSplash)">Flux</text>
-      </svg>
-      <div style="margin-top:10px;width:100%;max-width:280px">
-        <div style="display:flex;align-items:center;width:100%;gap:6px">
+    <div style="position:absolute;inset:0;pointer-events:none;opacity:.35;background:radial-gradient(ellipse 85% 60% at 50% 42%,rgba(74,144,226,.14),transparent 58%)"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;box-sizing:border-box;padding:max(12px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))">
+      <div style="width:100%;max-width:272px;display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:-24px;animation:splashFadeIn .55s cubic-bezier(.22,1,.36,1) both">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 28" preserveAspectRatio="xMinYMin meet" style="width:100%;max-width:272px;height:auto;display:block;flex-shrink:0;filter:drop-shadow(0 6px 24px rgba(74,144,226,.14))" aria-hidden="true">
+          <defs>
+            <linearGradient id="fluxWGSplash" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#E8F4FC"/>
+              <stop offset="55%" stop-color="#00d4ff"/>
+              <stop offset="100%" stop-color="#4A90E2"/>
+            </linearGradient>
+          </defs>
+          <text x="0" y="23" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="26" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWGSplash)">Flux</text>
+        </svg>
+        <div style="display:flex;align-items:center;width:100%;gap:6px;margin-top:2px">
           <div aria-hidden="true" style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#8ec5f2);box-shadow:0 0 14px rgba(74,144,226,.95),0 0 5px rgba(255,255,255,.75)"></div>
-          <div style="flex:1;min-width:0;height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;position:relative">
+          <div style="flex:1;min-width:0;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;position:relative">
             <div class="flux-splash-laser-fill" style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:3px;width:${reduce?'100%':'0'};border-radius:2px;background:linear-gradient(90deg,#A0D8EF,#4A90E2);box-shadow:0 0 12px rgba(74,144,226,.55);animation:${laserAnim}"></div>
           </div>
         </div>
-        <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.36em;text-transform:uppercase;color:rgba(190,205,225,.88)">PLANNER</div>
-        <div style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-align:left;color:rgba(150,170,200,.55)">Loading workspace</div>
+        <div style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.36em;text-transform:uppercase;color:rgba(195,210,230,.9);text-align:left;line-height:1.3">PLANNER</div>
+        <div style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-align:left;color:rgba(150,170,200,.52)">Loading workspace</div>
       </div>
     </div>
     <style>

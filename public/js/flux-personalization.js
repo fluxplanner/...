@@ -6,6 +6,13 @@
   const KEY_DENSITY='flux_ui_density';
   const KEY_NAV='flux_nav_counts_v1';
   const KEY_MOOD_TINT='flux_mood_tint_enabled';
+  const KEY_LAYOUT_DASH='flux_layout_dashboard_v1';
+  const KEY_LAYOUT_CAL='flux_layout_calendar_v1';
+  const KEY_LIQUID_GLASS='flux_liquid_glass';
+  const DEFAULT_DASH_ORDER=['countdown','pulse','tasks'];
+  const DEFAULT_CAL_ORDER=['hero','schedule'];
+  const DASH_LABELS={countdown:'Exam countdown',pulse:'Next 7 days (workload)',tasks:'Tasks'};
+  const CAL_LABELS={hero:'Month, day detail & Google sync',schedule:'Cycle & weekly schedule'};
 
   function esc(s){
     return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -61,6 +68,15 @@
     if(mood<=2||stress>=9)tone='calm';
     else if(mood>=4&&stress<=4)tone='warm';
     document.documentElement.setAttribute('data-mood-tint',tone);
+  }
+
+  function applyLiquidGlass(){
+    const on=load(KEY_LIQUID_GLASS,true)!==false;
+    document.documentElement.setAttribute('data-flux-glass',on?'on':'off');
+  }
+  function setLiquidGlassEnabled(on){
+    save(KEY_LIQUID_GLASS,!!on);
+    applyLiquidGlass();
   }
 
   function peakHoursFromLog(){
@@ -165,28 +181,99 @@
     </div>`;
   }
 
+  function normalizeOrder(saved,allowed){
+    const a=Array.isArray(saved)?saved.filter(x=>allowed.includes(x)):[];
+    const miss=allowed.filter(x=>!a.includes(x));
+    return a.concat(miss);
+  }
+  function loadDashOrder(){
+    try{
+      const v=load(KEY_LAYOUT_DASH,null);
+      if(Array.isArray(v)&&v.length)return normalizeOrder(v,DEFAULT_DASH_ORDER.slice());
+    }catch(e){}
+    return DEFAULT_DASH_ORDER.slice();
+  }
+  function loadCalOrder(){
+    try{
+      const v=load(KEY_LAYOUT_CAL,null);
+      if(Array.isArray(v)&&v.length)return normalizeOrder(v,DEFAULT_CAL_ORDER.slice());
+    }catch(e){}
+    return DEFAULT_CAL_ORDER.slice();
+  }
   function applyDashboardOrder(){
     const wrap=document.getElementById('fluxDashSections');
     if(!wrap)return;
-    const c=loadNavCounts();
-    const weight=name=>{
-      const base={countdown:6,tasks:11};
-      const b=base[name]||8;
-      let w=b;
-      if(name==='countdown')w+=Math.min(5,(c.timer||0)*0.2);
-      if(name==='tasks')w+=Math.min(6,(c.dashboard||0)*0.12);
-      return w;
-    };
-    ['countdown','tasks'].forEach(name=>{
+    const order=loadDashOrder();
+    order.forEach((name,i)=>{
       const child=wrap.querySelector('[data-flux-section="'+name+'"]');
-      if(child)child.style.order=String(Math.round(24-weight(name)));
+      if(child)child.style.order=String(i+1);
     });
+  }
+  function applyCalendarOrder(){
+    const wrap=document.getElementById('fluxCalSections');
+    if(!wrap)return;
+    const order=loadCalOrder();
+    order.forEach((name,i)=>{
+      const child=wrap.querySelector('[data-flux-cal-section="'+name+'"]');
+      if(child)child.style.order=String(i+1);
+    });
+  }
+  function saveDashOrder(arr){
+    save(KEY_LAYOUT_DASH,normalizeOrder(arr,DEFAULT_DASH_ORDER.slice()));
+    applyDashboardOrder();
+  }
+  function saveCalOrder(arr){
+    save(KEY_LAYOUT_CAL,normalizeOrder(arr,DEFAULT_CAL_ORDER.slice()));
+    applyCalendarOrder();
+  }
+  function shiftLayoutSection(panel,idx,dir){
+    const isDash=panel==='dash';
+    const def=isDash?DEFAULT_DASH_ORDER:DEFAULT_CAL_ORDER;
+    const loadFn=isDash?loadDashOrder:loadCalOrder;
+    const saveFn=isDash?saveDashOrder:saveCalOrder;
+    const arr=loadFn();
+    const j=idx+dir;
+    if(j<0||j>=arr.length)return;
+    const next=arr.slice();
+    const t=next[idx];next[idx]=next[j];next[j]=t;
+    saveFn(next);
+    renderPanelLayoutSettings();
+  }
+  function resetPanelLayouts(){
+    save(KEY_LAYOUT_DASH,DEFAULT_DASH_ORDER.slice());
+    save(KEY_LAYOUT_CAL,DEFAULT_CAL_ORDER.slice());
+    applyDashboardOrder();
+    applyCalendarOrder();
+    renderPanelLayoutSettings();
+  }
+  function renderPanelLayoutSettings(){
+    const host=document.getElementById('fluxPanelLayoutSettings');
+    if(!host)return;
+    const dOrder=loadDashOrder();
+    const cOrder=loadCalOrder();
+    const row=(panel,order,labels)=>{
+      return order.map((id,i)=>`
+        <li class="flux-layout-sort-row">
+          <span class="flux-layout-sort-label">${esc(labels[id]||id)}</span>
+          <span class="flux-layout-sort-actions">
+            <button type="button" class="btn-sec flux-layout-sort-btn" ${i===0?'disabled':''} onclick="FluxPersonal.shiftLayoutSection('${panel}',${i},-1)" aria-label="Move up">↑</button>
+            <button type="button" class="btn-sec flux-layout-sort-btn" ${i===order.length-1?'disabled':''} onclick="FluxPersonal.shiftLayoutSection('${panel}',${i},1)" aria-label="Move down">↓</button>
+          </span>
+        </li>`).join('');
+    };
+    host.innerHTML=`
+      <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 8px;font-family:'JetBrains Mono',monospace">Dashboard</div>
+      <ul class="flux-layout-sort-list" role="list">${row('dash',dOrder,DASH_LABELS)}</ul>
+      <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:16px 0 8px;font-family:'JetBrains Mono',monospace">Calendar</div>
+      <ul class="flux-layout-sort-list" role="list">${row('cal',cOrder,CAL_LABELS)}</ul>`;
   }
 
   function applyAll(){
     applyUiDensity();
     applyMoodTint();
+    applyLiquidGlass();
     applyDashboardOrder();
+    applyCalendarOrder();
     styleProfileAvatar();
   }
 
@@ -206,6 +293,19 @@
         mt.classList.toggle('on',next);
       };
     }
+    const lg=document.getElementById('fluxLiquidGlassToggle');
+    if(lg){
+      const en=load(KEY_LIQUID_GLASS,true)!==false;
+      lg.classList.toggle('on',en);
+      lg.setAttribute('aria-pressed',en?'true':'false');
+      lg.onclick=()=>{
+        const next=!lg.classList.contains('on');
+        setLiquidGlassEnabled(next);
+        lg.classList.toggle('on',next);
+        lg.setAttribute('aria-pressed',next?'true':'false');
+      };
+    }
+    renderPanelLayoutSettings();
   }
 
   window.FluxPersonal={
@@ -215,6 +315,8 @@
     applyUiDensity,
     setMoodTintEnabled,
     applyMoodTint,
+    applyLiquidGlass,
+    setLiquidGlassEnabled,
     peakHoursFromLog,
     preferredStudyTimesLine,
     sleepSuggestion,
@@ -223,6 +325,10 @@
     renderAffirmation,
     renderPatternsPanel,
     applyDashboardOrder,
+    applyCalendarOrder,
+    shiftLayoutSection,
+    resetPanelLayouts,
+    renderPanelLayoutSettings,
     applyAll,
     initSettingsUI,
   };

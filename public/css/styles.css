@@ -116,7 +116,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
   overflow:visible;
 }
 .sidebar-logo{font-size:1.18rem;font-weight:800;letter-spacing:-.6px;background:linear-gradient(135deg,var(--text),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;overflow:visible}
-.sidebar-logo svg,.mob-drawer-logo svg{display:block;vertical-align:middle}
+.sidebar-logo svg,.mob-drawer-logo svg{display:block;vertical-align:middle;overflow:visible}
 .sidebar.collapsed .sidebar-logo{opacity:0;width:0}
 .sidebar-toggle{background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;flex-shrink:0;font-size:1rem;transition:var(--transition)}
 .sidebar-toggle:hover{color:var(--text);background:var(--card2);transform:none;box-shadow:none}
@@ -479,6 +479,52 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 .flux-stack{
   display:flex;flex-direction:column;gap:18px;
 }
+/* Grades — photo import: compact, top-right (not a full-width card) */
+#grades .grades-import-toolbar{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+  margin:-4px 0 10px;
+  width:100%;
+}
+#grades .grades-import-actions{
+  display:flex;
+  justify-content:flex-end;
+  width:100%;
+}
+#grades .grades-photo-import{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 11px 6px 9px;
+  margin:0;
+  max-width:min(100%,252px);
+  border:1px dashed rgba(var(--accent-rgb),.38);
+  border-radius:10px;
+  cursor:pointer;
+  background:rgba(var(--accent-rgb),.07);
+  transition:border-color .15s ease,background .15s ease;
+}
+#grades .grades-photo-import:hover{
+  border-color:rgba(var(--accent-rgb),.55);
+  background:rgba(var(--accent-rgb),.11);
+}
+#grades .grades-photo-import__ico{font-size:1.05rem;line-height:1;flex-shrink:0}
+#grades .grades-photo-import__text{display:flex;flex-direction:column;gap:1px;text-align:left;min-width:0}
+#grades .grades-photo-import__text strong{font-size:.74rem;font-weight:700;line-height:1.2}
+#grades .grades-photo-import__text>span{font-size:.58rem;color:var(--muted);line-height:1.25}
+#grades .grades-import-result{
+  width:100%;
+  max-width:400px;
+  text-align:right;
+  font-size:.72rem;
+  line-height:1.4;
+}
+@media(max-width:520px){
+  #grades .grades-photo-import{max-width:100%}
+  #grades .grades-import-result{text-align:left;max-width:none}
+}
 .flux-page .cal-layout{
   gap:18px;
 }
@@ -533,7 +579,6 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
   width:100%;
   align-self:stretch;
 }
-.flux-page .cal-bottom-row{gap:18px}
 .dash-v2-alerts{margin-bottom:14px}
 .dash-v2-pulse{
   background:linear-gradient(165deg,rgba(255,255,255,.04) 0%,rgba(var(--accent-rgb),.05) 50%,rgba(255,255,255,.02) 100%);
@@ -577,6 +622,20 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 .dash-week-rest{font-size:.62rem;line-height:1;display:block;margin-bottom:2px}
 .dash-week-bar--rest{opacity:.35;filter:grayscale(.25)}
 .dash-week-col--rest .dash-week-daylbl{opacity:.85}
+/* Dashboard — compact workload strip (above tasks) */
+#dashboard .dash-workload-compact.card{
+  padding:10px 14px 11px;
+  margin-bottom:12px!important;
+}
+#dashboard .dash-workload-compact .dash-week-strip{margin:0}
+#dashboard .dash-workload-compact .dash-week-strip-inner{padding:8px 10px 10px}
+#dashboard .dash-workload-compact .dash-week-bars{min-height:32px;gap:3px}
+#dashboard .dash-workload-compact .dash-week-bar{max-width:24px}
+#dashboard .dash-workload-compact .dash-week-head{margin-bottom:5px}
+#dashboard .dash-workload-compact .dash-week-kicker{font-size:.5rem;letter-spacing:.12em}
+#dashboard .dash-workload-compact .dash-week-total{font-size:.65rem}
+#dashboard .dash-workload-compact .dash-week-footnote{font-size:.56rem;margin:6px 0 0;line-height:1.35;opacity:.9}
+
 .dash-week-footnote{
   margin:8px 0 0;font-size:.58rem;color:var(--muted);line-height:1.4;opacity:.85;
 }
@@ -674,15 +733,25 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 .cal-hero-card .cal-day{min-height:clamp(64px,9.5vw,104px);padding:7px 6px;border-radius:12px}
 .cal-hero-card .cal-dn{font-size:clamp(.78rem,1.5vw,.95rem)}
 .cal-hero-card .cal-task-bar{font-size:.56rem;padding:2px 5px}
+.cal-hero-card .cal-selected-integrated{margin-top:12px;padding-top:12px}
 .cal-selected-integrated{margin-top:18px;padding-top:18px;border-top:1px solid var(--border2)}
+.cal-hero-card .cal-selected-header{margin-bottom:8px}
 .cal-selected-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.cal-hero-card .cal-day-title{font-size:clamp(.85rem,1.8vw,1rem)}
 .cal-day-title{font-size:clamp(.95rem,2vw,1.12rem);font-weight:700}
 .cal-selected-actions{display:flex;gap:8px;flex-wrap:wrap}
 .cal-add-btn{display:inline-flex;align-items:center;padding:6px 14px;font-size:.8rem}
 .cal-add-event-btn{display:inline-flex;align-items:center;padding:6px 14px;font-size:.8rem;background:rgba(var(--accent-rgb),.15);border:1px solid rgba(var(--accent-rgb),.3);color:var(--accent)}
-.cal-bottom-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:100%}
-.cal-bottom-card{min-height:0}
-@media(max-width:1000px){.cal-bottom-row{grid-template-columns:1fr}}
+.cal-gcal-inline{margin-top:10px;padding-top:10px;border-top:1px solid var(--border2)}
+.cal-gcal-inline-head{margin-bottom:4px}
+.cal-gcal-inline-title{font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;font-family:'JetBrains Mono',monospace;color:var(--muted);font-weight:700}
+.cal-gcal-status{font-size:.65rem;line-height:1.35;margin-bottom:6px}
+.cal-gcal-status .sync-badge{font-size:.62rem!important;padding:2px 7px!important}
+.cal-gcal-sync-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 10px;font-size:.72rem;border-radius:10px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;transition:filter .12s ease,transform .12s ease}
+.cal-gcal-sync-btn:hover{filter:brightness(1.07)}
+.cal-gcal-sync-btn:active{transform:scale(.99)}
+.cal-gcal-events{margin-top:6px;max-height:96px;overflow-y:auto;-webkit-overflow-scrolling:touch;line-height:1.3}
+.cal-gcal-events::-webkit-scrollbar{width:3px}
 @media(max-width:480px){.cal-hero-card .cal-day{min-height:44px}.cal-hero-card .cal-task-bar{display:none}}
 .cal-today-col{display:flex;flex-direction:column;gap:12px}
 .cal-schedule-setup .weekly-dow{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--border2);font-size:.72rem;cursor:pointer;user-select:none;transition:background .15s ease,border-color .15s ease}
@@ -1019,13 +1088,16 @@ button:active:not(:disabled){transform:scale(.97)!important}
 /* FAB */
 /* ══ FAB — FLOATING ACTION BUTTON ══ */
 .fab-container{
-  position:fixed;bottom:86px;right:20px;z-index:300;
+  position:fixed;
+  bottom:max(22px, env(safe-area-inset-bottom, 0px));
+  right:max(18px, env(safe-area-inset-right, 0px));
+  z-index:300;
   display:flex;flex-direction:column;align-items:flex-end;gap:10px;
   /* Let clicks pass through the tall flex box; only trigger + open menu capture */
   pointer-events:none;
 }
 @media(max-width:768px){
-  .fab-container{bottom:calc(78px + env(safe-area-inset-bottom));right:max(14px, env(safe-area-inset-right))}
+  .fab-container{bottom:calc(74px + env(safe-area-inset-bottom));right:max(12px, env(safe-area-inset-right))}
 }
 
 .fab-trigger{
@@ -1179,18 +1251,22 @@ button:active:not(:disabled){transform:scale(.97)!important}
   }
 }
 
-/* Settings — single .stabs in app: solid bar pinned to top of panel scroll (no glass “float”) */
-#settings.flux-page .stabs{
+/* Settings — tab bar is a direct child of #settings (not inside .flux-stack) so position:sticky works in Chrome/Safari */
+#settings.flux-page .flux-settings-stabs,
+#settings.flux-page > .stabs{
   position:sticky!important;
   top:0!important;
-  z-index:25!important;
+  z-index:40!important;
+  flex-shrink:0!important;
+  margin-bottom:18px!important;
   background:var(--bg)!important;
   backdrop-filter:none!important;
   -webkit-backdrop-filter:none!important;
   border:1px solid rgba(255,255,255,.1)!important;
   box-shadow:0 4px 20px rgba(0,0,0,.22)!important;
 }
-[data-theme="light"] #settings.flux-page .stabs{
+[data-theme="light"] #settings.flux-page .flux-settings-stabs,
+[data-theme="light"] #settings.flux-page > .stabs{
   background:var(--bg)!important;
   border-color:rgba(0,0,0,.1)!important;
   box-shadow:0 4px 18px rgba(0,0,0,.07)!important;
@@ -1242,8 +1318,9 @@ button:active:not(:disabled){transform:scale(.97)!important}
     align-items:stretch!important;
   }
   .stabs{position:sticky!important;top:50px!important;z-index:10!important;background:var(--bg)!important}
-  #settings.flux-page .stabs{top:50px!important;z-index:25!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-  #fabContainer{position:fixed!important;bottom:calc(78px + env(safe-area-inset-bottom))!important;right:max(14px, env(safe-area-inset-right))!important;z-index:300!important}
+  #settings.flux-page .flux-settings-stabs,
+  #settings.flux-page > .stabs{top:50px!important;z-index:40!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  #fabContainer{position:fixed!important;bottom:calc(74px + env(safe-area-inset-bottom))!important;right:max(12px, env(safe-area-inset-right))!important;z-index:300!important}
   .stats-row{grid-template-columns:repeat(2,1fr)!important}
   .irow{flex-direction:column!important}
   .irow>*{width:100%!important}

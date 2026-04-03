@@ -345,3 +345,53 @@ input:focus,select:focus,textarea:focus{
 html[data-flux-density] .task-item,html[data-flux-density] .card{
   transition:padding .35s var(--flux-ease-out-expo),gap .35s ease;
 }
+
+/* ═══ Liquid glass off — override premium glass surfaces (Settings → Theme → Effects) ═══ */
+html[data-flux-glass="off"] .card,
+html[data-flux-glass="off"] .stat,
+html[data-flux-glass="off"] .flux-page .note-card,
+html[data-flux-glass="off"] .cal-hero-card,
+html[data-flux-glass="off"] .flux-dash-card-inner,
+html[data-flux-glass="off"] .flux-ai-strip-inner,
+html[data-flux-glass="off"] .flux-mega-card,
+html[data-flux-glass="off"] .flux-patterns-card,
+html[data-flux-glass="off"] .dash-v2-pulse,
+html[data-flux-glass="off"] .dash-v2-insight .dash-v2-focus-slot,
+html[data-flux-glass="off"] .dash-v2-countdown-card{
+  background:var(--card)!important;
+  border-color:var(--border2)!important;
+  box-shadow:0 4px 24px rgba(0,0,0,.22)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  filter:none!important;
+}
+html[data-flux-glass="off"] .card:hover,
+html[data-flux-glass="off"] .stat:hover,
+html[data-flux-glass="off"] .flux-page .note-card:hover,
+html[data-flux-glass="off"] .cal-hero-card:hover,
+html[data-flux-glass="off"] .flux-dash-card-inner:hover,
+html[data-flux-glass="off"] .flux-ai-strip-inner:hover,
+html[data-flux-glass="off"] .flux-mega-card:hover{
+  border-color:rgba(var(--accent-rgb),.22)!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.28)!important;
+  filter:none!important;
+}
+html[data-flux-glass="off"] body[data-theme="light"] .card,
+html[data-flux-glass="off"] body[data-theme="light"] .stat,
+html[data-flux-glass="off"] body[data-theme="light"] .flux-page .note-card,
+html[data-flux-glass="off"] body[data-theme="light"] .cal-hero-card,
+html[data-flux-glass="off"] body[data-theme="light"] .flux-dash-card-inner,
+html[data-flux-glass="off"] body[data-theme="light"] .flux-ai-strip-inner,
+html[data-flux-glass="off"] body[data-theme="light"] .flux-mega-card,
+html[data-flux-glass="off"] body[data-theme="light"] .flux-patterns-card,
+html[data-flux-glass="off"] body[data-theme="light"] .dash-v2-pulse,
+html[data-flux-glass="off"] body[data-theme="light"] .dash-v2-insight .dash-v2-focus-slot,
+html[data-flux-glass="off"] body[data-theme="light"] .dash-v2-countdown-card{
+  box-shadow:0 4px 18px rgba(0,0,0,.07)!important;
+}
+html[data-flux-glass="off"] .flux-dash-card-inner::after,
+html[data-flux-glass="off"] .flux-mega-card::after,
+html[data-flux-glass="off"] .flux-ai-strip-inner::after{
+  opacity:0!important;
+  animation:none!important;
+}

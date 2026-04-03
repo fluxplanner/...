@@ -23,6 +23,13 @@ html[data-mood-tint]{transition:color .4s ease}
 
 /* Dashboard section reorder */
 .flux-dash-sections{display:flex;flex-direction:column;gap:0}
+.flux-cal-sections-wrap{display:flex;flex-direction:column;gap:20px;width:100%}
+.flux-layout-sort-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.flux-layout-sort-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--card2);border:1px solid var(--border2);border-radius:10px}
+.flux-layout-sort-label{font-size:.82rem;font-weight:600;color:var(--text2);flex:1;min-width:0}
+.flux-layout-sort-actions{display:flex;gap:4px;flex-shrink:0}
+.flux-layout-sort-btn{padding:4px 10px!important;font-size:.72rem!important;min-width:36px;line-height:1.2}
+.flux-layout-sort-btn:disabled{opacity:.35;cursor:not-allowed}
 
 /* Patterns card */
 .flux-patterns-host{margin-bottom:12px}
@@ -37,3 +44,44 @@ html[data-mood-tint]{transition:color .4s ease}
 .p-avatar.flux-avatar--evo-3{border-width:3px;box-shadow:0 0 0 2px rgba(var(--gold-rgb),.3),0 0 12px rgba(var(--accent-rgb),.15)}
 .p-avatar.flux-avatar--evo-4{border-width:3px;box-shadow:0 0 0 2px rgba(var(--purple-rgb),.35),0 0 16px rgba(var(--accent-rgb),.2)}
 .p-avatar.flux-avatar--evo-5{border-width:3px;box-shadow:0 0 0 3px rgba(var(--gold-rgb),.4),0 0 20px rgba(var(--accent-rgb),.25)}
+
+/* Liquid glass off — global (Settings → Theme → Effects) */
+html[data-flux-glass="off"]{
+  --glass:none !important;
+  --glass-soft:none !important;
+  --flux-blur-card:none !important;
+  --flux-blur-strong:none !important;
+  --glass-tint:linear-gradient(transparent,transparent) !important;
+  --liquid-edge:inset 0 1px 0 rgba(255,255,255,.08) !important;
+  --shadow-card:0 8px 28px rgba(0,0,0,.32) !important;
+  --shadow-float:0 16px 44px rgba(0,0,0,.42) !important;
+}
+html[data-flux-glass="off"] *,
+html[data-flux-glass="off"] *::before,
+html[data-flux-glass="off"] *::after{
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+}
+/* Chrome + list rows — solid when blur is off (premium cards overridden in flux-visual-premium.css) */
+html[data-flux-glass="off"] .task-item{
+  background:var(--card) !important;
+  box-shadow:0 2px 16px rgba(0,0,0,.2) !important;
+}
+html[data-flux-glass="off"] .topbar{
+  background:linear-gradient(180deg,rgba(var(--accent-rgb),.14) 0%,var(--card) 100%) !important;
+  box-shadow:0 4px 24px rgba(0,0,0,.2) !important;
+}
+html[data-flux-glass="off"] .bottom-nav{
+  background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%) !important;
+  box-shadow:0 -4px 28px rgba(0,0,0,.28) !important;
+}
+html[data-flux-glass="off"] .mob-drawer{
+  background:var(--card) !important;
+  box-shadow:8px 0 32px rgba(0,0,0,.3) !important;
+}
+html[data-flux-glass="off"] body[data-theme="light"] .task-item,
+html[data-flux-glass="off"] body[data-theme="light"] .topbar,
+html[data-flux-glass="off"] body[data-theme="light"] .bottom-nav,
+html[data-flux-glass="off"] body[data-theme="light"] .mob-drawer{
+  box-shadow:0 4px 18px rgba(0,0,0,.06) !important;
+}
