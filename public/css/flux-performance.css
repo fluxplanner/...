@@ -70,3 +70,128 @@ html[data-flux-perf="on"] .task-item:not(.task-done):hover{
 html[data-flux-perf="on"] button:hover{
   transform:none!important;
 }
+
+/* ═══ Liquid glass off — flat chrome (loads last; kills sidebar / nav / premium glow) ═══ */
+html[data-flux-glass="off"] .sidebar,
+html[data-flux-glass="off"] body[data-theme="light"] .sidebar{
+  background:var(--card)!important;
+  border-right:1px solid var(--border2)!important;
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .sidebar-header,
+html[data-flux-glass="off"] .sidebar-nav,
+html[data-flux-glass="off"] .sidebar-footer,
+html[data-flux-glass="off"] body[data-theme="light"] .sidebar-header,
+html[data-flux-glass="off"] body[data-theme="light"] .sidebar-nav,
+html[data-flux-glass="off"] body[data-theme="light"] .sidebar-footer{
+  background:var(--card2)!important;
+  border:1px solid var(--border2)!important;
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .nav-item.active,
+html[data-flux-glass="off"] body[data-theme="light"] .nav-item.active{
+  background:rgba(var(--accent-rgb),.1)!important;
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .nav-item.active::before,
+html[data-flux-glass="off"] body[data-theme="light"] .nav-item.active::before{
+  box-shadow:none!important;
+  filter:none!important;
+}
+html[data-flux-glass="off"] .nav-item:hover{
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .topbar,
+html[data-flux-glass="off"] body[data-theme="light"] .topbar{
+  background:var(--card)!important;
+  border-bottom:1px solid var(--border2)!important;
+  box-shadow:0 1px 0 rgba(0,0,0,.1)!important;
+}
+html[data-flux-glass="off"] .btn-icon,
+html[data-flux-glass="off"] body[data-theme="light"] .btn-icon{
+  background:var(--card2)!important;
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .btn-icon:hover{
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .user-card,
+html[data-flux-glass="off"] body[data-theme="light"] .user-card{
+  background:var(--card2)!important;
+  border:1px solid var(--border2)!important;
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .bottom-nav,
+html[data-flux-glass="off"] body[data-theme="light"] .bottom-nav{
+  background:var(--card)!important;
+  border-top:1px solid var(--border2)!important;
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .mob-drawer,
+html[data-flux-glass="off"] body[data-theme="light"] .mob-drawer{
+  background:var(--card)!important;
+  box-shadow:-4px 0 24px rgba(0,0,0,.2)!important;
+}
+html[data-flux-glass="off"] #dynamicFocusCard,
+html[data-flux-glass="off"] .flux-next-best-card{
+  box-shadow:0 4px 18px rgba(0,0,0,.18)!important;
+  animation:none!important;
+}
+html[data-flux-glass="off"] #dynamicFocusCard:not(:empty){
+  animation:none!important;
+}
+html[data-flux-glass="off"] .focus-card::before{
+  display:none!important;
+}
+html[data-flux-glass="off"] #dashGreeting.dash-v2-greet-title{
+  text-shadow:none!important;
+}
+html[data-flux-glass="off"] .dash-week-col:first-child .dash-week-bar{
+  box-shadow:none!important;
+  animation:none!important;
+  filter:none!important;
+}
+html[data-flux-glass="off"] #countdownCard .dash-v2-countdown-card{
+  animation:none!important;
+  filter:none!important;
+}
+html[data-flux-glass="off"] .task-item:not(.task-done):hover{
+  box-shadow:0 4px 14px rgba(0,0,0,.16)!important;
+  border-color:var(--border2)!important;
+}
+html[data-flux-glass="off"] .task-item.priority-high::before,
+html[data-flux-glass="off"] .task-item.priority-med::before,
+html[data-flux-glass="off"] .task-item.priority-low::before{
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .task-item.due-today::before{
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .card.card-interactive:hover,
+html[data-flux-glass="off"] .focus-card:hover{
+  box-shadow:0 6px 22px rgba(0,0,0,.2)!important;
+}
+html[data-flux-glass="off"] .cal-day.today{
+  animation:none!important;
+}
+html[data-flux-glass="off"] .cal-day.selected{
+  box-shadow:0 0 0 2px rgba(var(--accent-rgb),.25)!important;
+}
+html[data-flux-glass="off"] .check.done{
+  box-shadow:none!important;
+}
+html[data-flux-glass="off"] .quick-add{
+  background:var(--card2)!important;
+}
+html[data-flux-glass="off"] input:focus,
+html[data-flux-glass="off"] select:focus,
+html[data-flux-glass="off"] textarea:focus{
+  box-shadow:0 0 0 2px rgba(var(--accent-rgb),.12)!important;
+}
+html[data-flux-glass="off"] .ai-irow:focus-within{
+  box-shadow:0 0 0 2px rgba(var(--accent-rgb),.1)!important;
+}
+html[data-flux-glass="off"] .flux-streak-badge:not([style*='display: none']){
+  animation:none!important;
+  filter:none!important;
+}

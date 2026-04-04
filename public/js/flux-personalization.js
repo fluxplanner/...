@@ -10,9 +10,9 @@
   const KEY_LAYOUT_CAL='flux_layout_calendar_v1';
   const KEY_LIQUID_GLASS='flux_liquid_glass';
   const KEY_PERF_SNAPPY='flux_perf_snappy';
-  const DEFAULT_DASH_ORDER=['countdown','pulse','tasks'];
+  const DEFAULT_DASH_ORDER=['countdown','pulse','schedule','tasks'];
   const DEFAULT_CAL_ORDER=['hero','schedule'];
-  const DASH_LABELS={countdown:'Exam countdown',pulse:'Next 7 days (workload)',tasks:'Tasks'};
+  const DASH_LABELS={countdown:'Exam countdown',pulse:'Next 7 days (workload)',schedule:'Today schedule & focus (above tasks)',tasks:'Tasks'};
   const CAL_LABELS={hero:'Month, day detail & Google sync',schedule:'Cycle & weekly schedule'};
 
   function esc(s){
@@ -72,7 +72,11 @@
   }
 
   function applyLiquidGlass(){
-    const on=load(KEY_LIQUID_GLASS,true)!==false;
+    let on=false;
+    try{
+      const raw=localStorage.getItem(KEY_LIQUID_GLASS);
+      if(raw!==null)on=JSON.parse(raw)===true;
+    }catch(e){on=false;}
     document.documentElement.setAttribute('data-flux-glass',on?'on':'off');
   }
   function setLiquidGlassEnabled(on){
@@ -211,11 +215,22 @@
     return a.concat(miss);
   }
   function loadDashOrder(){
+    const allowed=DEFAULT_DASH_ORDER.slice();
     try{
       const v=load(KEY_LAYOUT_DASH,null);
-      if(Array.isArray(v)&&v.length)return normalizeOrder(v,DEFAULT_DASH_ORDER.slice());
+      if(Array.isArray(v)&&v.length){
+        let norm=normalizeOrder(v,allowed);
+        const si=norm.indexOf('schedule');
+        const ti=norm.indexOf('tasks');
+        if(si>=0&&ti>=0&&si>ti){
+          norm=norm.filter(x=>x!=='schedule');
+          norm.splice(ti,0,'schedule');
+          save(KEY_LAYOUT_DASH,norm);
+        }
+        return norm;
+      }
     }catch(e){}
-    return DEFAULT_DASH_ORDER.slice();
+    return allowed;
   }
   function loadCalOrder(){
     try{
@@ -320,7 +335,11 @@
     }
     const lg=document.getElementById('fluxLiquidGlassToggle');
     if(lg){
-      const en=load(KEY_LIQUID_GLASS,true)!==false;
+      let en=false;
+      try{
+        const raw=localStorage.getItem(KEY_LIQUID_GLASS);
+        if(raw!==null)en=JSON.parse(raw)===true;
+      }catch(e){en=false;}
       lg.classList.toggle('on',en);
       lg.setAttribute('aria-pressed',en?'true':'false');
       lg.onclick=()=>{

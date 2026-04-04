@@ -34,56 +34,84 @@ if('serviceWorker' in navigator){
   });
 }
 
-// ══ DYNAMIC FOCUS CARD ══
+// ══ DYNAMIC FOCUS CARD (class strip above tasks + next-best task) ══
+function getClassScheduleDisplayMode(){
+  const m=settings&&settings.classScheduleDisplay;
+  if(m==='collapsed'||m==='hidden')return m;
+  return 'full';
+}
+function getTodayClassesForSchedule(){
+  if(typeof classes==='undefined'||!classes||!classes.length)return[];
+  const ab=AB_MAP[todayStr()];
+  if(!ab)return[];
+  return classes.filter(c=>{
+    if(!c.name)return false;
+    if(!c.days||c.days==='')return true;
+    if(c.days.includes('Mon-Fri'))return true;
+    if(c.days.includes(ab+' Day'))return true;
+    return false;
+  }).sort((a,b)=>(a.timeStart||'').localeCompare(b.timeStart||'')||(a.period||0)-(b.period||0));
+}
+function isDashScheduleDetailExpanded(){
+  return localStorage.getItem('flux_dash_schedule_expanded')==='1';
+}
+function toggleDashScheduleExpanded(){
+  localStorage.setItem('flux_dash_schedule_expanded',isDashScheduleDetailExpanded()?'0':'1');
+  renderDynamicFocus();
+}
 function renderDynamicFocus(){
-  const el=document.getElementById('dynamicFocusCard');if(!el)return;
+  const wrap=document.getElementById('dashClassScheduleWrap');
+  const el=document.getElementById('dynamicFocusCard');
+  if(!el){if(wrap)wrap.style.display='none';return;}
+  const mode=getClassScheduleDisplayMode();
   const now=new Date();
-  const todayStr=now.toISOString().slice(0,10);
-  if(typeof isBreak==='function'&&isBreak(todayStr)){
-    const rk=typeof restDayKind==='function'?restDayKind(todayStr):'lazy';
+  const todayIso=todayStr();
+  const useIntel=typeof FluxIntel!=='undefined'&&FluxIntel.appendFocusHtml;
+
+  if(typeof isBreak==='function'&&isBreak(todayIso)){
+    const rk=typeof restDayKind==='function'?restDayKind(todayIso):'lazy';
     const restHtml=`<div class="focus-card flux-focus-rest">
       <div class="focus-label">${rk==='sick'?'🤒 Sick day':'🛋 Lazy day'}</div>
       <div style="font-size:.86rem;color:var(--muted2);margin-top:6px;line-height:1.45">No mandatory school-work block today — Flux treats this as recovery. Tasks are optional; use <strong>AI Command Center → Fix my schedule</strong> to push work forward.</div>
     </div>`;
-    el.innerHTML=(typeof FluxIntel!=='undefined'&&FluxIntel.appendFocusHtml)?FluxIntel.appendFocusHtml(restHtml):restHtml;
+    el.innerHTML=useIntel?FluxIntel.appendFocusHtml(restHtml):restHtml;
+    if(wrap)wrap.style.display=el.innerHTML.trim()?'block':'none';
     return;
   }
-  const todayDay=now.toLocaleDateString('en-US',{weekday:'short'});
+
   const nowMin=now.getHours()*60+now.getMinutes();
+  const clockStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const todayClasses=getTodayClassesForSchedule();
+  let nextClass=null,minDiff=0;
+  if(todayClasses.length){
+    nextClass=todayClasses.find(c=>c.timeStart&&c.timeStart>clockStr)||todayClasses[0];
+    if(nextClass&&nextClass.timeStart){
+      const[h,m]=nextClass.timeStart.split(':').map(Number);
+      minDiff=h*60+m-nowMin;
+    }
+  }
 
-  // Find next class
-  let nextClass=null,minDiff=Infinity;
-  classes.forEach(c=>{
-    if(!c.timeStart)return;
-    const[h,m]=c.timeStart.split(':').map(Number);
-    const classMin=h*60+m;
-    const diff=classMin-nowMin;
-    if(diff>0&&diff<minDiff){minDiff=diff;nextClass=c;}
-  });
-
-  // Find soonest due task
-  const urgent=tasks.filter(t=>!t.done&&t.date===todayStr).sort((a,b)=>(b.priority==='high'?1:0)-(a.priority==='high'?1:0))[0];
-
-  // Contextual task suggestion: task that fits in the gap before next class
+  const urgent=(typeof tasks!=='undefined'&&tasks)?tasks.filter(t=>!t.done&&t.date===todayIso).sort((a,b)=>(b.priority==='high'?1:0)-(a.priority==='high'?1:0))[0]:null;
   let gapSug=null;
-  if(nextClass&&minDiff>0){
+  if(nextClass&&minDiff>0&&typeof tasks!=='undefined'&&tasks){
     gapSug=tasks.filter(t=>!t.done&&t.estTime&&t.estTime<=minDiff).sort((a,b)=>b.urgencyScore-a.urgencyScore)[0];
   }
 
-  let html='';
-  if(nextClass){
-    const hrs=Math.floor(minDiff/60),mins=minDiff%60;
-    const timeStr=hrs>0?`${hrs}h ${mins}m`:`${mins}m`;
-    html+=`<div class="focus-card">
+  let classBlock='';
+  if(mode!=='hidden'&&nextClass){
+    const hrs=Math.floor(Math.max(0,minDiff)/60),mins=Math.max(0,minDiff)%60;
+    const awayStr=minDiff>0?(hrs>0?`${hrs}h ${mins}m`:`${mins}m`):'—';
+    const startLbl=nextClass.timeStart?fmtTime(nextClass.timeStart):'P'+nextClass.period;
+    const detailInner=`<div class="focus-card flux-focus-class-card">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
         <div style="font-size:1.4rem">📍</div>
         <div>
-          <div class="focus-label">Next Class</div>
-          <div style="font-size:.95rem;font-weight:700;margin-top:2px">${esc(nextClass.name)}${nextClass.room?' · Rm '+nextClass.room:''}</div>
+          <div class="focus-label">Next class</div>
+          <div style="font-size:.95rem;font-weight:700;margin-top:2px">${esc(nextClass.name)}${nextClass.room?' · Rm '+esc(nextClass.room):''}</div>
         </div>
         <div style="margin-left:auto;text-align:right">
-          <div class="focus-time">${timeStr}</div>
-          <div class="focus-label">away</div>
+          <div class="focus-time">${minDiff>0?awayStr:esc(startLbl)}</div>
+          <div class="focus-label">${minDiff>0?'away':'starts'}</div>
         </div>
       </div>
       ${gapSug?`<div style="background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.15);border-radius:10px;padding:10px 14px;font-size:.8rem">
@@ -91,14 +119,31 @@ function renderDynamicFocus(){
         <span style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.72rem;margin-left:6px">~${gapSug.estTime}min</span>
       </div>`:''}
     </div>`;
-  } else if(urgent){
-    html+=`<div class="focus-card">
+    if(mode==='collapsed'){
+      const exp=isDashScheduleDetailExpanded();
+      const sum=`${todayClasses.length} class${todayClasses.length===1?'':'es'} · Next: ${nextClass.name} · ${startLbl}`;
+      classBlock=`<div class="flux-schedule-focus-shell card" style="padding:0;overflow:hidden;margin-bottom:14px;border:1px solid rgba(var(--accent-rgb),.15)">
+        <button type="button" class="flux-schedule-collapsed-toggle" onclick="toggleDashScheduleExpanded()" aria-expanded="${exp?'true':'false'}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:transparent;border:none;color:var(--text);font:inherit;cursor:pointer;text-align:left">
+          <span style="font-size:.82rem;font-weight:600">📅 <span style="color:var(--muted2);font-weight:500">${esc(sum)}</span></span>
+          <span class="flux-schedule-chev" aria-hidden="true" style="flex-shrink:0;color:var(--muted);font-size:.75rem">${exp?'▴':'▾'}</span>
+        </button>
+        <div class="flux-schedule-focus-detail" style="display:${exp?'block':'none'};padding:0 12px 12px">${detailInner}</div>
+      </div>`;
+    }else{
+      classBlock=detailInner;
+    }
+  }
+
+  let html=classBlock;
+  if(!html&&urgent){
+    html=`<div class="focus-card">
       <div class="focus-label">Focus on now</div>
       <div style="font-size:1rem;font-weight:700;margin-top:6px">${esc(urgent.name)}</div>
       <div style="font-size:.75rem;color:var(--muted2);margin-top:4px">Due today${urgent.estTime?' · ~'+urgent.estTime+'min':''}</div>
     </div>`;
   }
-  el.innerHTML=(typeof FluxIntel!=='undefined'&&FluxIntel.appendFocusHtml)?FluxIntel.appendFocusHtml(html):html;
+  el.innerHTML=useIntel?FluxIntel.appendFocusHtml(html):html;
+  if(wrap)wrap.style.display=el.innerHTML.trim()?'block':'none';
 }
 
 // ══ TIME POVERTY DETECTOR ══
@@ -564,7 +609,7 @@ function flushTasksOffRestDays(){
   }
   return n;
 }
-const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',gmail:'Gmail',settings:'Settings'};
+const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',canvas:'Canvas & Gmail',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',settings:'Settings'};
 
 function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
@@ -670,7 +715,7 @@ let confidences=load('flux_conf',{});
 let studyDNA=load('flux_dna',[]);
 let subjectBudgets=load('flux_budgets',{});
 let sessionLog=load('flux_session_log',[]);
-let settings=load('flux_settings',{panic:true,quiet:true,dndStart:'07:50',dndEnd:'14:30',dailyGoalHrs:2,notifyBrowser:false,notifyDueSoon:true});
+let settings=load('flux_settings',{panic:true,quiet:true,dndStart:'07:50',dndEnd:'14:30',dailyGoalHrs:2,notifyBrowser:false,notifyDueSoon:true,classScheduleDisplay:'full'});
 let schoolInfo=load('flux_school',{locker:'',combo:'',counselor:'',studentID:''});
 let classes=load('flux_classes',[]);
 let teacherNotes=load('flux_teacher_notes',[]);
@@ -705,13 +750,14 @@ const DEFAULT_TABS=[
   {id:'grades',icon:'📊',label:'Grades',visible:true},
   {id:'notes',icon:'📝',label:'Notes',visible:true},
   {id:'timer',icon:'⏱',label:'Focus Timer',visible:true},
+  {id:'canvas',icon:'🎓',label:'Canvas & Gmail',visible:true},
   {id:'profile',icon:'👤',label:'Profile',visible:true},
   {id:'goals',icon:'🎯',label:'Extracurriculars',visible:true},
   {id:'mood',icon:'😊',label:'Mood',visible:true},
-  {id:'gmail',icon:'📧',label:'Gmail',visible:true},
   {id:'settings',icon:'⚙',label:'Settings',visible:true},
 ];
 let tabConfig=load('flux_tabs',DEFAULT_TABS);
+tabConfig=tabConfig.filter(t=>t.id!=='gmail');
 // Ensure new tabs get added if missing
 DEFAULT_TABS.forEach(dt=>{if(!tabConfig.find(t=>t.id===dt.id))tabConfig.push({...dt});});
 // Legacy tab label (older builds / stored flux_tabs)
@@ -725,6 +771,10 @@ let canvasToken=load('flux_canvas_token','');
 let canvasUrl=load('flux_canvas_url','');
 let gmailEmails=[];
 let gmailToken=sessionStorage.getItem('flux_gmail_token')||null;
+let fluxCanvasHubData=null;
+let fluxCanvasHubSubTab=load('flux_canvas_hub_tab','assignments');
+let fluxCanvasDueFilterDays=load('flux_canvas_due_filter',120);
+let _canvasHubSel=new Set();
 let calYear=TODAY.getFullYear(),calMonth=TODAY.getMonth(),calSelected=TODAY.getDate();
 let currentNoteId=null,noteFilter='all',flashcards=[],fcIndex=0,fcFlipped=false;
 let breathingActive=false,breathTimer=null;
@@ -821,7 +871,7 @@ function nav(id,btn){
   const bni=document.querySelector(`.bnav-item[data-tab="${id}"]`);if(bni)bni.classList.add('active');
   updateNavAriaCurrent(id);
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},gmail:()=>loadGmail()};
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel()};
   fns[id]?.();
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
   if(window.Flux100&&typeof Flux100.onNavAfter==='function')try{Flux100.onNavAfter(id);}catch(e){}
@@ -845,8 +895,8 @@ function populateSubjectSelects(){
 function renderSidebars(){
   const groups=[
     {label:'Main',ids:['dashboard','calendar','ai']},
-    {label:'School',ids:['school','grades','notes','timer']},
-    {label:'Me',ids:['profile','goals','mood','gmail','settings']},
+    {label:'School',ids:['school','grades','notes','timer','canvas']},
+    {label:'Me',ids:['profile','goals','mood','settings']},
   ];
   const visibleIds=new Set(tabConfig.filter(t=>t.visible).map(t=>t.id));
   // Build nav HTML for both sidebar and drawer
@@ -1015,6 +1065,8 @@ function updateTopbarStats(){
 function updateNextClassPill(){
   const pill=document.getElementById('topbarNextClass');
   if(!pill||!classes||!classes.length)return;
+  const schedMode=getClassScheduleDisplayMode();
+  if(schedMode==='hidden'||schedMode==='collapsed'){pill.style.display='none';return;}
   const ab=AB_MAP[todayStr()];
   if(!ab){pill.style.display='none';return;}
   const todayClasses=classes.filter(c=>{
@@ -1209,6 +1261,8 @@ function renderStats(){
   renderDashWeekStrip();
   if(typeof updateTopbarStats==='function')updateTopbarStats();
   updateDashHero();
+  if(typeof updateNextClassPill==='function')updateNextClassPill();
+  if(typeof renderDynamicFocus==='function')renderDynamicFocus();
 }
 function renderTasks(){
   const el0=document.getElementById('taskList');
@@ -1707,8 +1761,10 @@ function addClass(){
   const cs=document.getElementById('classTimeStart');if(cs)cs.value='';
   const ce=document.getElementById('classTimeEnd');if(ce)ce.value='';
   renderSchool();populateSubjectSelects();syncKey('classes',classes);
+  if(typeof updateNextClassPill==='function')updateNextClassPill();
+  if(typeof renderDynamicFocus==='function')renderDynamicFocus();
 }
-function deleteClass(id){classes=classes.filter(c=>c.id!==id);save('flux_classes',classes);renderSchool();populateSubjectSelects();}
+function deleteClass(id){classes=classes.filter(c=>c.id!==id);save('flux_classes',classes);renderSchool();populateSubjectSelects();if(typeof updateNextClassPill==='function')updateNextClassPill();if(typeof renderDynamicFocus==='function')renderDynamicFocus();}
 function addTeacherNote(){const teacher=document.getElementById('tNoteTeacher').value.trim(),note=document.getElementById('tNoteText').value.trim();if(!teacher||!note)return;teacherNotes.push({id:Date.now(),teacher,note});save('flux_teacher_notes',teacherNotes);document.getElementById('tNoteTeacher').value='';document.getElementById('tNoteText').value='';renderSchool();}
 function deleteTeacherNote(id){teacherNotes=teacherNotes.filter(n=>n.id!==id);save('flux_teacher_notes',teacherNotes);renderSchool();}
 function renderSchool(){
@@ -1840,6 +1896,8 @@ function saveEditClass(){
   save('flux_classes',classes);
   document.getElementById('editClassModal').style.display='none';
   renderSchool();populateSubjectSelects();syncKey('classes',classes);
+  if(typeof updateNextClassPill==='function')updateNextClassPill();
+  if(typeof renderDynamicFocus==='function')renderDynamicFocus();
 }
 
 // ══ GRADES ══
@@ -2391,7 +2449,6 @@ function renderProfile(){
   }
 
   studyDNA.forEach(d=>{const btn=document.getElementById('dna-'+d);if(btn)btn.classList.add('active');});
-  renderCanvasStatus();
 }
 
 function handlePicUpload(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{localStorage.setItem('flux_profile_pic',ev.target.result);const av=document.getElementById('pAvatar');if(av)av.innerHTML=`<img src="${ev.target.result}"><input type="file" id="picUpload" accept="image/*" style="display:none" onchange="handlePicUpload(event)">`;if(window.FluxPersonal&&FluxPersonal.styleProfileAvatar)FluxPersonal.styleProfileAvatar();};r.readAsDataURL(file);}
@@ -2616,6 +2673,13 @@ function toggleNotifyBrowser(el){
 }
 function saveDND(){settings.dndStart=document.getElementById('dndStart').value;settings.dndEnd=document.getElementById('dndEnd').value;save('flux_settings',settings);const b=event?.target;if(b){b.textContent='✓';setTimeout(()=>b.textContent='Save',1500);}}
 function saveDailyGoal(){settings.dailyGoalHrs=parseFloat(document.getElementById('dailyGoalHrs').value)||2;save('flux_settings',settings);const done=tMins/60,goal=settings.dailyGoalHrs;const el=document.getElementById('dailyGoalStatus');if(el)el.textContent=done>=goal?`✓ Goal reached! (${done.toFixed(1)}h / ${goal}h)`:`Progress: ${done.toFixed(1)}h / ${goal}h`;}
+function saveClassScheduleDisplay(v){
+  const ok=['full','collapsed','hidden'];
+  settings.classScheduleDisplay=ok.includes(v)?v:'full';
+  save('flux_settings',settings);
+  if(typeof updateNextClassPill==='function')updateNextClassPill();
+  if(typeof renderDynamicFocus==='function')renderDynamicFocus();
+}
 function loadSettingsUI(){
   const pt=document.getElementById('panicToggle');if(pt)pt.classList.toggle('on',settings.panic!==false);
   const qt=document.getElementById('quietToggle');if(qt)qt.classList.toggle('on',settings.quiet!==false);
@@ -2630,6 +2694,11 @@ function loadSettingsUI(){
     else ns.textContent='Optional — tap Enable to allow due-soon reminders.';
   }
   renderNoHWList();
+  const csd=document.getElementById('classScheduleDisplaySelect');
+  if(csd){
+    const v=settings.classScheduleDisplay;
+    csd.value=v==='collapsed'||v==='hidden'?v:'full';
+  }
   if(window.FluxPersonal&&FluxPersonal.initSettingsUI)FluxPersonal.initSettingsUI();
 }
 function requestFluxNotifications(){
@@ -2881,7 +2950,7 @@ function openModPanel(){
 
       ${(isOwner()||myPerms.includes('feature_flags'))?`
       <div style="margin-top:14px;margin-bottom:6px;font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace">Feature Flags</div>
-      ${['ai','gmail','calendar','grades','goals','mood','timer','notes'].map(f=>{
+      ${['ai','canvas','calendar','grades','goals','mood','timer','notes'].map(f=>{
         const enabled=load('flux_feat_'+f,true);
         return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
           <span style="font-size:.85rem;font-weight:500">${f.charAt(0).toUpperCase()+f.slice(1)}</span>
@@ -4125,6 +4194,7 @@ function renderCmdResults(){
     {icon:'🎯',label:'Goals',action:()=>{nav('goals');closeCommandPalette();}},
     {icon:'🔥',label:'Habits',action:()=>{nav('habits');closeCommandPalette();}},
     {icon:'😊',label:'Mood',action:()=>{nav('mood');closeCommandPalette();}},
+    {icon:'🎓',label:'Canvas & Gmail',action:()=>{nav('canvas');closeCommandPalette();}},
     {icon:'⚙️',label:'Settings',action:()=>{nav('settings');closeCommandPalette();}},
   ];
   navItems.forEach(n=>{if(!q||n.label.toLowerCase().includes(q))cmds.push({...n,cat:'Navigate'});});
@@ -4889,7 +4959,7 @@ function initDashboardFeatures(){
   smartReorderDashboard();
   checkTimePoverty();
   renderGradeBuffer();
-  setInterval(()=>{checkTimePoverty();updateCognitiveLoadMeter();},60000);
+  setInterval(()=>{checkTimePoverty();updateCognitiveLoadMeter();if(typeof updateNextClassPill==='function')updateNextClassPill();if(typeof renderDynamicFocus==='function')renderDynamicFocus();},60000);
   initIntelligenceEngine();
   // New systems
   initPomodoroVisibilityPause();
@@ -5679,7 +5749,9 @@ async function importScheduleFromPhoto(event,resultElId){
   }
 }
 
-// ══ CANVAS SYNC ══
+// ══ CANVAS + GMAIL HUB ══
+
+function gmailListContainer(){return document.getElementById('canvasGmailList')||document.getElementById('gmailList');}
 
 function saveCanvasConfig(){
   canvasToken=document.getElementById('canvasToken')?.value.trim()||'';
@@ -5687,53 +5759,491 @@ function saveCanvasConfig(){
   save('flux_canvas_token',canvasToken);
   save('flux_canvas_url',canvasUrl);
   const b=event?.target;if(b){b.textContent='✓ Saved';setTimeout(()=>b.textContent='Save',1500);}
-  renderCanvasStatus();
+  renderCanvasHubPanel();
 }
-function renderCanvasStatus(){
-  const el=document.getElementById('canvasStatus');if(!el)return;
-  const urlEl=document.getElementById('canvasUrl');if(urlEl)urlEl.value=canvasUrl||'';
-  if(canvasToken&&canvasUrl){
-    el.innerHTML=`<div class="sync-badge synced">✓ Canvas connected</div>`;
-  }else{
-    el.innerHTML=`<div class="sync-badge offline">○ Not connected — enter URL and token below</div>`;
+
+async function canvasProxyGet(apiPath){
+  if(!canvasToken||!canvasUrl)throw new Error('Configure Canvas URL and token first.');
+  const base=canvasUrl.replace(/\/+$/,'');
+  const path=apiPath.startsWith('/')?apiPath:'/'+apiPath;
+  const full=base+'/api/v1'+path;
+  const res=await fetch(`${API.canvas}?url=${encodeURIComponent(full)}&token=${encodeURIComponent(canvasToken)}`,{headers:API_HEADERS});
+  const text=await res.text();
+  let data;try{data=JSON.parse(text);}catch(e){throw new Error('Canvas did not return JSON. Check URL and token.');}
+  if(data&&typeof data==='object'&&!Array.isArray(data)&&Array.isArray(data.errors))throw new Error(data.errors.map(x=>x.message).join('; '));
+  if(!res.ok)throw new Error((data&&data.error)||(data&&data.message)||('Canvas request failed ('+res.status+')'));
+  return data;
+}
+
+async function canvasProxyPostForm(apiPath,bodyString){
+  if(!canvasToken||!canvasUrl)throw new Error('Canvas not configured');
+  const base=canvasUrl.replace(/\/+$/,'');
+  const full=base+'/api/v1'+(apiPath.startsWith('/')?apiPath:'/'+apiPath);
+  const res=await fetch(API.canvas,{
+    method:'POST',
+    headers:{...API_HEADERS,'Content-Type':'application/json'},
+    body:JSON.stringify({url:full,token:canvasToken,method:'POST',body:bodyString,contentType:'application/x-www-form-urlencoded'})
+  });
+  const text=await res.text();
+  let data;try{data=JSON.parse(text);}catch(e){throw new Error(text.slice(0,400));}
+  if(data&&data.errors)throw new Error(data.errors.map(e=>e.message).join('; '));
+  if(!res.ok)throw new Error(data.message||data.error||('HTTP '+res.status));
+  return data;
+}
+
+function canvasPassesTimeFilter(iso){
+  if(fluxCanvasDueFilterDays<=0)return true;
+  if(!iso)return true;
+  const d=new Date(iso);
+  if(Number.isNaN(d.getTime()))return true;
+  const cutoff=new Date();
+  cutoff.setHours(0,0,0,0);
+  cutoff.setDate(cutoff.getDate()-fluxCanvasDueFilterDays);
+  return d>=cutoff;
+}
+
+function filteredCanvasAssignments(){
+  if(!fluxCanvasHubData||!Array.isArray(fluxCanvasHubData.assignments))return [];
+  return fluxCanvasHubData.assignments.filter(a=>canvasPassesTimeFilter(a.due_at));
+}
+
+function filteredCanvasAnnouncements(){
+  if(!fluxCanvasHubData||!Array.isArray(fluxCanvasHubData.announcements))return [];
+  return fluxCanvasHubData.announcements.filter(an=>canvasPassesTimeFilter(an.posted_at));
+}
+
+function mapCanvasAssignmentType(a){
+  const n=(a.name||'').toLowerCase();
+  if(/quiz|exam|test|assessment/.test(n))return'test';
+  if(/project/.test(n))return'project';
+  return'hw';
+}
+
+function canvasAssignmentTaskExists(cid,aid){
+  return tasks.some(t=>t.canvasCourseId===cid&&t.canvasAssignmentId===aid);
+}
+
+function addCanvasAnnouncementToPlanner(announcementId){
+  if(announcementId==null||!Number.isFinite(Number(announcementId)))return;
+  const aid=Number(announcementId);
+  const an=(fluxCanvasHubData?.announcements||[]).find(x=>x.id===aid);
+  if(!an){showToast('Announcement not found — refresh Canvas','warning');return;}
+  if(tasks.some(t=>t.canvasAnnouncementId===aid)){showToast('Already in planner','info');return;}
+  const title=('📢 '+String(an.title||'Announcement')).slice(0,240);
+  const due=an.posted_at?an.posted_at.slice(0,10):'';
+  const body=String(an.message||'').replace(/<[^>]+>/g,'').slice(0,800);
+  const t={
+    id:Date.now()+Math.random(),
+    name:title,
+    date:due,
+    subject:'',
+    priority:'low',
+    type:'hw',
+    notes:`Canvas announcement\n${body}`,
+    done:false,rescheduled:0,createdAt:Date.now(),
+    canvasAnnouncementId:aid
+  };
+  t.urgencyScore=calcUrgency(t);
+  tasks.unshift(t);save('tasks',tasks);syncKey('tasks',tasks);
+  renderStats();renderTasks();renderCalendar();renderCountdown();
+  showToast('Added to planner','success');
+}
+
+function addCanvasAssignmentToPlanner(courseId,assignmentId,opts){
+  const silent=opts&&opts.silent;
+  const a=fluxCanvasHubData?.assignments?.find(x=>x.course_id===courseId&&x.id===assignmentId);
+  if(!a){if(!silent)showToast('Assignment not found — refresh Canvas','warning');return;}
+  if(canvasAssignmentTaskExists(courseId,assignmentId)){if(!silent)showToast('Already in planner','info');return;}
+  const due=a.due_at?a.due_at.slice(0,10):'';
+  const name=(a.name||'Assignment').slice(0,240);
+  const t={
+    id:Date.now()+Math.random(),
+    name,
+    date:due,
+    subject:'',
+    priority:'med',
+    type:mapCanvasAssignmentType(a),
+    notes:`Canvas · ${a.course_name||'Course'}\n${a.html_url||''}`,
+    done:false,rescheduled:0,createdAt:Date.now(),
+    canvasCourseId:courseId,
+    canvasAssignmentId:assignmentId
+  };
+  t.urgencyScore=calcUrgency(t);
+  tasks.unshift(t);save('tasks',tasks);syncKey('tasks',tasks);
+  renderStats();renderTasks();renderCalendar();renderCountdown();
+  if(!silent)showToast('Added to planner','success');
+}
+
+function canvasRowKey(c,a){return String(c)+'_'+String(a);}
+
+function canvasToggleSelect(courseId,assignmentId){
+  const k=canvasRowKey(courseId,assignmentId);
+  if(_canvasHubSel.has(k))_canvasHubSel.delete(k);else _canvasHubSel.add(k);
+  if(fluxCanvasHubSubTab==='assignments')renderCanvasHubPane();
+  else renderCanvasHubPanel();
+}
+
+function canvasSelectAllFilteredAssignments(){
+  _canvasHubSel.clear();
+  filteredCanvasAssignments().forEach(a=>_canvasHubSel.add(canvasRowKey(a.course_id,a.id)));
+  if(fluxCanvasHubSubTab==='assignments')renderCanvasHubPane();
+  else renderCanvasHubPanel();
+}
+
+function canvasClearSelection(){
+  _canvasHubSel.clear();
+  if(fluxCanvasHubSubTab==='assignments')renderCanvasHubPane();
+  else renderCanvasHubPanel();
+}
+
+function addSelectedCanvasAssignmentsToPlanner(){
+  let n=0;
+  _canvasHubSel.forEach(k=>{
+    const[cid,aid]=k.split('_');
+    const ci=parseInt(cid,10),ai=parseInt(aid,10);
+    if(!canvasAssignmentTaskExists(ci,ai)){
+      addCanvasAssignmentToPlanner(ci,ai,{silent:true});
+      n++;
+    }
+  });
+  _canvasHubSel.clear();
+  renderCanvasHubPanel();
+  showToast(n?`Added ${n} to planner`:'No new items added','success');
+}
+
+function onCanvasDueFilterChange(v){
+  const n=parseInt(v,10);
+  fluxCanvasDueFilterDays=Number.isFinite(n)?n:120;
+  save('flux_canvas_due_filter',fluxCanvasDueFilterDays);
+  _canvasHubSel.clear();
+  renderCanvasHubPanel();
+}
+
+function setCanvasHubSubTab(t){
+  fluxCanvasHubSubTab=t;
+  save('flux_canvas_hub_tab',t);
+  renderCanvasHubPanel();
+}
+
+async function refreshCanvasHubFullFetch(){
+  const statusEl=document.getElementById('canvasHubFetchStatus');
+  if(statusEl)statusEl.textContent='Pulling from Canvas…';
+  try{
+    const coursesRaw=await canvasProxyGet('/courses?enrollment_state=active&per_page=80&include[]=term');
+    if(!Array.isArray(coursesRaw))throw new Error('Unexpected courses response');
+    const courses=coursesRaw.filter(c=>c.workflow_state!=='deleted');
+    const assignments=[];
+    const announcements=[];
+    const teachersMap=new Map();
+
+    for(const c of courses){
+      await new Promise(r=>setTimeout(r,32));
+      let list=[];
+      try{
+        const raw=await canvasProxyGet(`/courses/${c.id}/assignments?per_page=100&include[]=submission&bucket=all`);
+        if(Array.isArray(raw))list=raw;
+      }catch(err){console.warn('Canvas assignments',c.id,err);}
+      list.forEach(a=>{
+        assignments.push({...a,course_id:c.id,course_name:c.name||c.course_code||'Course',course_code:c.course_code||''});
+      });
+
+      await new Promise(r=>setTimeout(r,32));
+      try{
+        const ens=await canvasProxyGet(`/courses/${c.id}/enrollments?type[]=teacher&per_page=40&include[]=user`);
+        if(Array.isArray(ens)){
+          ens.forEach(en=>{
+            const u=en.user||{};
+            const id=u.id;
+            if(!id)return;
+            if(!teachersMap.has(id)){
+              teachersMap.set(id,{id,name:u.name||u.short_name||('User '+id),email:'',short_name:u.short_name||'',courseIds:[]});
+            }
+            teachersMap.get(id).courseIds.push(c.id);
+          });
+        }
+      }catch(err){console.warn('Canvas enrollments',c.id,err);}
+    }
+
+    for(let i=0;i<courses.length;i+=8){
+      const batch=courses.slice(i,i+8);
+      const qs=batch.map(c=>`context_codes[]=course_${c.id}`).join('&');
+      await new Promise(r=>setTimeout(r,36));
+      try{
+        const ann=await canvasProxyGet('/announcements?'+qs+'&per_page=40&active_only=true');
+        if(Array.isArray(ann))announcements.push(...ann);
+      }catch(err){console.warn('Canvas announcements',err);}
+    }
+
+    for(const t of teachersMap.values()){
+      await new Promise(r=>setTimeout(r,22));
+      try{
+        const prof=await canvasProxyGet(`/users/${t.id}/profile`);
+        if(prof&&prof.primary_email)t.email=prof.primary_email;
+      }catch(e){}
+    }
+
+    fluxCanvasHubData={
+      fetchedAt:Date.now(),
+      courses,
+      assignments,
+      announcements,
+      teachers:[...teachersMap.values()]
+    };
+    if(statusEl)statusEl.textContent='Updated '+new Date().toLocaleTimeString();
+    renderCanvasHubPanel();
+    showToast('Canvas data updated','success');
+  }catch(e){
+    if(statusEl)statusEl.textContent='';
+    showToast(e.message||String(e),'error');
+    fluxCanvasHubData=null;
+    renderCanvasHubPanel();
   }
 }
+
+function renderCanvasHubPane(){
+  const pane=document.getElementById('canvasHubPane');if(!pane)return;
+  const d=fluxCanvasHubData;
+  const sub=fluxCanvasHubSubTab;
+
+  if(sub==='assignments'){
+    if(!d){pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Click <strong>Refresh from Canvas</strong> to load assignments.</div>';return;}
+    const rows=filteredCanvasAssignments().sort((a,b)=>{
+      const da=a.due_at||'',db=b.due_at||'';
+      if(!da&&!db)return 0;
+      if(!da)return 1;
+      if(!db)return-1;
+      return da.localeCompare(db);
+    });
+    pane.innerHTML=`
+      <div class="flux-canvas-toolbar card" style="padding:12px 14px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="canvasSelectAllFilteredAssignments()">Select all (filtered)</button>
+        <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="canvasClearSelection()">Clear selection</button>
+        <button type="button" style="padding:7px 12px;font-size:.75rem" onclick="addSelectedCanvasAssignmentsToPlanner()">Add selected to planner</button>
+        <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem;margin-left:auto" onclick="syncCanvas()">Import all filtered (due dates)</button>
+      </div>
+      <div class="flux-canvas-table-wrap">${rows.length?`<div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:8px">${rows.length} assignments (after time filter)</div>`:''}
+      ${rows.length?rows.map(a=>{
+        const k=canvasRowKey(a.course_id,a.id);
+        const due=a.due_at?a.due_at.slice(0,10):'—';
+        const subm=a.submission;
+        const st=subm?subm.workflow_state:'';
+        const checked=_canvasHubSel.has(k)?' checked':'';
+        return`<div class="flux-canvas-row card" style="padding:12px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start">
+          <input type="checkbox" style="margin-top:4px" data-canvas-sel="${esc(k)}"${checked} onchange="canvasToggleSelect(${a.course_id},${a.id})">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.88rem">${esc(a.name||'Assignment')}</div>
+            <div style="font-size:.72rem;color:var(--muted2);margin-top:4px;font-family:'JetBrains Mono',monospace">${esc(a.course_name)} · Due ${due}${st?` · ${esc(st)}`:''}</div>
+            ${a.html_url?`<a href="${esc(a.html_url)}" target="_blank" rel="noopener" style="font-size:.68rem;color:var(--accent);margin-top:6px;display:inline-block">Open in Canvas →</a>`:''}
+          </div>
+          <button type="button" class="btn-sec" style="padding:6px 10px;font-size:.72rem;flex-shrink:0;white-space:nowrap" onclick="addCanvasAssignmentToPlanner(${a.course_id},${a.id})">+ Planner</button>
+        </div>`;
+      }).join(''):'<div class="empty">No assignments match the time filter.</div>'}</div>`;
+    return;
+  }
+
+  if(sub==='announcements'){
+    if(!d){pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Refresh from Canvas to load announcements.</div>';return;}
+    const rows=filteredCanvasAnnouncements().sort((a,b)=>(b.posted_at||'').localeCompare(a.posted_at||''));
+    pane.innerHTML=rows.length?rows.map(an=>{
+      const msg=String(an.message||'').replace(/<[^>]+>/g,'').slice(0,280);
+      const when=an.posted_at?an.posted_at.slice(0,10):'';
+      const aid=an.id!=null?Number(an.id):NaN;
+      return`<div class="card" style="padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between">
+        <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.88rem">${esc(an.title||'Announcement')}</div>
+        <div style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:4px">${when||'—'}</div>
+        <div style="font-size:.8rem;color:var(--muted2);margin-top:8px;line-height:1.5">${esc(msg)}${(an.message||'').length>280?'…':''}</div>
+        </div>
+        <button type="button" class="btn-sec" style="padding:6px 10px;font-size:.72rem;flex-shrink:0;white-space:nowrap" onclick="addCanvasAnnouncementToPlanner(${Number.isFinite(aid)?aid:'null'})">+ Planner</button>
+      </div>`;
+    }).join(''):'<div class="empty">No announcements in this time window.</div>';
+    return;
+  }
+
+  if(sub==='grades'){
+    if(!d){pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Refresh from Canvas to load grades.</div>';return;}
+    const rows=filteredCanvasAssignments().filter(a=>{
+      const s=a.submission;
+      return s&&(s.entered_grade!=null||s.grade!=null);
+    }).sort((a,b)=>(b.due_at||'').localeCompare(a.due_at||''));
+    pane.innerHTML=rows.length?`<div style="font-size:.68rem;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace">From assignment submissions Canvas exposes to your token</div>`+rows.map(a=>{
+      const s=a.submission;
+      const g=s.entered_grade!=null?s.entered_grade:s.grade;
+      const pts=a.points_possible!=null?` / ${a.points_possible}`:'';
+      return`<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div><div style="font-weight:600;font-size:.84rem">${esc(a.name||'')}</div><div style="font-size:.72rem;color:var(--muted2)">${esc(a.course_name)}</div></div>
+        <div style="font-size:.9rem;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace">${esc(String(g))}${pts}</div>
+      </div>`;
+    }).join(''):'<div class="empty">No graded items in the filtered range (or no grades returned by Canvas).</div>';
+    return;
+  }
+
+  if(sub==='teachers'){
+    if(!d){pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Refresh from Canvas to load teachers.</div>';return;}
+    const rows=d.teachers||[];
+    pane.innerHTML=rows.length?rows.map(t=>{
+      const cnames=(t.courseIds||[]).map(cid=>{
+        const co=d.courses.find(x=>x.id===cid);
+        return co?co.name||co.course_code:'Course '+cid;
+      }).join(', ');
+      return`<div class="card" style="padding:12px 14px;margin-bottom:8px">
+        <div style="font-weight:700">${esc(t.name)}</div>
+        <div style="font-size:.78rem;color:var(--muted2);margin-top:4px">${t.email?`<a href="mailto:${esc(t.email)}">${esc(t.email)}</a>`:'<span style="color:var(--muted)">Email not visible to this token</span>'}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:6px">${esc(cnames)}</div>
+      </div>`;
+    }).join(''):'<div class="empty">No teacher enrollments found.</div>';
+    return;
+  }
+
+  if(sub==='courses'){
+    if(!d){pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Refresh from Canvas.</div>';return;}
+    pane.innerHTML=(d.courses||[]).map(c=>{
+      const term=c.term?c.term.name||'':'';
+      return`<div class="card" style="padding:12px 14px;margin-bottom:8px">
+        <div style="font-weight:700">${esc(c.name||c.course_code||'Course')}</div>
+        <div style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:4px">${esc(c.course_code||'')} ${term?'· '+esc(term):''}</div>
+      </div>`;
+    }).join('')||'<div class="empty">No courses.</div>';
+    return;
+  }
+
+  if(sub==='upload'){
+    if(!d){pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Connect and refresh Canvas first.</div>';return;}
+    const opts=(d.courses||[]).map(c=>`<option value="${c.id}">${esc(c.name||c.course_code)}</option>`).join('');
+    pane.innerHTML=`
+      <div class="card" style="padding:16px">
+        <h3 style="margin:0 0 10px;font-size:1rem">Send text to Canvas</h3>
+        <p style="font-size:.78rem;color:var(--muted2);line-height:1.55;margin-bottom:14px">Submits as an <strong>online text entry</strong> where your course allows it. File uploads must be done in Canvas (browser security) — use <em>Open in Canvas</em> on an assignment.</p>
+        <label style="font-size:.72rem;color:var(--muted)">Course</label>
+        <select id="canvasSubmitCourse" style="width:100%;margin-bottom:10px" onchange="onCanvasSubmitCourseChange()">${opts}</select>
+        <label style="font-size:.72rem;color:var(--muted)">Assignment</label>
+        <select id="canvasSubmitAssignment" style="width:100%;margin-bottom:10px"></select>
+        <label style="font-size:.72rem;color:var(--muted)">Text to submit</label>
+        <textarea id="canvasSubmitBody" rows="5" style="width:100%;margin-bottom:12px;font-size:.85rem" placeholder="Write your response…"></textarea>
+        <button type="button" onclick="submitCanvasTextFromHub()" style="width:100%">Submit to Canvas</button>
+      </div>`;
+    onCanvasSubmitCourseChange();
+    return;
+  }
+
+  if(sub==='gmail'){
+    pane.innerHTML=`<div class="card" style="padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:.82rem;font-weight:700">School Gmail</div>
+      <button type="button" class="btn-sec" style="padding:6px 12px;font-size:.75rem" onclick="loadGmail()">↻ Refresh</button>
+    </div><div id="canvasGmailList"></div>`;
+    loadGmail();
+    return;
+  }
+
+  pane.innerHTML='';
+}
+
+function onCanvasSubmitCourseChange(){
+  const cid=parseInt(document.getElementById('canvasSubmitCourse')?.value||'0',10);
+  const sel=document.getElementById('canvasSubmitAssignment');
+  if(!sel||!fluxCanvasHubData)return;
+  const list=(fluxCanvasHubData.assignments||[]).filter(a=>a.course_id===cid);
+  sel.innerHTML=list.map(a=>`<option value="${a.id}">${esc(a.name||'Assignment')}</option>`).join('')||'<option value="">No assignments</option>';
+}
+
+async function submitCanvasTextFromHub(){
+  const cid=parseInt(document.getElementById('canvasSubmitCourse')?.value||'0',10);
+  const aid=parseInt(document.getElementById('canvasSubmitAssignment')?.value||'0',10);
+  const body=document.getElementById('canvasSubmitBody')?.value?.trim()||'';
+  if(!cid||!aid){alert('Choose a course and assignment.');return;}
+  if(!body){alert('Enter text to submit.');return;}
+  const params=new URLSearchParams();
+  params.set('submission[submission_type]','online_text_entry');
+  params.set('submission[body]',body);
+  try{
+    await canvasProxyPostForm(`/courses/${cid}/assignments/${aid}/submissions`,params.toString());
+    showToast('Submitted to Canvas','success');
+    document.getElementById('canvasSubmitBody').value='';
+    await refreshCanvasHubFullFetch();
+  }catch(e){
+    alert('Canvas rejected submission: '+e.message);
+  }
+}
+
+function renderCanvasHubPanel(){
+  const stack=document.getElementById('canvasHubStack');if(!stack)return;
+  const connected=!!(canvasToken&&canvasUrl);
+  const filterOpts=[
+    {v:30,l:'Last 30 days'},
+    {v:90,l:'Last 90 days'},
+    {v:120,l:'Last ~4 months (120d)'},
+    {v:180,l:'Last ~semester (180d)'},
+    {v:365,l:'Last year'},
+    {v:0,l:'All time (no date filter)'}
+  ];
+  const filterSelect=filterOpts.map(o=>`<option value="${o.v}"${fluxCanvasDueFilterDays===o.v?' selected':''}>${o.l}</option>`).join('');
+  const tabs=['assignments','announcements','grades','teachers','courses','upload','gmail'];
+  const tabHtml=tabs.map(id=>{
+    const labels={assignments:'Assignments',announcements:'Announcements',grades:'Grades',teachers:'Teachers',courses:'Courses',upload:'To Canvas',gmail:'Gmail'};
+    const active=fluxCanvasHubSubTab===id?' active':'';
+    return`<button type="button" class="stab${active}" onclick="setCanvasHubSubTab('${id}')">${labels[id]}</button>`;
+  }).join('');
+
+  stack.innerHTML=`
+    <div class="card">
+      <h3>Canvas LMS</h3>
+      <div id="canvasStatus" style="margin-bottom:12px">${connected?'<div class="sync-badge synced">✓ Connected</div>':'<div class="sync-badge offline">○ Not connected</div>'}</div>
+      <label style="font-size:.72rem;color:var(--muted)">Canvas URL</label>
+      <input type="text" id="canvasUrl" placeholder="e.g. https://school.instructure.com" style="margin-bottom:8px">
+      <label style="font-size:.72rem;color:var(--muted)">Access Token</label>
+      <input type="password" id="canvasToken" placeholder="Paste your Canvas token" style="margin-bottom:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" onclick="saveCanvasConfig()" class="btn-sec" style="flex:1;min-width:120px">Save</button>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono',monospace">Account → Settings → Approved Integrations → New Access Token</div>
+    </div>
+    ${connected?`
+    <div class="card" style="padding:12px 14px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
+        <button type="button" onclick="refreshCanvasHubFullFetch()" style="padding:8px 16px;font-size:.8rem">↻ Refresh from Canvas</button>
+        <label style="font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:8px;margin-left:auto">
+          Hide old by date
+          <select style="margin:0;max-width:200px;font-size:.78rem" onchange="onCanvasDueFilterChange(this.value)">${filterSelect}</select>
+        </label>
+      </div>
+      <div id="canvasHubFetchStatus" style="font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px;min-height:1.2em"></div>
+      <div class="stabs flux-canvas-stabs" style="margin-bottom:12px;flex-wrap:wrap">${tabHtml}</div>
+      <div id="canvasHubPane"></div>
+    </div>`:''}
+    ${!connected?`
+    <div class="card"><h3>School Gmail</h3><p style="font-size:.78rem;color:var(--muted2)">Sign in with Google from the login screen. Inbox appears here once connected.</p>
+      <button type="button" class="btn-sec" style="margin-bottom:10px;padding:6px 12px;font-size:.75rem" onclick="loadGmail()">↻ Refresh inbox</button>
+      <div id="canvasGmailList"></div></div>`:''}
+  `;
+
+  document.getElementById('canvasUrl').value=canvasUrl||'';
+  document.getElementById('canvasToken').value=canvasToken||'';
+
+  if(connected)renderCanvasHubPane();
+  else loadGmail();
+}
+
 async function syncCanvas(){
   if(!canvasToken||!canvasUrl){alert('Enter your Canvas URL and token first.');return;}
-  const btn=event?.target;if(btn){btn.textContent='Syncing...';btn.disabled=true;}
-  try{
-    const base=canvasUrl.replace(/\/+$/,'');
-    const res=await fetch(`${API.canvas}?url=${encodeURIComponent(base+'/api/v1/courses?enrollment_state=active&per_page=20')}&token=${encodeURIComponent(canvasToken)}`,{headers:API_HEADERS});
-    const courses=await res.json();
-    if(!Array.isArray(courses))throw new Error('Invalid response from Canvas — check your URL and token');
-    let added=0;
-    for(const course of courses.slice(0,10)){
-      const aRes=await fetch(`${API.canvas}?url=${encodeURIComponent(base+'/api/v1/courses/'+course.id+'/assignments?per_page=30&order_by=due_at')}&token=${encodeURIComponent(canvasToken)}`,{headers:API_HEADERS});
-      const assignments=await aRes.json();
-      if(!Array.isArray(assignments))continue;
-      assignments.forEach(a=>{
-        if(!a.due_at)return;
-        const due=a.due_at.slice(0,10);
-        const name=a.name||'Assignment';
-        if(!tasks.find(t=>t.name===name&&t.date===due)){
-          tasks.unshift({id:Date.now()+Math.random(),name,date:due,subject:'',priority:'med',type:'hw',done:false,rescheduled:0,createdAt:Date.now(),urgencyScore:0});
-          added++;
-        }
-      });
-    }
-    save('tasks',tasks);renderStats();renderTasks();renderCountdown();
-    if(btn){btn.textContent=`✓ Imported ${added} tasks`;setTimeout(()=>{btn.textContent='↓ Sync Assignments';btn.disabled=false;},2500);}
-    syncKey('tasks',tasks);
-  }catch(e){
-    if(btn){btn.textContent='Sync failed';btn.disabled=false;}
-    alert('Canvas sync error: '+e.message);
+  if(!fluxCanvasHubData){
+    await refreshCanvasHubFullFetch();
+    if(!fluxCanvasHubData)return;
   }
+  let added=0;
+  for(const a of filteredCanvasAssignments()){
+    if(!a.due_at)continue;
+    if(canvasAssignmentTaskExists(a.course_id,a.id))continue;
+    addCanvasAssignmentToPlanner(a.course_id,a.id,{silent:true});
+    added++;
+  }
+  showToast(added?`Imported ${added} dated assignments`:'Nothing new to import','success');
+  renderCanvasHubPanel();
 }
 
 // ══ GMAIL PANEL ══
 
 async function loadGmail(){
-  const el=document.getElementById('gmailList');if(!el)return;
+  const el=gmailListContainer();if(!el)return;
   // Try to get token from current session if not already stored
   if(!gmailToken){
     const sb=getSB();
@@ -5791,7 +6301,7 @@ async function loadGmail(){
 }
 
 function renderGmailList(){
-  const el=document.getElementById('gmailList');if(!el)return;
+  const el=gmailListContainer();if(!el)return;
   if(!gmailEmails.length){el.innerHTML='<div class="empty">No emails found.</div>';return;}
   el.innerHTML=`<div style="font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:4px 4px 10px">${gmailEmails.length} recent emails · tap + Task to add to planner</div>`
     +gmailEmails.map(e=>`

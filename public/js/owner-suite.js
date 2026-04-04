@@ -122,7 +122,7 @@
       <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin:16px 0 6px">6 · Integrations &amp; automation</div>
       <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:4px 14px 2px">
         ${mapRow('partial','Webhooks (Slack / generic) for future automation + test ping.',jump('integrations','Integrations'))}
-        ${mapRow('partial','Google / Canvas: end-users connect in-app; secrets stay server-side (Edge proxies).',`<span style="font-size:.68rem;color:var(--muted)">See Settings &amp; Gmail / Canvas in app</span>`)}
+        ${mapRow('partial','Google / Canvas: end-users connect in-app; secrets stay server-side (Edge proxies).',`<span style="font-size:.68rem;color:var(--muted)">Canvas &amp; Gmail tab + Edge proxy</span>`)}
         ${mapRow('server','Signing API keys / service role: only in Supabase &amp; Edge secrets — never in this bundle.',ext('edge','Functions')+ext('api','API'))}
       </div>
 

@@ -10,12 +10,12 @@
   --flux-blur-strong:blur(28px) saturate(175%);
 }
 
-/* ═══ Secondary ambient + grain (does not replace body background) ═══ */
+/* ═══ Secondary ambient + grain (liquid glass on only) ═══ */
 html{
   --flux-cursor-x:50%;
   --flux-cursor-y:42%;
 }
-html::before{
+html[data-flux-glass="on"]::before{
   content:'';
   position:fixed;
   inset:0;
@@ -33,8 +33,8 @@ html::before{
   100%{opacity:.58}
 }
 
-/* Grain + faint dot grid (html::after paints above body — very low opacity film) */
-html::after{
+/* Grain + faint dot grid */
+html[data-flux-glass="on"]::after{
   content:'';
   position:fixed;
   inset:0;
@@ -60,7 +60,7 @@ html::after{
   background:radial-gradient(ellipse 55% 48% at var(--flux-cursor-x) var(--flux-cursor-y),rgba(var(--accent-rgb),.85),transparent 62%);
 }
 @media (prefers-reduced-motion:reduce){
-  html::before,html::after{animation:none!important;opacity:.28}
+  html[data-flux-glass="on"]::before,html[data-flux-glass="on"]::after{animation:none!important;opacity:.28}
   #fluxCursorAmbient{opacity:0!important}
 }
 
@@ -112,11 +112,11 @@ html::after{
   100%{transform:translateX(12%) translateY(0);opacity:0}
 }
 
-/* ═══ Sidebar polish ═══ */
-.sidebar{
+/* ═══ Sidebar polish (liquid glass on only) ═══ */
+html[data-flux-glass="on"] .sidebar{
   position:relative;
 }
-.sidebar::before{
+html[data-flux-glass="on"] .sidebar::before{
   content:'';
   position:absolute;
   inset:0;
@@ -125,8 +125,8 @@ html::after{
   mix-blend-mode:soft-light;
   opacity:.5;
 }
-/* Wordmark + beam logo — no orb rings */
-.nav-item.active::before{
+/* Active nav beam — glow only with liquid glass */
+html[data-flux-glass="on"] .nav-item.active::before{
   transition:height .35s var(--flux-ease-out-expo),box-shadow .35s ease!important;
   height:22px!important;
   box-shadow:0 0 16px rgba(var(--accent-rgb),.55)!important;
@@ -140,12 +140,12 @@ html::after{
   from{opacity:0;transform:translateY(10px)}
   to{opacity:1;transform:none}
 }
-#dashGreeting.dash-v2-greet-title{
+html[data-flux-glass="on"] #dashGreeting.dash-v2-greet-title{
   text-shadow:0 0 40px rgba(var(--accent-rgb),.15);
 }
 
 /* Pulse strip: today column */
-.dash-week-col:first-child .dash-week-bar{
+html[data-flux-glass="on"] .dash-week-col:first-child .dash-week-bar{
   box-shadow:0 0 16px rgba(var(--accent-rgb),.28);
   animation:fluxTodayPulse 4s ease-in-out infinite;
 }
@@ -156,27 +156,36 @@ html::after{
 #energySlider{
   transition:filter .25s ease;
 }
-#energySlider:active{
+html[data-flux-glass="on"] #energySlider:active{
   filter:drop-shadow(0 0 8px rgba(var(--accent-rgb),.35));
 }
 
 /* Focus card emphasis */
-#dynamicFocusCard,.flux-next-best-card{
+html[data-flux-glass="on"] #dynamicFocusCard,
+html[data-flux-glass="on"] .flux-next-best-card{
   box-shadow:
     0 8px 40px rgba(0,0,0,.35),
     0 0 0 1px rgba(var(--accent-rgb),.2),
     0 0 36px rgba(var(--accent-rgb),.12)!important;
 }
-#dynamicFocusCard:not(:empty){
+html[data-flux-glass="on"] #dynamicFocusCard:not(:empty){
   animation:focusCardPulse 5s ease-in-out infinite;
+}
+.dash-class-schedule-wrap{margin-bottom:4px}
+.flux-schedule-collapsed-toggle:hover{
+  background:rgba(var(--accent-rgb),.06)!important;
+}
+.flux-schedule-collapsed-toggle:focus-visible{
+  outline:2px solid rgba(var(--accent-rgb),.45);
+  outline-offset:2px;
 }
 @keyframes focusCardPulse{
   0%,100%{box-shadow:0 8px 40px rgba(0,0,0,.35),0 0 0 1px rgba(var(--accent-rgb),.18),0 0 28px rgba(var(--accent-rgb),.1)}
   50%{box-shadow:0 10px 48px rgba(0,0,0,.4),0 0 0 1px rgba(var(--accent-rgb),.28),0 0 44px rgba(var(--accent-rgb),.16)}
 }
 
-/* Countdown */
-#countdownCard .dash-v2-countdown-card{
+/* Countdown (pulsing glow — liquid glass on only) */
+html[data-flux-glass="on"] #countdownCard .dash-v2-countdown-card{
   animation:countdownGlow 3.2s ease-in-out infinite;
 }
 @keyframes countdownGlow{

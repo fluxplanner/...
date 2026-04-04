@@ -7,6 +7,9 @@
   function perfSnappy(){
     try{return document.documentElement.getAttribute('data-flux-perf')==='on';}catch(e){return false;}
   }
+  function liquidGlassOff(){
+    try{return document.documentElement.getAttribute('data-flux-glass')==='off';}catch(e){return true;}
+  }
   function ensureLayer(){
     if(document.getElementById('fluxCursorAmbient'))return;
     var el=document.createElement('div');
@@ -32,7 +35,7 @@
     });
   }
   function boot(){
-    if(perfSnappy())return;
+    if(perfSnappy()||liquidGlassOff())return;
     ensureLayer();
     document.addEventListener('mousemove',tick,{passive:true});
   }

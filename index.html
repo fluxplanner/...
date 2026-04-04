@@ -6,10 +6,10 @@
 (function(){
   try{
     var raw=localStorage.getItem('flux_liquid_glass');
-    var on=raw===null?true:JSON.parse(raw);
+    var on=raw===null?false:JSON.parse(raw)===true;
     document.documentElement.setAttribute('data-flux-glass',on?'on':'off');
   }catch(e){
-    document.documentElement.setAttribute('data-flux-glass','on');
+    document.documentElement.setAttribute('data-flux-glass','off');
   }
 })();
 </script>
@@ -69,6 +69,7 @@
 })();
 </script>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="public/flux-planner-logo.svg">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -438,13 +439,13 @@
         <button class="nav-item" onclick="nav('grades',this)" data-tab="grades"><span class="ni">📊</span><span class="nl">Grades</span></button>
         <button class="nav-item" onclick="nav('notes',this)" data-tab="notes"><span class="ni">📝</span><span class="nl">Notes</span></button>
         <button class="nav-item" onclick="nav('timer',this)" data-tab="timer"><span class="ni">⏱</span><span class="nl">Focus Timer</span></button>
+        <button class="nav-item" onclick="nav('canvas',this)" data-tab="canvas"><span class="ni">🎓</span><span class="nl">Canvas &amp; Gmail</span></button>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">Me</div>
         <button class="nav-item" onclick="nav('profile',this)" data-tab="profile"><span class="ni">👤</span><span class="nl">Profile</span></button>
         <button class="nav-item" onclick="nav('goals',this)" data-tab="goals"><span class="ni">🎯</span><span class="nl">Extracurriculars</span></button>
         <button class="nav-item" onclick="nav('mood',this)" data-tab="mood"><span class="ni">😊</span><span class="nl">Mood</span></button>
-        <button class="nav-item" onclick="nav('gmail',this)" data-tab="gmail"><span class="ni">📧</span><span class="nl">Gmail</span></button>
         <button class="nav-item" onclick="nav('settings',this)" data-tab="settings"><span class="ni">⚙</span><span class="nl">Settings</span></button>
       </div>
     </div>
@@ -500,13 +501,13 @@
         <button class="nav-item" onclick="navMob('grades')"><span class="ni">📊</span><span class="nl">Grades</span></button>
         <button class="nav-item" onclick="navMob('notes')"><span class="ni">📝</span><span class="nl">Notes</span></button>
         <button class="nav-item" onclick="navMob('timer')"><span class="ni">⏱</span><span class="nl">Focus Timer</span></button>
+        <button class="nav-item" onclick="navMob('canvas')"><span class="ni">🎓</span><span class="nl">Canvas &amp; Gmail</span></button>
       </div>
       <div class="nav-group">
         <div class="nav-group-label" style="padding:8px 16px 4px">Me</div>
         <button class="nav-item" onclick="navMob('profile')"><span class="ni">👤</span><span class="nl">Profile</span></button>
         <button class="nav-item" onclick="navMob('goals')"><span class="ni">🎯</span><span class="nl">Extracurriculars</span></button>
         <button class="nav-item" onclick="navMob('mood')"><span class="ni">😊</span><span class="nl">Mood</span></button>
-        <button class="nav-item" onclick="navMob('gmail')"><span class="ni">📧</span><span class="nl">Gmail</span></button>
         <button class="nav-item" onclick="navMob('settings')"><span class="ni">⚙</span><span class="nl">Settings</span></button>
       </div>
     </div>
@@ -588,6 +589,10 @@
       <section class="dash-v2-pulse dash-workload-compact card" aria-label="Next 7 days workload" data-flux-section="pulse" style="margin-bottom:0">
         <div id="dashWeekStrip" class="dash-week-strip" aria-label="Next 7 days — workload by due date"></div>
       </section>
+
+      <div id="dashClassScheduleWrap" class="dash-class-schedule-wrap" data-flux-section="schedule" style="display:none" aria-live="polite">
+        <div id="dynamicFocusCard" class="dash-dynamic-focus-inner"></div>
+      </div>
 
       <div class="dash-workspace dash-v2-workspace" role="region" aria-label="Tasks" data-flux-section="tasks">
         <div class="dash-v2-work-head">
@@ -1061,10 +1066,18 @@
       </div>
     </div>
 
+    <!-- ─── CANVAS & GMAIL ─── -->
+    <div id="canvas" class="panel flux-page">
+      <header class="flux-page-header flux-page-header--lead">
+        <p class="flux-page-sub">Canvas LMS data, text submissions, and school Gmail — tie it to your planner.</p>
+      </header>
+      <div class="flux-stack" id="canvasHubStack"></div>
+    </div>
+
     <!-- ─── PROFILE ─── -->
     <div id="profile" class="panel flux-page">
       <header class="flux-page-header flux-page-header--lead">
-        <p class="flux-page-sub">Identity, study style, stats, badges, and Canvas.</p>
+        <p class="flux-page-sub">Identity, study style, stats, and badges.</p>
       </header>
       <div class="flux-stack">
       <div class="profile-hero">
@@ -1111,19 +1124,6 @@
       </div>
       <div class="card"><h3>Course Confidence</h3><div id="confidenceSliders"></div><button onclick="saveConfidences()" style="width:100%;margin-top:8px">Save</button></div>
       <div class="card"><h3>Academic Stats</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="profileStats"></div></div>
-      <div class="card">
-        <h3>Canvas LMS</h3>
-        <div id="canvasStatus" style="margin-bottom:12px"></div>
-        <label style="font-size:.72rem;color:var(--muted)">Canvas URL</label>
-        <input type="text" id="canvasUrl" placeholder="e.g. https://school.instructure.com" style="margin-bottom:8px">
-        <label style="font-size:.72rem;color:var(--muted)">Access Token</label>
-        <input type="password" id="canvasToken" placeholder="Paste your Canvas token" style="margin-bottom:8px">
-        <div style="display:flex;gap:8px">
-          <button onclick="saveCanvasConfig()" class="btn-sec" style="flex:1">Save</button>
-          <button onclick="syncCanvas()" style="flex:1">↓ Sync Assignments</button>
-        </div>
-        <div style="font-size:.7rem;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono',monospace">Account → Settings → Approved Integrations → New Access Token</div>
-      </div>
       </div>
     </div>
 
@@ -1250,22 +1250,6 @@
       </div>
     </div>
 
-    <!-- ─── GMAIL ─── -->
-    <div id="gmail" class="panel flux-page">
-      <header class="flux-page-header flux-page-header--lead">
-        <p class="flux-page-sub">School messages in one place — refresh to load and add to tasks.</p>
-      </header>
-      <div class="flux-stack">
-      <div class="card" style="padding:14px;margin-bottom:0">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-weight:800;font-size:1rem">Inbox</div><div style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">View school emails · Add to tasks</div></div>
-          <button onclick="loadGmail()" class="btn-sec" style="padding:7px 14px;font-size:.78rem">↻ Refresh</button>
-        </div>
-      </div>
-      <div id="gmailList"></div>
-      </div>
-    </div>
-
     <!-- ─── AI ─── -->
     <div id="ai" class="panel flux-page" style="display:none;flex-direction:column;height:calc(100vh - 60px);padding:0;max-width:none">
       <div class="flux-ai-top">
@@ -1334,9 +1318,9 @@
           <div class="srow" style="border:none;padding-top:0">
             <div>
               <div class="slabel">Liquid glass</div>
-              <div class="ssub">Backdrop blur on chrome, cards, and panels — Flux’s premium look. Turn off for a flatter UI or smoother performance on older phones.</div>
+              <div class="ssub">Off by default — turn on for backdrop blur, softer cards, and accent glow on the sidebar and chrome. Leave off for a flatter, faster UI.</div>
             </div>
-            <button type="button" class="toggle on" id="fluxLiquidGlassToggle" aria-label="Liquid glass" aria-pressed="true"></button>
+            <button type="button" class="toggle" id="fluxLiquidGlassToggle" aria-label="Liquid glass" aria-pressed="false"></button>
           </div>
           <div class="srow" style="border:none;padding-top:0">
             <div>
@@ -1345,6 +1329,15 @@
             </div>
             <button type="button" class="toggle" id="fluxPerfSnappyToggle" aria-label="Snappy mode" aria-pressed="false"></button>
           </div>
+        </div>
+        <div class="card">
+          <h3>Class schedule on dashboard</h3>
+          <div class="ssub" style="font-size:.75rem;color:var(--muted2);margin-bottom:10px;line-height:1.55">Choose how your school day shows above Tasks and in the top bar so a long bell schedule does not crowd out homework.</div>
+          <select id="classScheduleDisplaySelect" onchange="saveClassScheduleDisplay(this.value)" aria-label="Class schedule on dashboard and top bar" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:.85rem;box-sizing:border-box">
+            <option value="full">Full — next class card and gap suggestions</option>
+            <option value="collapsed">Collapsed — one-line summary (tap to expand)</option>
+            <option value="hidden">Hidden — not above tasks or in the top bar</option>
+          </select>
         </div>
         <div class="card">
           <h3>Themes</h3>
@@ -1657,7 +1650,7 @@
     <button class="bnav-item" onclick="nav('calendar',this)" data-tab="calendar"><span class="bni">📅</span>Calendar</button>
     <button class="bnav-item" onclick="nav('school',this)" data-tab="school"><span class="bni">🏫</span>School</button>
     <button class="bnav-item" onclick="nav('ai',this)" data-tab="ai"><span class="bni">✦</span>AI</button>
-    <button class="bnav-item" onclick="nav('gmail',this)" data-tab="gmail"><span class="bni">📧</span>Gmail</button>
+    <button class="bnav-item" onclick="nav('canvas',this)" data-tab="canvas"><span class="bni">🎓</span>Canvas</button>
     <button class="bnav-item" onclick="openDrawer()" id="moreBtn"><span class="bni">☰</span>More</button>
   </div>
 
