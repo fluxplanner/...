@@ -66,6 +66,7 @@
 <link rel="stylesheet" href="public/css/flux-enhancements-v100.css">
 <link rel="stylesheet" href="public/css/flux-visual-premium.css">
 <link rel="stylesheet" href="public/css/flux-mobile-premium.css">
+<link rel="stylesheet" href="public/css/flux-ai-orchestrator.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -1216,6 +1217,14 @@
       <!-- Messages — scrollable -->
       <div id="aiMsgsWrap" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:0">
         <div class="ai-sugs" id="aiSugs"></div>
+        <div id="fluxAiScratch" class="card flux-agent-scratch" style="display:none;margin-bottom:12px;padding:12px 14px" aria-label="Editable AI output">
+          <div class="flux-agent-scratch-head">Latest AI output — edit freely</div>
+          <textarea id="fluxAiScratchTa" rows="4" placeholder="Your last AI reply appears here. Tweak it, then insert into chat or copy."></textarea>
+          <div class="flux-agent-scratch-actions">
+            <button type="button" class="btn-sec" onclick="FluxOrchestrator.applyScratchToInput()">Insert into chat</button>
+            <button type="button" class="btn-sec" onclick="navigator.clipboard.writeText(document.getElementById('fluxAiScratchTa').value||'').then(()=>showToast('Copied','success')).catch(()=>{})">Copy</button>
+          </div>
+        </div>
         <div class="ai-msgs" id="aiMsgs"></div>
       </div>
       <!-- Image preview -->
@@ -1228,7 +1237,7 @@
             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
           <button class="ai-send" id="aiSendBtn" onclick="sendAI()">↑</button>
         </div>
-        <div style="font-size:.58rem;color:var(--muted);text-align:center;padding:4px 0;font-family:'JetBrains Mono',monospace">Flux AI sees your planner snapshot · g = 10 m/s² physics</div>
+        <div style="font-size:.58rem;color:var(--muted);text-align:center;padding:4px 0;font-family:'JetBrains Mono',monospace">Agent layer: <strong style="color:var(--muted2)">/plan</strong> · <strong style="color:var(--muted2)">/optimize</strong> · <strong style="color:var(--muted2)">/fix</strong> · ⌘K palette · full planner snapshot · g = 10 m/s² physics</div>
       </div>
     </div>
 
@@ -1690,6 +1699,7 @@
 <script defer src="public/js/flux-intelligence.js"></script>
 <script defer src="public/js/flux-task-ux.js"></script>
 <script defer src="public/js/flux-ai-mega.js"></script>
+<script defer src="public/js/flux-ai-orchestrator.js"></script>
 <script defer src="public/js/flux-enhancements-v100.js"></script>
 <script defer src="public/js/flux-visual-layer.js"></script>
 <script defer src="public/js/flux-master-backlog.js"></script>

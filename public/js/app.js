@@ -2275,7 +2275,7 @@ function toggleTimer(){tRunning?pauseTimer():startTimer();}
 function startTimer(){tRunning=true;document.getElementById('timerBtn').textContent='⏸ Pause';tInterval=setInterval(()=>{tSecs--;updateTDisplay();if(tSecs<=0)timerDone();},1000);}
 function pauseTimer(){tRunning=false;clearInterval(tInterval);document.getElementById('timerBtn').textContent='▶ Resume';}
 function resetTimer(){tRunning=false;clearInterval(tInterval);tSecs=TM[tMode].mins*60;tTotal=tSecs;document.getElementById('timerBtn').textContent='▶ Start';updateTDisplay();}
-function timerDone(){tRunning=false;clearInterval(tInterval);document.getElementById('timerBtn').textContent='▶ Start';if(tMode==='pomodoro'){tDone++;tMins+=TM.pomodoro.mins;const ts=todayStr();if(tLastDate!==ts){const y=new Date(TODAY);y.setDate(TODAY.getDate()-1);tStreak=tLastDate===y.toISOString().slice(0,10)?tStreak+1:1;tLastDate=ts;save('t_date',tLastDate);}const sub=document.getElementById('timerSubject')?.value||'';sessionLog.push({date:ts,mins:TM.pomodoro.mins,subject:sub,hour:new Date().getHours()});save('flux_session_log',sessionLog);if(sub){subjectBudgets[sub]=(subjectBudgets[sub]||0)+(TM.pomodoro.mins/60);save('flux_budgets',subjectBudgets);}save('t_sessions',tDone);save('t_minutes',tMins);save('t_streak',tStreak);updateTStats();renderTDots();renderSubjectBudget();renderFocusHeatmap();
+function timerDone(){tRunning=false;clearInterval(tInterval);document.getElementById('timerBtn').textContent='▶ Start';if(tMode==='pomodoro'){tDone++;tMins+=TM.pomodoro.mins;const ts=todayStr();if(tLastDate!==ts){const y=new Date(TODAY);y.setDate(TODAY.getDate()-1);tStreak=tLastDate===y.toISOString().slice(0,10)?tStreak+1:1;tLastDate=ts;save('t_date',tLastDate);}const sub=document.getElementById('timerSubject')?.value||'';sessionLog.push({date:ts,mins:TM.pomodoro.mins,subject:sub,hour:new Date().getHours()});save('flux_session_log',sessionLog);if(typeof FluxBus!=='undefined')FluxBus.emit('session_ended',{mins:TM.pomodoro.mins,subject:sub,date:ts,hour:new Date().getHours()});if(sub){subjectBudgets[sub]=(subjectBudgets[sub]||0)+(TM.pomodoro.mins/60);save('flux_budgets',subjectBudgets);}save('t_sessions',tDone);save('t_minutes',tMins);save('t_streak',tStreak);updateTStats();renderTDots();renderSubjectBudget();renderFocusHeatmap();
 showSessionRecap(sub,TM.pomodoro.mins);
 setTimeout(()=>{const mode=tDone%4===0?'long':'short';const btns=document.querySelectorAll('#timer .tmode-btn');setTMode(mode,btns[mode==='long'?2:1]);},400);}else{setTimeout(()=>{setTMode('pomodoro',document.querySelectorAll('#timer .tmode-btn')[0]);},400);}}
 function updateTDisplay(){const m=Math.floor(tSecs/60),s=tSecs%60;document.getElementById('tDisplay').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');const offset=CIRC*(1-tSecs/tTotal);const ring=document.getElementById('timerRing');if(ring){ring.style.strokeDasharray=CIRC;ring.style.strokeDashoffset=offset;}}
@@ -3135,7 +3135,7 @@ function clearAIChat(){
 function fmtAI(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^### (.+)$/gm,'<strong style="display:block;margin-top:8px;margin-bottom:2px">$1</strong>').replace(/^- (.+)$/gm,'<li style="margin-left:14px;margin-bottom:3px">$1</li>').replace(/Q:\s*(.+)/g,'<strong style="color:var(--accent)">Q:</strong> $1').replace(/A:\s*(.+)/g,'<strong style="color:var(--green)">A:</strong> $1').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');}
 function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const f=isBot?fmtAI(content):esc(content);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
-function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","Plan my afternoon around classes","Make a study plan from my tasks","What should I work on right now?","Explain my grades and what to fix","Help with my schedule / calendar","Summarize my notes for an exam","Create flashcards for my next test","Timer & focus: what block should I run?","Extracurriculars — what am I missing?","Settings: how should I tune Flux?","Gmail / inbox — what should I tackle?"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
+function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","/plan — build a study plan with tools","/optimize — workload + schedule suggestions","/fix — run schedule relief (same as Command Center)","Plan my afternoon around classes","Make a study plan from my tasks","What should I work on right now?","Explain my grades and what to fix","Help with my schedule / calendar","Summarize my notes for an exam","Create flashcards for my next test","Timer & focus: what block should I run?","Extracurriculars — what am I missing?","Settings: how should I tune Flux?","Gmail / inbox — what should I tackle?"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
 function handleAIImg(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
@@ -3230,16 +3230,30 @@ async function sendAI(){
   input.value='';input.style.height='auto';btn.disabled=true;
   const thinkEl=appendMsg('bot','',true);
   try{
-    const body={system:buildAIPrompt(),messages:aiHistory.map(m=>({role:m.role,content:typeof m.content==='string'?m.content:JSON.stringify(m.content)}))};
+    if(window.FluxOrchestrator&&FluxOrchestrator.beginThinking)FluxOrchestrator.beginThinking(thinkEl);
+    if(window.FluxOrchestrator&&FluxOrchestrator.handleSlashCommand){
+      const slashNote=FluxOrchestrator.handleSlashCommand(text);
+      if(slashNote&&FluxOrchestrator.thinkingStep)FluxOrchestrator.thinkingStep('Ran /fix — schedule relief applied on-device.');
+    }
+    const baseSys=buildAIPrompt();
+    const system=(window.FluxOrchestrator&&FluxOrchestrator.augmentSystemPrompt)?FluxOrchestrator.augmentSystemPrompt(baseSys,text):baseSys;
+    const body={system,messages:aiHistory.map(m=>({role:m.role,content:typeof m.content==='string'?m.content:JSON.stringify(m.content)}))};
     // If image attached, send it for Gemini vision via the ai-proxy
     if(imgSnapshot){body.imageBase64=imgSnapshot.data;body.mimeType=imgSnapshot.mime;}
+    if(window.FluxOrchestrator&&FluxOrchestrator.thinkingStep)FluxOrchestrator.thinkingStep('Calling model with planner + agent context…');
     const res=await fetch(API.ai,{method:'POST',headers:API_HEADERS,body:JSON.stringify(body)});
     if(!res.ok){const err=await res.json().catch(()=>({error:'Unknown error'}));throw new Error(err.error||'HTTP '+res.status);}
     const data=await res.json();
     const reply=data.content?.[0]?.text||"I didn't get a response — try again.";
-    thinkEl.remove();
     const ar=execActions(reply);
     let clean=reply;
+    const toolsRun=[];
+    if(window.FluxOrchestrator&&FluxOrchestrator.processAssistantReply){
+      if(window.FluxOrchestrator.thinkingStep)FluxOrchestrator.thinkingStep('Parsing tools & updating scratch pad…');
+      FluxOrchestrator.processAssistantReply(reply,toolsRun);
+      clean=window.FluxOrchestrator.stripFluxTools?FluxOrchestrator.stripFluxTools(clean):clean;
+    }
+    thinkEl.remove();
     // Strip ```actions ... ``` blocks (closed)
     clean=clean.replace(/`{3,}actions[\s\S]*?`{3,}/gi,'');
     // Strip unclosed ```actions blocks (at end of reply)
@@ -3261,7 +3275,7 @@ async function sendAI(){
       document.getElementById('aiMsgs').appendChild(confDiv);
       confDiv.scrollIntoView({behavior:'smooth',block:'end'});
     }
-    aiHistory.push({role:'assistant',content:reply});
+    aiHistory.push({role:'assistant',content:clean});
     if(aiHistory.length>24)aiHistory=aiHistory.slice(-24);
     saveCurrentChat(); // persist to chat tabs
   }catch(err){
@@ -4140,6 +4154,9 @@ function renderCmdResults(){
   actions.forEach(a=>{if(!q||a.label.toLowerCase().includes(q))cmds.push(a);});
   if(window.Flux100&&typeof Flux100.getExtraCommands==='function'){
     try{Flux100.getExtraCommands(q).forEach(x=>{if(!q||x.label.toLowerCase().includes(q))cmds.push(x);});}catch(e){}
+  }
+  if(window.FluxOrchestrator&&typeof FluxOrchestrator.getPaletteCommands==='function'){
+    try{FluxOrchestrator.getPaletteCommands(q).forEach(x=>{if(!q||x.label.toLowerCase().includes(q))cmds.push(x);});}catch(e){}
   }
   if(!cmds.length){res.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">No results</div>';return;}
   

@@ -1,0 +1,97 @@
+/* Flux AI Orchestrator — additive glass UI for thinking log, tool cards, scratch pad */
+
+.flux-ai-think-log{
+  font-size:.68rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted2);
+  line-height:1.45;
+  margin-bottom:10px;
+  max-height:120px;
+  overflow-y:auto;
+  padding-right:4px;
+}
+.flux-ai-think-row{
+  padding:3px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  animation:fluxThinkFade .35s var(--ease-out) both;
+}
+@keyframes fluxThinkFade{
+  from{opacity:0;transform:translateY(4px)}
+  to{opacity:1;transform:none}
+}
+
+.flux-tool-card-wrap .flux-tool-bub{
+  background:rgba(var(--accent-rgb),.06)!important;
+  border:1px solid rgba(var(--accent-rgb),.18)!important;
+}
+.flux-tool-card-h{
+  font-size:.65rem;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  color:var(--accent);
+  margin-bottom:8px;
+  font-weight:700;
+}
+.flux-tool-card{
+  margin-bottom:10px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:rgba(0,0,0,.2);
+  border:1px solid var(--border2);
+}
+.flux-tool-card-title{
+  font-size:.72rem;
+  font-weight:700;
+  color:var(--text2);
+  margin-bottom:6px;
+}
+.flux-tool-pre{
+  font-size:.62rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted2);
+  white-space:pre-wrap;
+  word-break:break-word;
+  margin:0;
+  max-height:200px;
+  overflow-y:auto;
+}
+
+.flux-agent-scratch{
+  margin:0 14px 10px!important;
+  padding:12px 14px!important;
+  border:1px solid rgba(var(--accent-rgb),.15)!important;
+  background:linear-gradient(165deg,rgba(var(--accent-rgb),.08) 0%,var(--card) 100%)!important;
+  backdrop-filter:var(--glass-soft,blur(28px));
+}
+.flux-agent-scratch-head{
+  font-size:.65rem;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  color:var(--muted);
+  margin-bottom:8px;
+  font-family:'JetBrains Mono',monospace;
+}
+#fluxAiScratchTa{
+  width:100%;
+  min-height:100px;
+  max-height:220px;
+  resize:vertical;
+  border-radius:10px;
+  border:1px solid var(--border2);
+  background:rgba(0,0,0,.25);
+  color:var(--text);
+  font-size:.82rem;
+  line-height:1.5;
+  padding:10px 12px;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  margin-bottom:8px;
+  box-sizing:border-box;
+}
+.flux-agent-scratch-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.flux-agent-scratch-actions button{
+  font-size:.75rem;
+}
