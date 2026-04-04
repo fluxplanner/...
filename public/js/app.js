@@ -2591,7 +2591,7 @@ function switchStab(id,el){
   if(el){el.classList.add('active');el.setAttribute('aria-selected','true');}
   const pane=document.getElementById('spane-'+id);
   if(pane)pane.classList.add('active');
-  if(id==='appearance'){applyFontScale();applyReduceMotion();if(window.FluxPersonal&&FluxPersonal.renderPanelLayoutSettings)FluxPersonal.renderPanelLayoutSettings();}
+  if(id==='appearance'){applyFontScale();applyReduceMotion();if(window.FluxPersonal&&FluxPersonal.initSettingsUI)FluxPersonal.initSettingsUI();if(window.FluxPersonal&&FluxPersonal.renderPanelLayoutSettings)FluxPersonal.renderPanelLayoutSettings();}
   if(id==='data'&&typeof renderStorageMeter==='function')renderStorageMeter();
 }
 function toggleSetting(k,el){settings[k]=!settings[k];el.classList.toggle('on',settings[k]);save('flux_settings',settings);}
@@ -4294,6 +4294,32 @@ function initScrollLayout(){
   }
 }
 
+/** Pop-up OAuth → opener tab stays on login; same strings in initAuth callback window */
+const FLUX_OAUTH_PM_SUCCESS='flux-oauth-success';
+const FLUX_OAUTH_PM_ERROR='flux-oauth-error';
+
+function initOAuthPostMessageListener(){
+  if(window.__fluxOAuthPmListener)return;
+  window.__fluxOAuthPmListener=true;
+  window.addEventListener('message',async ev=>{
+    if(ev.origin!==location.origin||!ev.data||typeof ev.data.type!=='string')return;
+    if(ev.data.type===FLUX_OAUTH_PM_ERROR){
+      if(typeof showToast==='function')showToast(String(ev.data.message||'Sign-in was cancelled or failed.'),'warning');
+      return;
+    }
+    if(ev.data.type!==FLUX_OAUTH_PM_SUCCESS)return;
+    const sb=getSB();
+    if(!sb)return;
+    const{data:{session}}=await sb.auth.getSession();
+    if(session?.user){
+      await handleSignedIn(session.user,session);
+      if(typeof showToast==='function')showToast('Signed in with Google','success');
+    }else if(typeof showToast==='function'){
+      showToast('Could not read session — try refreshing the page.','warning');
+    }
+  });
+}
+
 async function signInWithGoogleKeepData(){
   // Mark that we want to migrate guest data after sign-in
   save('flux_migrate_guest',true);
@@ -4303,21 +4329,30 @@ async function signInWithGoogleKeepData(){
 async function signInWithGoogle(){
   const sb=getSB();
   if(!sb){alert('Auth not available — please refresh.');return;}
+  initOAuthPostMessageListener();
   try{
-    // This navigates the CURRENT TAB to Google.
-    // After Google auth, Google redirects back to redirectTo in the SAME TAB.
-    // Supabase then picks up the session from the URL on page load via getSession().
-    const{error}=await sb.auth.signInWithOAuth({
+    const{data,error}=await sb.auth.signInWithOAuth({
       provider:'google',
       options:{
-        // Must match current origin/path (local dev, GitHub Pages, etc.) and Supabase Auth redirect allowlist
         redirectTo:getRedirectURL(),
+        skipBrowserRedirect:true,
         scopes:'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly',
         queryParams:{access_type:'offline',prompt:'select_account'},
       }
     });
     if(error)throw error;
-    // Current tab now navigates to Google — user will be back after auth
+    if(!data?.url){
+      alert('Could not start Google sign-in. Please refresh and try again.');
+      return;
+    }
+    const feat='width=520,height=720,left=80,top=60,scrollbars=yes,resizable=yes';
+    const w=window.open(data.url,'fluxGoogleOAuth',feat);
+    if(!w||w.closed==null){
+      window.location.href=data.url;
+      return;
+    }
+    try{w.focus();}catch(e){}
+    if(typeof showToast==='function')showToast('Complete sign-in in the pop-up. This tab will stay here.','info');
   }catch(e){
     console.error('OAuth error:',e);
     alert('Sign in failed: '+e.message);
@@ -4387,7 +4422,7 @@ async function getSessionAfterOAuth(sb){
   let{data:{session}}=await sb.auth.getSession();
   const hash=window.location.hash;
   const params=new URLSearchParams(window.location.search);
-  const oauthPending=hash.includes('access_token')||hash.includes('error')||params.has('code');
+  const oauthPending=hash.includes('access_token')||hash.includes('error')||params.has('code')||params.has('error');
   if(session||!oauthPending)return session;
   for(let i=0;i<150;i++){
     await new Promise(r=>setTimeout(r,100));
@@ -4404,16 +4439,44 @@ async function initAuth(){
     showLoginScreen();
     return;
   }
+  initOAuthPostMessageListener();
   try{
     const hash=window.location.hash;
     const params=new URLSearchParams(window.location.search);
-    const isOAuthCallback=hash.includes('access_token')||hash.includes('error')||params.has('code');
+    const isOAuthCallback=hash.includes('access_token')||hash.includes('error')||params.has('code')||params.has('error');
 
     const session=await getSessionAfterOAuth(sb);
 
     if(isOAuthCallback){
       const cleanPath=window.location.pathname;
       window.history.replaceState(null,'',cleanPath);
+    }
+
+    const oauthPopupNotify=()=>{
+      const op=window.opener;
+      if(!op||op.closed)return false;
+      const errInUrl=!!(params.get('error')||hash.includes('error='));
+      let errMsg='Could not complete sign-in. Try again.';
+      if(errInUrl){
+        const raw=params.get('error_description')||params.get('error')||'Sign-in failed';
+        try{errMsg=decodeURIComponent(String(raw).replace(/\+/g,' '));}catch(e){errMsg=String(raw);}
+      }
+      try{
+        if(session?.user)op.postMessage({type:FLUX_OAUTH_PM_SUCCESS},location.origin);
+        else op.postMessage({type:FLUX_OAUTH_PM_ERROR,message:errMsg},location.origin);
+      }catch(e){console.warn('OAuth postMessage',e);}
+      const ok=!!session?.user;
+      const title=ok?'Signed in':'Sign-in did not finish';
+      const sub=ok
+        ?'This window will close — continue in your other Flux tab.'
+        :'You can close this window and try again from the other tab.';
+      document.body.innerHTML='<div style="font-family:system-ui,sans-serif;padding:48px 24px;text-align:center;color:#e8ecff;background:#0B0F1A;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px"><p style="font-weight:600;margin:0;font-size:16px">'+title+'</p><p style="opacity:.72;font-size:14px;margin:0;max-width:280px;line-height:1.5">'+sub+'</p></div>';
+      setTimeout(()=>{try{window.close();}catch(e){}},ok?280:400);
+      return true;
+    };
+
+    if(isOAuthCallback&&window.opener&&!window.opener.closed){
+      if(oauthPopupNotify())return;
     }
     
     // STEP 2: Sign in or show login
@@ -4535,6 +4598,15 @@ function showApp(){
 }
 
 async function handleSignedIn(user,session){
+  if(currentUser&&currentUser.id===user.id){
+    const ls=document.getElementById('loginScreen');
+    if(ls){ls.style.display='none';ls.classList.remove('visible');}
+    stopLoginDemoRotator();
+    const appEl=document.getElementById('app');
+    if(appEl&&!appEl.classList.contains('visible'))showApp();
+    _updateUserUI(user,user.user_metadata?.full_name||user.email?.split('@')[0]||'');
+    return;
+  }
   // ── ACCOUNT SWITCH: wipe previous user's data ──────────────
   const lastId = localStorage.getItem('flux_last_user_id');
   if(lastId && lastId !== user.id){
@@ -4833,6 +4905,7 @@ function initDashboardFeatures(){
 
 // ══ INIT ══
 (function init(){
+  initOAuthPostMessageListener();
   loadTheme();
   migrateCompletedAtBackfill();
   loadSettingsUI();

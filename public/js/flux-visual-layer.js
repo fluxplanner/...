@@ -4,6 +4,9 @@
  */
 (function(){
   if(!window.matchMedia||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  function perfSnappy(){
+    try{return document.documentElement.getAttribute('data-flux-perf')==='on';}catch(e){return false;}
+  }
   function ensureLayer(){
     if(document.getElementById('fluxCursorAmbient'))return;
     var el=document.createElement('div');
@@ -14,16 +17,22 @@
     else document.body.appendChild(el);
   }
   var raf=null;
+  var lastX=-999,lastY=-999;
   function tick(e){
+    if(perfSnappy())return;
+    var dx=Math.abs(e.clientX-lastX),dy=Math.abs(e.clientY-lastY);
+    if(dx<12&&dy<12)return;
+    lastX=e.clientX;lastY=e.clientY;
     if(raf)return;
     raf=requestAnimationFrame(function(){
       raf=null;
       var w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
-      document.documentElement.style.setProperty('--flux-cursor-x',(e.clientX/w*100)+'%');
-      document.documentElement.style.setProperty('--flux-cursor-y',(e.clientY/h*100)+'%');
+      document.documentElement.style.setProperty('--flux-cursor-x',(lastX/w*100)+'%');
+      document.documentElement.style.setProperty('--flux-cursor-y',(lastY/h*100)+'%');
     });
   }
   function boot(){
+    if(perfSnappy())return;
     ensureLayer();
     document.addEventListener('mousemove',tick,{passive:true});
   }

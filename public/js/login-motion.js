@@ -3,7 +3,7 @@
   let rafId=null;
   let canvas,ctx;
   let particles=[];
-  const MAX=42;
+  const MAX=28;
   let resizeBound=false;
 
   function resize(){

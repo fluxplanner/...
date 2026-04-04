@@ -1,0 +1,72 @@
+/**
+ * Flux performance layer — snappier UI, fewer full-screen repaints.
+ * html[data-flux-perf="on"] = Settings “Snappy mode” or auto (mobile / low memory).
+ * html.flux-reduce-motion = accessibility reduce motion (shares many of the same cuts).
+ */
+
+html.flux-reduce-motion::before,
+html.flux-reduce-motion::after,
+html[data-flux-perf="on"]::before,
+html[data-flux-perf="on"]::after{
+  animation:none!important;
+}
+html.flux-reduce-motion body::before,
+html[data-flux-perf="on"] body::before{
+  animation:none!important;
+  opacity:0.88!important;
+}
+html.flux-reduce-motion::after,
+html[data-flux-perf="on"]::after{
+  opacity:0!important;
+  visibility:hidden!important;
+}
+html.flux-reduce-motion #fluxCursorAmbient,
+html[data-flux-perf="on"] #fluxCursorAmbient{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+/* Pause decorative infinite loops (GPU-heavy filter / transform layers) */
+html.flux-reduce-motion .flux-dash-card-inner::after,
+html.flux-reduce-motion .flux-mega-card::after,
+html.flux-reduce-motion .flux-ai-strip-inner::after,
+html[data-flux-perf="on"] .flux-dash-card-inner::after,
+html[data-flux-perf="on"] .flux-mega-card::after,
+html[data-flux-perf="on"] .flux-ai-strip-inner::after{
+  animation:none!important;
+  opacity:0!important;
+}
+html.flux-reduce-motion .dash-week-col:first-child .dash-week-bar,
+html[data-flux-perf="on"] .dash-week-col:first-child .dash-week-bar{
+  animation:none!important;
+  filter:none!important;
+}
+html.flux-reduce-motion #dynamicFocusCard:not(:empty),
+html[data-flux-perf="on"] #dynamicFocusCard:not(:empty){
+  animation:none!important;
+}
+html.flux-reduce-motion #countdownCard .dash-v2-countdown-card,
+html[data-flux-perf="on"] #countdownCard .dash-v2-countdown-card{
+  animation:none!important;
+  filter:none!important;
+}
+html.flux-reduce-motion .cal-day.today,
+html[data-flux-perf="on"] .cal-day.today{
+  animation:none!important;
+}
+html.flux-reduce-motion .flux-streak-badge:not([style*='display: none']),
+html[data-flux-perf="on"] .flux-streak-badge:not([style*='display: none']){
+  animation:none!important;
+  filter:none!important;
+}
+
+/* Lighter interaction on task rows (less layout thrash) */
+html[data-flux-perf="on"] .task-item:not(.task-done):hover{
+  transform:none!important;
+}
+
+/* Buttons: skip global lift transform (still color/shadow from components) */
+html[data-flux-perf="on"] button:hover{
+  transform:none!important;
+}

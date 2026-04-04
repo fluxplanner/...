@@ -9,6 +9,7 @@
   const KEY_LAYOUT_DASH='flux_layout_dashboard_v1';
   const KEY_LAYOUT_CAL='flux_layout_calendar_v1';
   const KEY_LIQUID_GLASS='flux_liquid_glass';
+  const KEY_PERF_SNAPPY='flux_perf_snappy';
   const DEFAULT_DASH_ORDER=['countdown','pulse','tasks'];
   const DEFAULT_CAL_ORDER=['hero','schedule'];
   const DASH_LABELS={countdown:'Exam countdown',pulse:'Next 7 days (workload)',tasks:'Tasks'};
@@ -77,6 +78,29 @@
   function setLiquidGlassEnabled(on){
     save(KEY_LIQUID_GLASS,!!on);
     applyLiquidGlass();
+  }
+
+  function perfSnappySuggest(){
+    try{
+      const mobile=typeof matchMedia!=='undefined'&&matchMedia('(max-width:768px)').matches;
+      const lowMem=typeof navigator.deviceMemory==='number'&&navigator.deviceMemory<=4;
+      const fewCores=(navigator.hardwareConcurrency||8)<=2;
+      return mobile||lowMem||fewCores;
+    }catch(e){return false;}
+  }
+  function applyPerfSnappy(){
+    let on;
+    try{
+      const raw=localStorage.getItem(KEY_PERF_SNAPPY);
+      on=raw===null?perfSnappySuggest():JSON.parse(raw);
+    }catch(e){
+      on=perfSnappySuggest();
+    }
+    document.documentElement.setAttribute('data-flux-perf',on?'on':'off');
+  }
+  function setPerfSnappyEnabled(on){
+    save(KEY_PERF_SNAPPY,!!on);
+    applyPerfSnappy();
   }
 
   function peakHoursFromLog(){
@@ -272,6 +296,7 @@
     applyUiDensity();
     applyMoodTint();
     applyLiquidGlass();
+    applyPerfSnappy();
     applyDashboardOrder();
     applyCalendarOrder();
     styleProfileAvatar();
@@ -305,6 +330,22 @@
         lg.setAttribute('aria-pressed',next?'true':'false');
       };
     }
+    const perf=document.getElementById('fluxPerfSnappyToggle');
+    if(perf){
+      let cur=false;
+      try{
+        const raw=localStorage.getItem(KEY_PERF_SNAPPY);
+        cur=raw===null?perfSnappySuggest():JSON.parse(raw);
+      }catch(e){cur=perfSnappySuggest();}
+      perf.classList.toggle('on',!!cur);
+      perf.setAttribute('aria-pressed',cur?'true':'false');
+      perf.onclick=()=>{
+        const next=!perf.classList.contains('on');
+        setPerfSnappyEnabled(next);
+        perf.classList.toggle('on',next);
+        perf.setAttribute('aria-pressed',next?'true':'false');
+      };
+    }
     renderPanelLayoutSettings();
   }
 
@@ -317,6 +358,8 @@
     applyMoodTint,
     applyLiquidGlass,
     setLiquidGlassEnabled,
+    applyPerfSnappy,
+    setPerfSnappyEnabled,
     peakHoursFromLog,
     preferredStudyTimesLine,
     sleepSuggestion,
