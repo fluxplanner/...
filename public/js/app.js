@@ -2531,6 +2531,8 @@ function updateLogoColor(hex){
     :root{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
     html{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
     .sidebar-logo svg circle[stroke],.sidebar-logo svg path[stroke]{stroke:${hex}!important}
+    #fluxWG stop:nth-child(2),#fluxWG2 stop:nth-child(2),#fluxWG3 stop:nth-child(2),#fluxCG stop:nth-child(2),#fluxCG2 stop:nth-child(2),#fluxCG3 stop:nth-child(2){stop-color:${hex}!important}
+    #fluxWG stop:nth-child(3),#fluxWG2 stop:nth-child(3),#fluxWG3 stop:nth-child(3){stop-color:${hex}aa!important}
     #fabBtn{background:${hex}!important;box-shadow:0 6px 24px rgba(${rgb},.45)!important}
     .bottom-nav .bnav-item.active{color:${hex}!important}
     .nav-item.active{color:${hex}!important;background:rgba(${rgb},.12)!important}
@@ -2561,7 +2563,7 @@ function setAccent(hex,rgb,el){
   if(el)el.classList.add('active');
   // Update logo gradient to match new accent
   const logoGrad=`linear-gradient(135deg,${hex},${hex}bb)`;
-  document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo').forEach(logoEl=>{
+  document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,[class*="logo"]').forEach(logoEl=>{
     if(!logoEl||logoEl.querySelector('img.flux-brand-logo'))return;
     logoEl.style.background=logoGrad;
     logoEl.style.webkitBackgroundClip='text';
