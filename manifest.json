@@ -4,10 +4,16 @@
   "description": "Your AI-powered student school planner. Built by Azfer Mohammed.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0c0d12",
-  "theme_color": "#0c0d12",
+  "background_color": "#090D17",
+  "theme_color": "#090D17",
   "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "public/flux-planner-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
