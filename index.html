@@ -264,8 +264,11 @@
 </div>
 
 <!-- ══ ONBOARDING FLOW ══ -->
-<div id="onboarding" style="display:none">
+<div id="onboarding">
   <div class="ob-wrap">
+    <div style="display:flex;justify-content:flex-end;width:100%;margin-bottom:6px">
+      <button type="button" class="ob-btn-sec" id="obRedoGlobalCancel" style="display:none;padding:8px 14px;font-size:.78rem" onclick="cancelQuestionnaireRedo()">Cancel</button>
+    </div>
     <div class="ob-progress" id="obProgress"></div>
     <div class="ob-card">
 
@@ -315,6 +318,7 @@
           <div class="ob-chip" onclick="this.classList.toggle('active')" data-feat="extras">🎯 Extracurriculars</div>
         </div>
         <button class="ob-btn" onclick="obNext()">Continue →</button>
+        <button type="button" class="ob-btn" id="obRedoSaveBtn" style="display:none;margin-top:10px;background:rgba(var(--accent-rgb),.2);border:1px solid rgba(var(--accent-rgb),.35);color:var(--accent)" onclick="finishQuestionnaireRedoOnly()">Save preferences &amp; close</button>
         <button class="ob-btn-sec" onclick="obBack()">← Back</button>
       </div>
 
@@ -1485,6 +1489,16 @@
           </div>
         </div>
         <div class="card">
+          <h3>Setup questionnaire</h3>
+          <div class="srow" style="border:none">
+            <div>
+              <div class="slabel">Tailor Flux to you</div>
+              <div class="ssub">Update your term focus and which features you use first (same questions as first-time setup).</div>
+            </div>
+            <button type="button" onclick="openQuestionnaireRedo()" class="btn-sec" style="padding:6px 12px;font-size:.78rem;white-space:nowrap">Redo questionnaire</button>
+          </div>
+        </div>
+        <div class="card">
           <h3>Sick &amp; lazy days</h3>
           <div style="font-size:.78rem;color:var(--muted2);margin-bottom:10px;line-height:1.55">Mark days you won’t do school work. Flux treats them as <strong>rest</strong> (no crunch-time math, panic, or “time poverty”), moves tasks off them when you use <strong>Fix my schedule</strong>, and won’t schedule new work onto them.</div>
           <div id="noHWList" style="margin-bottom:10px"></div>
@@ -1507,7 +1521,24 @@
         </div>
       </div>
       <div class="spane" id="spane-data">
-        <!-- Developer & about — first in Data & info -->
+        <div class="card" style="border-color:rgba(var(--accent-rgb),.22);background:linear-gradient(165deg,rgba(var(--accent-rgb),.06),transparent 55%)">
+          <h3>For schools &amp; families</h3>
+          <p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:0 0 12px">Quick facts for administrators, counselors, and parents. Flux is a <strong>voluntary</strong> student planner—it does not replace official school systems (Canvas, SIS, email from the district).</p>
+          <ul style="margin:0;padding-left:1.15rem;font-size:.78rem;color:var(--text2);line-height:1.7">
+            <li style="margin-bottom:8px"><strong>Voluntary use.</strong> Students choose whether to use it. Teachers and staff are not required to adopt or support it.</li>
+            <li style="margin-bottom:8px"><strong>Data.</strong> Planner data can stay on the device (guest) or sync to a signed-in account (cloud). Optional connections (e.g. Google, Canvas) only use what the student authorizes. Details are in the Privacy Policy.</li>
+            <li style="margin-bottom:8px"><strong>AI.</strong> AI features are assistive only—outputs can be wrong and should not be the sole basis for graded work or official decisions.</li>
+            <li style="margin-bottom:8px"><strong>Audience.</strong> Built for <strong>high school</strong> students; younger users should use it with a parent or guardian and school policy in mind.</li>
+            <li style="margin-bottom:8px"><strong>Accessibility.</strong> Look → High contrast, font scaling, and reduce motion help usability; we welcome feedback on barriers.</li>
+            <li style="margin-bottom:8px"><strong>Reliability.</strong> Works best online. Some features need sync or integrations; plan critical deadlines in official school tools too.</li>
+            <li><strong>Contact.</strong> Questions for school review: <a href="mailto:azfermohammed21@gmail.com" style="color:var(--accent)">azfermohammed21@gmail.com</a></li>
+          </ul>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+            <a href="privacy.html" target="_blank" rel="noopener" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">Privacy Policy →</a>
+            <button type="button" onclick="showTOS()" class="btn-sec" style="padding:6px 14px;font-size:.78rem">Terms of Service →</button>
+          </div>
+        </div>
+        <!-- Developer & about -->
         <div class="card">
           <h3>Developer</h3>
           <div class="srow" style="border:none">

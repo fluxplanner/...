@@ -3804,15 +3804,101 @@ let obSelectedTrack='';
 let obSelectedFocus='deadlines';
 let obScheduleImgData=null;
 let obExtractedClasses=[];
+const OB_TRACK_PRECEDENCE=['IB DP','IB MYP','AP','Honours','General'];
 
-function showOnboarding(){
-  obCurrentStep=1;
-  document.getElementById('loginScreen').classList.remove('visible');
-  document.getElementById('app').classList.remove('visible');
+function prefillOnboardingFromProfile(){
+  const p=load('profile',{});
+  const nameEl=document.getElementById('obName');
+  if(nameEl)nameEl.value=(p.name&&String(p.name).trim())?String(p.name).trim():'';
+  const g=String(p.grade||obSelectedGrade||'10');
+  obSelectedGrade=g;
+  const gradeChip=Array.from(document.querySelectorAll('#obGradeChips .ob-chip')).find(c=>(c.getAttribute('onclick')||'').includes(`'${g}'`));
+  if(gradeChip)selectObChip(gradeChip,'obGrade',g);
+  let focus=(p.termFocus&&String(p.termFocus).trim())?String(p.termFocus).trim():'deadlines';
+  let focusChip=Array.from(document.querySelectorAll('#obFocusChips .ob-chip')).find(c=>(c.getAttribute('onclick')||'').includes(`'${focus}'`));
+  if(!focusChip){focus='deadlines';focusChip=Array.from(document.querySelectorAll('#obFocusChips .ob-chip')).find(c=>(c.getAttribute('onclick')||'').includes("'deadlines'"));}
+  obSelectedFocus=focus;
+  if(focusChip)selectObChip(focusChip,'obFocus',focus);
+  document.querySelectorAll('#obFeatureChips .ob-chip').forEach(c=>c.classList.remove('active'));
+  const feats=Array.isArray(p.plannerFeatures)&&p.plannerFeatures.length?p.plannerFeatures:['tasks'];
+  document.querySelectorAll('#obFeatureChips .ob-chip').forEach(el=>{
+    if(feats.includes(el.dataset.feat))el.classList.add('active');
+  });
+  const si=schoolInfo&&typeof schoolInfo==='object'?schoolInfo:{};
+  const sch=document.getElementById('obSchool');if(sch)sch.value=si.schoolName||'';
+  const cou=document.getElementById('obCounselor');if(cou)cou.value=si.counselor||'';
+  const programs=normalizeProgramList(p.program);
+  obSelectedTrack='';
+  for(const t of OB_TRACK_PRECEDENCE){
+    if(programs.includes(t)){
+      const tc=Array.from(document.querySelectorAll('#obTrackChips .ob-chip')).find(c=>(c.getAttribute('onclick')||'').includes(`'${t}'`));
+      if(tc){selectObChip(tc,'obTrack',t);obSelectedTrack=t;}
+      break;
+    }
+  }
+  if(Array.isArray(classes)&&classes.length)obExtractedClasses=classes.map(c=>({...c}));
+  document.querySelectorAll('.ob-step .ob-chip[data-dna]').forEach(c=>c.classList.remove('active'));
+  if(Array.isArray(studyDNA)&&studyDNA.length){
+    studyDNA.forEach(d=>{
+      const el=document.querySelector(`.ob-step .ob-chip[data-dna="${d}"]`);
+      if(el)el.classList.add('active');
+    });
+  }
+  const goalSlider=document.getElementById('obStudyGoal');
+  const goalLbl=document.getElementById('obGoalLabel');
+  if(goalSlider){
+    const hrs=typeof settings.dailyGoalHrs==='number'&&!Number.isNaN(settings.dailyGoalHrs)?settings.dailyGoalHrs:2;
+    goalSlider.value=String(Math.min(6,Math.max(0.5,hrs)));
+    if(goalLbl)goalLbl.textContent=goalSlider.value+'h';
+  }
+  updateObPreview();
+}
+
+function showOnboarding(startStep){
+  const step=typeof startStep==='number'&&startStep>=1&&startStep<=OB_TOTAL?Math.floor(startStep):1;
+  obCurrentStep=step;
+  document.getElementById('loginScreen')?.classList.remove('visible');
+  document.getElementById('app')?.classList.remove('visible');
   const ob=document.getElementById('onboarding');
   if(ob)ob.classList.add('visible');
+  prefillOnboardingFromProfile();
   renderObProgress();
-  showObStep(1);
+  showObStep(obCurrentStep);
+}
+
+function openQuestionnaireRedo(){
+  window._fluxOnboardingRedo=true;
+  showOnboarding(2);
+}
+
+function cancelQuestionnaireRedo(){
+  window._fluxOnboardingRedo=false;
+  const ob=document.getElementById('onboarding');
+  if(ob)ob.classList.remove('visible');
+  const gc=document.getElementById('obRedoGlobalCancel');
+  const sb=document.getElementById('obRedoSaveBtn');
+  if(gc)gc.style.display='none';
+  if(sb)sb.style.display='none';
+  showApp();
+}
+
+function finishQuestionnaireRedoOnly(){
+  const p=load('profile',{});
+  p.termFocus=obSelectedFocus||'deadlines';
+  const feats=Array.from(document.querySelectorAll('#obFeatureChips .ob-chip.active')).map(c=>c.dataset.feat).filter(Boolean);
+  p.plannerFeatures=feats.length?feats:['tasks'];
+  save('profile',p);
+  window._fluxOnboardingRedo=false;
+  const ob=document.getElementById('onboarding');
+  if(ob)ob.classList.remove('visible');
+  const gc=document.getElementById('obRedoGlobalCancel');
+  const sb=document.getElementById('obRedoSaveBtn');
+  if(gc)gc.style.display='none';
+  if(sb)sb.style.display='none';
+  showApp();
+  renderProfile();
+  if(currentUser)syncToCloud();
+  if(typeof showToast==='function')showToast('Preferences saved','success');
 }
 function renderObProgress(){
   const el=document.getElementById('obProgress');if(!el)return;
@@ -3826,6 +3912,11 @@ function showObStep(n){
   document.querySelectorAll('.ob-step').forEach(s=>s.classList.remove('active'));
   const s=document.getElementById('ob-step-'+n);if(s)s.classList.add('active');
   obCurrentStep=n;renderObProgress();
+  const redo=!!window._fluxOnboardingRedo;
+  const gc=document.getElementById('obRedoGlobalCancel');
+  const sb=document.getElementById('obRedoSaveBtn');
+  if(gc)gc.style.display=redo?'block':'none';
+  if(sb)sb.style.display=redo&&n===2?'block':'none';
 }
 function selectObChip(el,key,val){
   el.closest('.ob-chip-wrap,.ob-chips').querySelectorAll('.ob-chip').forEach(c=>c.classList.remove('active'));
@@ -3889,6 +3980,12 @@ function obNext(){
 }
 function obBack(){if(obCurrentStep>1)showObStep(obCurrentStep-1);}
 function obFinish(){
+  const wasRedo=!!window._fluxOnboardingRedo;
+  window._fluxOnboardingRedo=false;
+  const gc=document.getElementById('obRedoGlobalCancel');
+  const sb=document.getElementById('obRedoSaveBtn');
+  if(gc)gc.style.display='none';
+  if(sb)sb.style.display='none';
   // Capture DNA + study goal from step 5 if set
   const dnaChips=document.querySelectorAll('.ob-chip[data-dna].active');
   if(dnaChips.length){studyDNA=Array.from(dnaChips).map(c=>c.dataset.dna);save('flux_dna',studyDNA);}
@@ -3897,11 +3994,12 @@ function obFinish(){
   save('flux_onboarded',true);
   const ob=document.getElementById('onboarding');if(ob)ob.classList.remove('visible');
   showApp();
-  spawnConfetti();
+  if(!wasRedo)spawnConfetti();
   if(currentUser)syncToCloud();
-  if(!isTourCompleted()){
+  if(!wasRedo&&!isTourCompleted()){
     setTimeout(()=>startOnboardingTour(),1600);
   }
+  if(wasRedo&&typeof showToast==='function')showToast('Setup updated','success');
 }
 function _updateSidebarName(name){
   const sn=document.getElementById('sidebarName');if(sn)sn.textContent=name;
