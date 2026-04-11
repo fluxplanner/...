@@ -595,10 +595,6 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
   font-family:'JetBrains Mono',monospace;margin-bottom:5px
 }
 .modal-labeled-row .irow>div{display:flex;flex-direction:column;min-width:0}
-.sidebar-logo .flux-brand-logo,.mob-drawer-logo .flux-brand-logo{
-  width:44px;height:44px;border-radius:12px;object-fit:cover;display:block;
-  box-shadow:0 4px 18px rgba(0,0,0,.35)
-}
 #ai.flux-page.panel.active{
   max-width:none!important;
   width:100%;

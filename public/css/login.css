@@ -189,10 +189,6 @@
 
 /* ── LOGO ── */
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px;position:relative;z-index:1}
-.login-brand-img{
-  width:min(120px,34vw);height:auto;aspect-ratio:1;object-fit:cover;display:block;
-  border-radius:28px;box-shadow:0 22px 64px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.08);
-}
 .login-logo{
   line-height:1;display:block;text-align:center;
   filter:drop-shadow(0 2px 14px rgba(var(--accent-rgb),.28));

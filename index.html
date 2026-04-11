@@ -60,11 +60,11 @@
 <script>
 (function(){
   try{
-    var m=document.createElement('meta');
-    m.setAttribute('property','og:image');
     var root=document.querySelector('base');
-    m.setAttribute('content', new URL('icons/icon-512.png', root&&root.href?root.href:location.href).href);
-    document.head.appendChild(m);
+    var base=root&&root.href?root.href:location.href;
+    var preview=new URL('public/flux-planner-logo.svg', base).href;
+    var og=document.createElement('meta');og.setAttribute('property','og:image');og.setAttribute('content',preview);document.head.appendChild(og);
+    var tw=document.createElement('meta');tw.setAttribute('name','twitter:image');tw.setAttribute('content',preview);document.head.appendChild(tw);
   }catch(e){}
 })();
 </script>
@@ -196,7 +196,28 @@
     <div class="login-right">
       <div class="login-card">
         <div class="login-logo-wrap">
-          <img src="public/flux-planner-logo.svg" alt="Flux Planner" class="flux-brand-logo login-brand-img" width="120" height="120" decoding="async"/>
+          <span class="login-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="236" height="60" aria-label="Flux Planner">
+  <defs>
+    <linearGradient id="fluxWG3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E8F4FC"/>
+      <stop offset="55%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <radialGradient id="fluxCG3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#4A90E2"/>
+      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="fluxNodeGlow3" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <text x="0" y="28" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG3)">Flux</text>
+  <circle cx="7" cy="40" r="4.5" fill="url(#fluxCG3)" filter="url(#fluxNodeGlow3)"/>
+  <rect x="12" y="37" width="200" height="5.5" rx="2.75" fill="url(#fluxWG3)"/>
+  <text x="0" y="52" font-family="'JetBrains Mono',monospace" font-size="10.5" letter-spacing="0.2em" fill="#c5d4e8" opacity="0.94">Planner</text>
+</svg></span>
           <span class="login-tagline">YOUR SMART SCHOOL PLANNER</span>
         </div>
         <div class="login-demo-wrap login-demo-wrap--card" aria-live="polite">
@@ -402,7 +423,28 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
     <div class="sidebar-header">
-      <span class="sidebar-logo"><img src="public/flux-planner-logo.svg" alt="" class="flux-brand-logo" width="44" height="44" decoding="async"/></span>
+      <span class="sidebar-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="198" height="50" aria-hidden="true">
+  <defs>
+    <linearGradient id="fluxWG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E8F4FC"/>
+      <stop offset="55%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <radialGradient id="fluxCG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#4A90E2"/>
+      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="fluxNodeGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <text x="0" y="28" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG)">Flux</text>
+  <circle cx="7" cy="40" r="4.5" fill="url(#fluxCG)" filter="url(#fluxNodeGlow)"/>
+  <rect x="12" y="37" width="200" height="5.5" rx="2.75" fill="url(#fluxWG)"/>
+  <text x="0" y="52" font-family="'JetBrains Mono',monospace" font-size="10.5" letter-spacing="0.2em" fill="#c5d4e8" opacity="0.94">Planner</text>
+</svg></span>
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">☰</button>
     </div>
     <div class="sidebar-nav">
@@ -443,7 +485,28 @@
   <div class="mob-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
   <div class="mob-drawer" id="mobDrawer">
     <div class="mob-drawer-header">
-      <span class="mob-drawer-logo"><img src="public/flux-planner-logo.svg" alt="" class="flux-brand-logo" width="44" height="44" decoding="async"/></span>
+      <span class="mob-drawer-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="198" height="50" aria-hidden="true">
+  <defs>
+    <linearGradient id="fluxWG2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E8F4FC"/>
+      <stop offset="55%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <radialGradient id="fluxCG2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#4A90E2"/>
+      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="fluxNodeGlow2" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <text x="0" y="28" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG2)">Flux</text>
+  <circle cx="7" cy="40" r="4.5" fill="url(#fluxCG2)" filter="url(#fluxNodeGlow2)"/>
+  <rect x="12" y="37" width="200" height="5.5" rx="2.75" fill="url(#fluxWG2)"/>
+  <text x="0" y="52" font-family="'JetBrains Mono',monospace" font-size="10.5" letter-spacing="0.2em" fill="#c5d4e8" opacity="0.94">Planner</text>
+</svg></span>
       <button class="mob-drawer-close" onclick="closeDrawer()">✕</button>
     </div>
     <div class="mob-drawer-nav">
@@ -1507,8 +1570,24 @@
           <div id="storageMeter" style="font-size:.82rem;color:var(--muted2);line-height:1.5">—</div>
         </div>
         <div class="card" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),.08),rgba(var(--purple-rgb),.04));border-color:rgba(var(--accent-rgb),.2)">
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-            <img src="public/flux-planner-logo.svg" width="64" height="64" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:18px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.25);background:#0F1729"/>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+            <div style="flex-shrink:0;line-height:0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="140" height="36" style="max-width:min(160px,42vw);height:auto;display:block;filter:drop-shadow(0 4px 16px rgba(0,0,0,.2))" aria-hidden="true">
+              <defs>
+                <linearGradient id="fluxWGAbout" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#E8F4FC"/><stop offset="55%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#3b82f6"/>
+                </linearGradient>
+                <radialGradient id="fluxCGAbout" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#4A90E2"/><stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="fluxGlowAbout" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <text x="0" y="28" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWGAbout)">Flux</text>
+              <circle cx="7" cy="40" r="4.5" fill="url(#fluxCGAbout)" filter="url(#fluxGlowAbout)"/>
+              <rect x="12" y="37" width="200" height="5.5" rx="2.75" fill="url(#fluxWGAbout)"/>
+              <text x="0" y="52" font-family="'JetBrains Mono',monospace" font-size="10.5" letter-spacing="0.2em" fill="#c5d4e8" opacity="0.94">Planner</text>
+            </svg></div>
             <div>
               <div style="font-size:1.1rem;font-weight:800;letter-spacing:-.3px">Flux Planner</div>
               <div style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace">v2.0 · Your AI-powered school planner</div>

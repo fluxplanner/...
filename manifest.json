@@ -33,9 +33,9 @@
   ],
   "screenshots": [
     {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "public/flux-planner-logo.svg",
+      "sizes": "680x680",
+      "type": "image/svg+xml",
       "form_factor": "narrow",
       "label": "Flux Planner"
     }
