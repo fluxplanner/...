@@ -509,7 +509,6 @@
     const test=(label,cat,fn)=>{if(!qq||label.toLowerCase().includes(qq))out.push({icon:'✨',label,cat,action:fn});};
     test('Toggle Focus Mode','Flux100',()=>{document.body.classList.toggle('flux-os-focus');closeCommandPalette();showToast('Focus Mode','info');});
     test('Switch: List view','Views',()=>{switchView('list');closeCommandPalette();});
-    test('Switch: Board view','Views',()=>{switchView('kanban');closeCommandPalette();});
     test('Switch: Timeline view','Views',()=>{switchView('timeline');closeCommandPalette();});
     test('Grind mode (intent)','Flux100',()=>{safeSave(STORAGE.PROD_MODE,'grind');closeCommandPalette();showToast('Grind mode — deep work','info');});
     test('Chill mode (intent)','Flux100',()=>{safeSave(STORAGE.PROD_MODE,'chill');closeCommandPalette();showToast('Chill mode — lighter load','info');});
@@ -525,7 +524,7 @@
         ev.preventDefault();
         const menu=document.createElement('div');
         menu.className='flux100-ctx';
-        menu.innerHTML=`<button type="button" data-a="edit">Edit</button><button type="button" data-a="timer">Timer</button><button type="button" data-a="snooze">Snooze</button>`;
+        menu.innerHTML=`<button type="button" data-a="edit">Edit</button><button type="button" data-a="timer">Timer</button>`;
         menu.style.position='fixed';
         menu.style.left=ev.clientX+'px';
         menu.style.top=ev.clientY+'px';
@@ -534,7 +533,6 @@
         const close=()=>menu.remove();
         menu.querySelector('[data-a="edit"]').onclick=()=>{openEdit(parseFloat(id,10));close();};
         menu.querySelector('[data-a="timer"]').onclick=()=>{if(window.startTimerFromTask)startTimerFromTask(parseFloat(id,10));close();};
-        menu.querySelector('[data-a="snooze"]').onclick=()=>{if(typeof snoozeTask==='function')snoozeTask(parseFloat(id,10),1);close();};
         setTimeout(()=>document.addEventListener('click',close,{once:true}),0);
       });
     });

@@ -116,6 +116,23 @@
           <p class="login-demo-line" id="loginDemoLineLeft"></p>
         </div>
 
+        <div class="login-flux-ai-demo" aria-label="Flux AI scheduling examples">
+          <div class="login-demo-label">Flux AI — scheduling power</div>
+          <p class="login-flux-ai-lead">Example prompts and the kind of answers you get once you’re signed in (your real tasks &amp; calendar plug in automatically).</p>
+          <div class="login-flux-ai-pair">
+            <div class="login-flux-ai-q">“I have Chem lab tomorrow and two tests Wednesday — what should I do tonight?”</div>
+            <div class="login-flux-ai-a"><strong>Flux AI</strong> might prioritize: a tight pre-lab outline first, then a timed review block for the heavier exam, with buffer sleep—using <em>your</em> due dates and class times, not generic advice.</div>
+          </div>
+          <div class="login-flux-ai-pair">
+            <div class="login-flux-ai-q">“My week looks impossible — what can shift?”</div>
+            <div class="login-flux-ai-a">It compares workload vs. deadlines, suggests what could move vs. what’s fixed, and proposes a lean day-by-day plan. It won’t do graded work for you; it helps you decide what to tackle and when.</div>
+          </div>
+          <div class="login-flux-ai-pair">
+            <div class="login-flux-ai-q">“What should I work on in the next 45 minutes?”</div>
+            <div class="login-flux-ai-a">Uses urgency, class schedule, and estimates to pick one concrete block—often the smallest step that unblocks the rest.</div>
+          </div>
+        </div>
+
         <!-- Interactive feature cards -->
         <div class="login-features" id="loginFeatures">
           <div class="login-feature-card" data-color="99,102,241">
@@ -179,28 +196,7 @@
     <div class="login-right">
       <div class="login-card">
         <div class="login-logo-wrap">
-          <span class="login-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="236" height="60" aria-label="Flux Planner">
-  <defs>
-    <linearGradient id="fluxWG3" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#E8F4FC"/>
-      <stop offset="55%" stop-color="#00d4ff"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
-    </linearGradient>
-    <radialGradient id="fluxCG3" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="50%" stop-color="#4A90E2"/>
-      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="fluxNodeGlow3" x="-80%" y="-80%" width="260%" height="260%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <text x="0" y="28" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG3)">Flux</text>
-  <circle cx="7" cy="40" r="4.5" fill="url(#fluxCG3)" filter="url(#fluxNodeGlow3)"/>
-  <rect x="12" y="37" width="200" height="5.5" rx="2.75" fill="url(#fluxWG3)"/>
-  <text x="0" y="52" font-family="'JetBrains Mono',monospace" font-size="10.5" letter-spacing="0.2em" fill="#c5d4e8" opacity="0.94">Planner</text>
-</svg></span>
+          <img src="public/flux-planner-logo.svg" alt="Flux Planner" class="flux-brand-logo login-brand-img" width="120" height="120" decoding="async"/>
           <span class="login-tagline">YOUR SMART SCHOOL PLANNER</span>
         </div>
         <div class="login-demo-wrap login-demo-wrap--card" aria-live="polite">
@@ -406,28 +402,7 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
     <div class="sidebar-header">
-      <span class="sidebar-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="198" height="50" aria-label="Flux Planner">
-  <defs>
-    <linearGradient id="fluxWG" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#E8F4FC"/>
-      <stop offset="55%" stop-color="#00d4ff"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
-    </linearGradient>
-    <radialGradient id="fluxCG" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="50%" stop-color="#4A90E2"/>
-      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="fluxNodeGlow" x="-80%" y="-80%" width="260%" height="260%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <text x="0" y="28" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG)">Flux</text>
-  <circle cx="7" cy="40" r="4.5" fill="url(#fluxCG)" filter="url(#fluxNodeGlow)"/>
-  <rect x="12" y="37" width="200" height="5.5" rx="2.75" fill="url(#fluxWG)"/>
-  <text x="0" y="52" font-family="'JetBrains Mono',monospace" font-size="10.5" letter-spacing="0.2em" fill="#c5d4e8" opacity="0.94">Planner</text>
-</svg></span>
+      <span class="sidebar-logo"><img src="public/flux-planner-logo.svg" alt="" class="flux-brand-logo" width="44" height="44" decoding="async"/></span>
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">☰</button>
     </div>
     <div class="sidebar-nav">
@@ -468,28 +443,7 @@
   <div class="mob-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
   <div class="mob-drawer" id="mobDrawer">
     <div class="mob-drawer-header">
-      <span class="mob-drawer-logo" style="-webkit-text-fill-color:initial;background:none;line-height:1"><svg class="flux-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" width="198" height="50" aria-label="Flux Planner">
-  <defs>
-    <linearGradient id="fluxWG2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#E8F4FC"/>
-      <stop offset="55%" stop-color="#00d4ff"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
-    </linearGradient>
-    <radialGradient id="fluxCG2" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="50%" stop-color="#4A90E2"/>
-      <stop offset="100%" stop-color="#4A90E2" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="fluxNodeGlow2" x="-80%" y="-80%" width="260%" height="260%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <text x="0" y="28" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWG2)">Flux</text>
-  <circle cx="7" cy="40" r="4.5" fill="url(#fluxCG2)" filter="url(#fluxNodeGlow2)"/>
-  <rect x="12" y="37" width="200" height="5.5" rx="2.75" fill="url(#fluxWG2)"/>
-  <text x="0" y="52" font-family="'JetBrains Mono',monospace" font-size="10.5" letter-spacing="0.2em" fill="#c5d4e8" opacity="0.94">Planner</text>
-</svg></span>
+      <span class="mob-drawer-logo"><img src="public/flux-planner-logo.svg" alt="" class="flux-brand-logo" width="44" height="44" decoding="async"/></span>
       <button class="mob-drawer-close" onclick="closeDrawer()">✕</button>
     </div>
     <div class="mob-drawer-nav">
@@ -602,17 +556,8 @@
         <div class="dash-v2-work-head">
           <h2 class="dash-v2-work-title">Tasks</h2>
           <div class="dash-toolbar">
-            <div class="dash-bulk-bar" id="dashBulkBar" style="display:none">
-              <span id="bulkCount" class="dash-bulk-count">0 selected</span>
-              <button type="button" class="btn-sec" onclick="bulkCompleteSelected()">Complete</button>
-              <button type="button" class="btn-sec" onclick="bulkSnoozeSelected(1)">Snooze 1d</button>
-              <button type="button" class="btn-sec" onclick="bulkDeleteSelected()" style="color:var(--red)">Delete</button>
-              <button type="button" class="btn-sec" onclick="toggleTaskBulkMode(false)">Cancel</button>
-            </div>
-            <button type="button" class="dash-bulk-toggle" id="bulkModeBtn" onclick="toggleTaskBulkMode()">Select</button>
             <div class="dash-toolbar-views">
               <button class="view-btn tmode-btn active" data-view="list" onclick="switchView('list')" title="List view">☰ List</button>
-              <button class="view-btn tmode-btn" data-view="kanban" onclick="switchView('kanban')" title="Kanban board">⬜ Board</button>
               <button class="view-btn tmode-btn" data-view="timeline" onclick="switchView('timeline')" title="Timeline">📅 Timeline</button>
             </div>
           </div>
@@ -624,8 +569,6 @@
           <button onclick="setFilter('today',this)" class="tmode-btn">Due Today</button>
           <button onclick="setFilter('overdue',this)" class="tmode-btn">Overdue</button>
           <button onclick="setFilter('high',this)" class="tmode-btn">High</button>
-          <button onclick="setFilter('reading',this)" class="tmode-btn">Reading</button>
-          <button onclick="setFilter('snoozed',this)" class="tmode-btn">Snoozed</button>
         </div>
 
         <div id="taskList"></div>
@@ -1267,13 +1210,20 @@
         <div class="ai-orb" style="width:28px;height:28px;flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:.95rem;background:linear-gradient(90deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Flux AI</div>
-          <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;-webkit-text-fill-color:var(--muted)">Full planner context · any tab · image · tabs</div>
+          <div style="font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;-webkit-text-fill-color:var(--muted)">Full planner context · teaches how to learn (no homework answers)</div>
         </div>
         <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--card2);cursor:pointer;font-size:.75rem;color:var(--muted2);flex-shrink:0">
           📷 <input type="file" accept="image/*" id="aiImgUpload" style="display:none;width:auto;margin:0" onchange="handleAIImg(event)">
         </label>
         <button type="button" onclick="clearAIChat()" style="padding:5px 10px;font-size:.72rem;background:transparent;border:1px solid var(--border2);color:var(--muted2);flex-shrink:0">Clear</button>
         <button type="button" onclick="explainMyWeek()" title="Summarize the week with your planner context" style="padding:5px 10px;font-size:.7rem;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.3);color:var(--accent);border-radius:8px;flex-shrink:0;white-space:nowrap">Explain my week</button>
+      </div>
+      <div class="flux-ai-modes" role="radiogroup" aria-label="AI mode">
+        <span class="flux-ai-modes-label">Mode</span>
+        <button type="button" class="flux-ai-mode active" data-mode="default" onclick="setFluxAIMode('default',this)" title="Default planner help">Balanced</button>
+        <button type="button" class="flux-ai-mode" data-mode="research" onclick="setFluxAIMode('research',this)" title="Sources &amp; links for research">Research</button>
+        <button type="button" class="flux-ai-mode" data-mode="deep" onclick="setFluxAIMode('deep',this)" title="Careful, accuracy-focused">Deep think</button>
+        <button type="button" class="flux-ai-mode" data-mode="overtime" onclick="setFluxAIMode('overtime',this)" title="Fast, urgent execution focus">Overtime</button>
       </div>
       </div>
       <!-- Messages — scrollable -->
@@ -1575,7 +1525,7 @@
             <button type="button" onclick="resetPlannerTour()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Replay tour</button>
           </div>
         </div>
-        <div class="card">
+        <div class="card" id="settingsMasterBacklogCard" style="display:none">
           <h3>Master backlog</h3>
           <div class="srow" style="border:none">
             <div><div class="slabel">Full improvement catalog</div><div class="ssub">Searchable list of roadmap items (AI, calendar, tasks, polish, …)</div></div>
@@ -1607,15 +1557,6 @@
           <button type="button" onclick="generateMLACitation()" style="width:100%;margin-bottom:8px">Generate</button>
           <div id="mlaOut" style="font-size:.78rem;line-height:1.55;padding:10px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:10px;font-family:'JetBrains Mono',monospace;color:var(--text);min-height:2.5em;white-space:pre-wrap"></div>
         </div>
-        <div class="card">
-          <h3>Export</h3>
-          <div class="srow"><div><div class="slabel">Export to iCal</div><div class="ssub">Download tasks as .ics</div></div><button onclick="exportToICal()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Export</button></div>
-          <div class="srow" style="border:none"><div><div class="slabel">Export all data</div><div class="ssub">Download as JSON</div></div><button onclick="exportData()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Export</button></div>
-          <div class="srow" style="border:none"><div><div class="slabel">Encrypted backup</div><div class="ssub">Password-protected JSON (Web Crypto)</div></div><button type="button" onclick="exportEncryptedBackup()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Export encrypted</button></div>
-          <div class="srow" style="border:none"><div><div class="slabel">Import encrypted backup</div><div class="ssub">Merge tasks, grades &amp; notes — passphrase required</div></div><button type="button" onclick="document.getElementById('importEncryptedFile').click()" class="btn-sec" style="padding:6px 12px;font-size:.78rem">Choose file</button></div>
-          <div class="srow" style="border:none"><div><div class="slabel">Improvement catalog</div><div class="ssub">Roadmap status for 100+ ideas</div></div><a href="IMPROVEMENTS.md" target="_blank" rel="noopener" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">View →</a></div>
-          <div class="srow" style="border:none"><div><div class="slabel">Changelog</div><div class="ssub">Recent releases</div></div><a href="CHANGELOG.md" target="_blank" rel="noopener" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">View →</a></div>
-        </div>
         <div class="card"><h3>Danger Zone</h3><div class="srow" style="border:none"><div><div class="slabel">Clear local cache</div><div class="ssub">Permanently deletes all tasks, grades, notes, extracurriculars</div></div><button onclick="clearCache()" class="btn-sec" style="padding:6px 12px;font-size:.78rem;color:var(--red)">Clear Data</button></div></div>
 
         <!-- Tech Stack -->
@@ -1646,7 +1587,7 @@
         <div class="card">
           <h3>FAQ</h3>
           <details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600;font-size:.85rem">Guest vs Google sign-in?</summary><p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:8px 0 0">Guest keeps data on this device only. Google syncs encrypted planner data to your account so you can use multiple devices.</p></details>
-          <details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600;font-size:.85rem">Will I lose data?</summary><p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:8px 0 0">Clearing browser data or uninstalling the browser can remove local guest data. Sign in and use Export in Settings for backups.</p></details>
+          <details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600;font-size:.85rem">Will I lose data?</summary><p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:8px 0 0">Clearing browser data or uninstalling the browser can remove local guest data. Sign in with Google to sync your planner to the cloud across devices.</p></details>
           <details><summary style="cursor:pointer;font-weight:600;font-size:.85rem">What does AI see?</summary><p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:8px 0 0">Flux AI uses your chat and optional planner context you send. See the Privacy Policy for details.</p></details>
         </div>
         <div class="card">
@@ -1713,22 +1654,24 @@
 <div id="dashAddTaskModal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeDashAddTaskModal()">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-title">New task</div>
-    <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-      <input type="text" id="taskName" placeholder="Assignment, test, project..." style="flex:1;min-width:160px;margin:0">
-      <button type="button" id="voiceBtn" onclick="startVoiceInput()" title="Voice input" style="padding:8px 10px;border-radius:10px;background:var(--card2);border:1px solid var(--border2);cursor:pointer;font-size:1rem;flex-shrink:0;line-height:1">🎙</button>
-      <button type="button" onclick="showTemplateMenu()" title="Use a template" style="padding:8px 10px;border-radius:10px;background:var(--card2);border:1px solid var(--border2);cursor:pointer;font-size:.72rem;font-weight:600;flex-shrink:0;white-space:nowrap">Templates</button>
+    <div class="modal-field-group" style="margin-bottom:10px">
+      <label class="modal-micro-label" for="taskName">Title</label>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="taskName" placeholder="Assignment, test, project..." style="flex:1;min-width:160px;margin:0">
+        <button type="button" onclick="showTemplateMenu()" title="Use a template" style="padding:8px 10px;border-radius:10px;background:var(--card2);border:1px solid var(--border2);cursor:pointer;font-size:.72rem;font-weight:600;flex-shrink:0;white-space:nowrap">Templates</button>
+      </div>
     </div>
-    <div class="irow" style="margin-bottom:8px">
-      <select id="taskSubject"><option value="">No subject</option></select>
-      <select id="taskPriority"><option value="high">High Priority</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
+    <div class="irow modal-labeled-row" style="margin-bottom:8px">
+      <div><label class="modal-micro-label" for="taskSubject">Subject</label><select id="taskSubject"><option value="">No subject</option></select></div>
+      <div><label class="modal-micro-label" for="taskPriority">Priority</label><select id="taskPriority"><option value="high">High Priority</option><option value="med" selected>Medium</option><option value="low">Low</option></select></div>
     </div>
-    <div class="irow" style="margin-bottom:8px">
-      <input type="date" id="taskDate">
-      <select id="taskType"><option value="hw">Homework</option><option value="test">Test</option><option value="quiz">Quiz</option><option value="project">Project</option><option value="essay">Essay</option><option value="lab">Lab</option><option value="reading">Reading</option><option value="other">Other</option></select>
+    <div class="irow modal-labeled-row" style="margin-bottom:8px">
+      <div><label class="modal-micro-label" for="taskDate">Due date</label><input type="date" id="taskDate"></div>
+      <div><label class="modal-micro-label" for="taskType">Type</label><select id="taskType"><option value="hw">Homework</option><option value="test">Test</option><option value="quiz">Quiz</option><option value="project">Project</option><option value="essay">Essay</option><option value="lab">Lab</option><option value="reading">Reading</option><option value="other">Other</option></select></div>
     </div>
-    <div class="irow" style="margin-bottom:8px">
-      <input type="number" id="taskEstTime" placeholder="Est. minutes" min="5" max="480" style="flex:0 1 140px">
-      <input type="number" id="taskDifficulty" placeholder="Difficulty 1-5" min="1" max="5">
+    <div class="irow modal-labeled-row" style="margin-bottom:8px">
+      <div style="flex:0 1 140px"><label class="modal-micro-label" for="taskEstTime">Est. time (min)</label><input type="number" id="taskEstTime" placeholder="Minutes" min="5" max="480" style="width:100%;margin:0"></div>
+      <div style="flex:1;min-width:120px"><label class="modal-micro-label" for="taskDifficulty">Difficulty (1–5)</label><input type="number" id="taskDifficulty" placeholder="1–5" min="1" max="5" style="width:100%;margin:0"></div>
     </div>
     <div class="mrow"><label>Notes</label><textarea id="taskNotes" placeholder="Notes (optional)..." style="min-height:52px;margin:0"></textarea></div>
     <label style="display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted2);cursor:pointer;padding:4px 0;margin-bottom:8px">

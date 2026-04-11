@@ -575,6 +575,30 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 }
 #ai.flux-page #aiChatTabs{padding:10px 14px 0}
 #ai.flux-page .flux-ai-head{padding:10px 14px}
+.flux-ai-modes{
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 14px 10px;
+  border-bottom:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.12)
+}
+.flux-ai-modes-label{font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-right:4px}
+.flux-ai-mode{
+  padding:5px 10px;border-radius:999px;font-size:.68rem;font-weight:600;cursor:pointer;
+  border:1px solid var(--border2);background:var(--card2);color:var(--muted2);
+  transition:var(--transition)
+}
+.flux-ai-mode:hover{border-color:rgba(var(--accent-rgb),.35);color:var(--text)}
+.flux-ai-mode.active{
+  border-color:rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.12);color:var(--accent);
+  box-shadow:0 0 0 1px rgba(var(--accent-rgb),.15)
+}
+.modal-micro-label{
+  display:block;font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;margin-bottom:5px
+}
+.modal-labeled-row .irow>div{display:flex;flex-direction:column;min-width:0}
+.sidebar-logo .flux-brand-logo,.mob-drawer-logo .flux-brand-logo{
+  width:44px;height:44px;border-radius:12px;object-fit:cover;display:block;
+  box-shadow:0 4px 18px rgba(0,0,0,.35)
+}
 #ai.flux-page.panel.active{
   max-width:none!important;
   width:100%;

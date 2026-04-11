@@ -24,17 +24,8 @@ function runShortSplash(callback){
   splash.innerHTML=`
     <div style="position:absolute;inset:0;pointer-events:none;opacity:.35;background:radial-gradient(ellipse 85% 60% at 50% 42%,rgba(74,144,226,.14),transparent 58%)"></div>
     <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;box-sizing:border-box;padding:max(12px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))">
-      <div style="width:100%;max-width:272px;display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:-24px;animation:splashFadeIn .55s cubic-bezier(.22,1,.36,1) both">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 32" preserveAspectRatio="xMinYMin meet" style="width:100%;max-width:300px;height:auto;display:block;flex-shrink:0;filter:drop-shadow(0 6px 24px rgba(74,144,226,.14))" aria-hidden="true">
-          <defs>
-            <linearGradient id="fluxWGSplash" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#E8F4FC"/>
-              <stop offset="55%" stop-color="#00d4ff"/>
-              <stop offset="100%" stop-color="#4A90E2"/>
-            </linearGradient>
-          </defs>
-          <text x="0" y="26" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="31" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWGSplash)">Flux</text>
-        </svg>
+      <div style="width:100%;max-width:272px;display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:-24px;animation:splashFadeIn .55s cubic-bezier(.22,1,.36,1) both">
+        <img src="public/flux-planner-logo.svg" alt="" class="flux-splash-logo" width="112" height="112" decoding="async" style="width:min(112px,28vw);height:auto;aspect-ratio:1;display:block;border-radius:26px;box-shadow:0 16px 48px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06);object-fit:cover"/>
         <div style="display:flex;align-items:center;width:100%;gap:6px;margin-top:2px">
           <div aria-hidden="true" style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#8ec5f2);box-shadow:0 0 14px rgba(74,144,226,.95),0 0 5px rgba(255,255,255,.75)"></div>
           <div style="flex:1;min-width:0;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;position:relative">

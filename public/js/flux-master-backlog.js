@@ -347,6 +347,10 @@
   }
 
   window.openFluxMasterBacklog=function(){
+    if(typeof canAccessMasterBacklog==='function'&&!canAccessMasterBacklog()){
+      if(typeof showToast==='function')showToast('Not available for this account','info');
+      return;
+    }
     const flat=flatList();
     const overlay=document.createElement('div');
     overlay.id='fluxBacklogOverlay';

@@ -329,7 +329,7 @@ function showToast(msg,type='success'){
 // ══ ACCESSIBILITY · SNOOZE · BULK · EXAM CONFLICTS ══
 let _taskBulkMode=false;
 const _bulkIds=new Set();
-function isTaskSnoozed(t){return!t.done&&t.snoozeUntil&&String(t.snoozeUntil)>todayStr();}
+function isTaskSnoozed(_t){return false;}
 function applyFontScale(){
   const v=parseInt(load('flux_font_scale','100'),10)||100;
   document.documentElement.style.fontSize=(v/100*16)+'px';
@@ -350,20 +350,10 @@ function toggleReduceMotion(){
   save('flux_reduce_motion',!load('flux_reduce_motion',false));
   applyReduceMotion();
 }
-function snoozeTask(id,days){
-  const t=tasks.find(x=>x.id===id);if(!t)return;
-  const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(days||1));
-  t.snoozeUntil=d.toISOString().slice(0,10);
-  save('tasks',tasks);renderStats();renderTasks();renderCalendar();renderCountdown();syncKey('tasks',tasks);
-  showToast('Snoozed','info');
-}
-function toggleTaskBulkMode(force){
-  _taskBulkMode=force!=null?force:!_taskBulkMode;
-  const bar=document.getElementById('dashBulkBar'),btn=document.getElementById('bulkModeBtn');
-  if(bar)bar.style.display=_taskBulkMode?'flex':'none';
-  if(btn)btn.textContent=_taskBulkMode?'Done':'Select';
-  if(!_taskBulkMode)_bulkIds.clear();
-  renderTasks();
+function snoozeTask(){showToast('Snooze is no longer available','info');}
+function toggleTaskBulkMode(_force){
+  _taskBulkMode=false;
+  _bulkIds.clear();
 }
 function toggleBulkOne(id,on){if(on)_bulkIds.add(id);else _bulkIds.delete(id);const el=document.getElementById('bulkCount');if(el)el.textContent=_bulkIds.size+' selected';}
 function bulkCompleteSelected(){
@@ -372,13 +362,7 @@ function bulkCompleteSelected(){
   showToast('Updated tasks','success');toggleTaskBulkMode(false);
   renderStats();renderTasks();renderCalendar();renderCountdown();checkAllPanic();
 }
-function bulkSnoozeSelected(days){
-  const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(days||1));
-  const until=d.toISOString().slice(0,10);
-  _bulkIds.forEach(id=>{const x=tasks.find(t=>t.id===id);if(x)x.snoozeUntil=until;});
-  _bulkIds.clear();save('tasks',tasks);syncKey('tasks',tasks);showToast('Snoozed','info');toggleTaskBulkMode(false);
-  renderStats();renderTasks();renderCalendar();renderCountdown();
-}
+function bulkSnoozeSelected(){showToast('Snooze is no longer available','info');}
 function bulkDeleteSelected(){
   if(!confirm('Delete selected tasks?'))return;
   const rm=new Set(_bulkIds);tasks=tasks.filter(t=>!rm.has(t.id));_bulkIds.clear();
@@ -1017,7 +1001,13 @@ function toggleTask(id){
   save('tasks',tasks);renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();checkAllPanic();syncKey('tasks',tasks);
 }
 function deleteTask(id){snapshotTasks();tasks=tasks.filter(x=>x.id!==id);save('tasks',tasks);showUndoSnackbar('Task deleted','undoLastChange');renderStats();renderTasks();renderCalendar();renderCountdown();syncKey('tasks',tasks);}
-function setFilter(f,el){taskFilter=f;document.querySelectorAll('#filterChips .tmode-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderTasks();}
+function setFilter(f,el){
+  if(f==='reading'||f==='snoozed')f='active';
+  taskFilter=f;
+  document.querySelectorAll('#filterChips .tmode-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderTasks();
+}
 function toggleCompletedTasks(){
   const show=!load('flux_show_completed',false);
   save('flux_show_completed',show);
@@ -1269,16 +1259,11 @@ function renderTasks(){
   if(el0){el0.style.display='';el0.style.gridTemplateColumns='';el0.style.gap='';el0.style.alignItems='';}
   const now=new Date();now.setHours(0,0,0,0);
   let list=[...tasks];
-  if(taskFilter==='snoozed')list=list.filter(isTaskSnoozed);
-  else{
-    if(taskFilter==='active')list=list.filter(t=>!t.done);
-    if(taskFilter==='done')list=list.filter(t=>t.done);
-    if(taskFilter==='overdue')list=list.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now);
-    if(taskFilter==='today')list=list.filter(t=>t.date&&t.date===todayStr());
-    if(taskFilter==='high')list=list.filter(t=>!t.done&&t.priority==='high');
-    if(taskFilter==='reading')list=list.filter(t=>t.type==='reading');
-    if(taskFilter!=='all')list=list.filter(t=>!isTaskSnoozed(t));
-  }
+  if(taskFilter==='active')list=list.filter(t=>!t.done);
+  if(taskFilter==='done')list=list.filter(t=>t.done);
+  if(taskFilter==='overdue')list=list.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now);
+  if(taskFilter==='today')list=list.filter(t=>t.date&&t.date===todayStr());
+  if(taskFilter==='high')list=list.filter(t=>!t.done&&t.priority==='high');
   const energy=parseInt(localStorage.getItem('flux_energy')||'3');
   let moodStress=5;
   try{const mh=moodHistory&&moodHistory.length?moodHistory[moodHistory.length-1]:null;if(mh&&mh.stress!=null)moodStress=parseInt(mh.stress,10);}catch(e){}
@@ -1296,7 +1281,7 @@ function renderTasks(){
   });
   const el=document.getElementById('taskList');
   if(!list.length){
-    const msgs={active:"You're free — want to plan your day or add one task?",done:'No completed tasks yet',overdue:'No overdue tasks',today:'Nothing due today',high:'No high-priority tasks',reading:'No reading tasks — add one with type Reading',snoozed:'Nothing snoozed',all:'No tasks yet — press T to quick add'};
+    const msgs={active:"You're free — want to plan your day or add one task?",done:'No completed tasks yet',overdue:'No overdue tasks',today:'Nothing due today',high:'No high-priority tasks',all:'No tasks yet — press T to quick add'};
     el.innerHTML=`<div class="empty flux-empty-smart"><div class="empty-icon">✓</div><div class="empty-title">${msgs[taskFilter]||msgs.all}</div><div class="empty-sub">Use the <span class="kbd-hint">+</span> menu or <span class="kbd-hint">T</span> quick add · <span class="kbd-hint">⌘⇧K</span> search · <span class="kbd-hint">⌘K</span> palette</div></div>`;
     return;
   }
@@ -1327,7 +1312,7 @@ function renderTasks(){
     const bulk=_taskBulkMode&&!t.done?`<input type="checkbox" class="task-bulk-cb" aria-label="Select" ${_bulkIds.has(t.id)?'checked':''} onclick="event.stopPropagation();toggleBulkOne(${t.id},this.checked)"/>`:'';
     const waitChip=t.waitingOn?`<span class="task-chip" title="Waiting on">⏳ ${esc(t.waitingOn)}</span>`:'';
     const recChip=t.recurringWeekly?`<span class="task-chip task-chip-recurring" title="Repeats weekly when completed">🔁 Weekly</span>`:'';
-    const snz=isTaskSnoozed(t)?`<span class="task-chip" style="background:rgba(251,191,36,.12);color:var(--gold)">Snoozed</span>`:'';
+    const snz='';
     return`<div class="task-item ${priClass}${extraCls} ${t.done?'task-done':''}" data-task-id="${t.id}" draggable="${!_taskBulkMode}" style="${blockedStyle}">
 ${bulk}
 <div class="check ${t.done?'done':''}" onclick="${blocked?'showToast(\'Complete blockers first\',\'warning\');return':'toggleTask('+t.id+')'}">${t.done?'✓':blocked?'🔒':''}</div>
@@ -1346,7 +1331,6 @@ ${stBar}${procras}
 </div>
 <div class="task-actions">
 <button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${t.id})" title="School vs outside">${sch?'🏫':'🌐'}</button>
-${!t.done&&!_taskBulkMode?`<button type="button" class="task-action-btn" onclick="event.stopPropagation();snoozeTask(${t.id},1)" title="Snooze 1 day">⏸</button>`:''}
 ${!t.done&&!_taskBulkMode?`<button type="button" class="task-action-btn" onclick="event.stopPropagation();startTimerFromTask(${t.id})" title="Start focus timer">⏱</button>`:''}
 <button class="task-action-btn" onclick="openEdit(${t.id})" title="Edit">✎</button>
 <button class="task-action-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button>
@@ -2700,6 +2684,7 @@ function loadSettingsUI(){
     csd.value=v==='collapsed'||v==='hidden'?v:'full';
   }
   if(window.FluxPersonal&&FluxPersonal.initSettingsUI)FluxPersonal.initSettingsUI();
+  updateMasterBacklogCardVisibility();
 }
 function requestFluxNotifications(){
   if(!('Notification' in window)){showToast('Notifications not supported here','warning');return;}
@@ -2845,6 +2830,15 @@ function getMyRole(){
   const devAccounts=load('flux_dev_accounts',[]);
   const me=devAccounts.find(d=>d.email===currentUser?.email);
   return me?'dev':'user';
+}
+/** Owner or dev (admin-tier) — used for internal roadmap UI. */
+function canAccessMasterBacklog(){
+  const r=getMyRole();
+  return r==='owner'||r==='dev';
+}
+function updateMasterBacklogCardVisibility(){
+  const mb=document.getElementById('settingsMasterBacklogCard');
+  if(mb)mb.style.display=canAccessMasterBacklog()?'block':'none';
 }
 function getMyDevPerms(){
   const devAccounts=load('flux_dev_accounts',[]);
@@ -3206,7 +3200,25 @@ function clearAIChat(){
 function fmtAI(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^### (.+)$/gm,'<strong style="display:block;margin-top:8px;margin-bottom:2px">$1</strong>').replace(/^- (.+)$/gm,'<li style="margin-left:14px;margin-bottom:3px">$1</li>').replace(/Q:\s*(.+)/g,'<strong style="color:var(--accent)">Q:</strong> $1').replace(/A:\s*(.+)/g,'<strong style="color:var(--green)">A:</strong> $1').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');}
 function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const f=isBot?fmtAI(content):esc(content);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
-function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","/plan — build a study plan with tools","/optimize — workload + schedule suggestions","/fix — run schedule relief (same as Command Center)","Plan my afternoon around classes","Make a study plan from my tasks","What should I work on right now?","Explain my grades and what to fix","Help with my schedule / calendar","Summarize my notes for an exam","Create flashcards for my next test","Timer & focus: what block should I run?","Extracurriculars — what am I missing?","Settings: how should I tune Flux?","Gmail / inbox — what should I tackle?"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
+function setFluxAIMode(mode,btn){
+  const ok=['default','research','deep','overtime'];
+  const m=ok.includes(mode)?mode:'default';
+  localStorage.setItem('flux_ai_mode',m);
+  document.querySelectorAll('.flux-ai-mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  if(btn&&typeof showToast==='function')showToast('AI mode: '+(btn.textContent||'').trim(),'info');
+}
+function syncFluxAIModeButtons(){
+  const m=localStorage.getItem('flux_ai_mode')||'default';
+  document.querySelectorAll('.flux-ai-mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+}
+function getFluxAIModeInstructions(){
+  const mode=localStorage.getItem('flux_ai_mode')||'default';
+  if(mode==='research')return`\n\nMODE — RESEARCH\n- For research projects: supply concrete next steps, evaluation criteria for sources, and helpful links. Prefer markdown links to reputable hubs—official .gov/.edu pages, Google Scholar or PubMed search URLs with encoded queries, major digital libraries, and Wikipedia only as a starting point. Say explicitly: verify every source before citing.\n- Never substitute link lists for doing the student's thinking; links support their work, they don't replace it.`;
+  if(mode==='deep')return`\n\nMODE — DEEP THINK\n- Prioritize accuracy over speed: cross-check claims against the planner snapshot; separate facts from guesses; note uncertainty.\n- Where verification matters (dates, grades, policy), tell the user exactly what to confirm in Flux or at school.\n- Avoid confident-sounding errors—when in doubt, hedge and suggest verification steps.`;
+  if(mode==='overtime')return`\n\nMODE — OVERTIME (SPEED)\n- Ship ultra-concrete next actions immediately: tight bullets, aggressive time-boxes, minimal chat.\n- Assume the user needs to move in the next minutes—cut theory unless it unlocks a decision.\n- Still obey academic integrity: no doing their homework for them.`;
+  return'';
+}
+function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","Plan my next 2 hours around class blocks","What should I work on right now?","/plan — study plan using my tasks","Explain my grades trend","Tighten my schedule for a heavy week"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
 function handleAIImg(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
@@ -3276,6 +3288,8 @@ RULES:
 - GPA always to 4 decimal places (toFixed(4)).
 - g = 10 m/s² for all physics calculations.
 ${getStudyDNAPrompt()}
+- ACADEMIC INTEGRITY (NON-NEGOTIABLE): Never complete graded homework, quizzes, exams, lab write-ups for a grade, or take-home assessments for the student. Do not output final answers, full worked solutions, or copy-paste text meant to be submitted as the student's own work. Teach how: strategies, step patterns, parallel examples with different values, and self-check questions. If the user asks for direct solutions, refuse briefly and offer tutoring-style guidance only.
+${getFluxAIModeInstructions()}
 
 TASK ACTIONS — ONLY when the user asks you to add, complete, or delete tasks, append this hidden block at the very end:
 \`\`\`actions
@@ -3685,6 +3699,7 @@ async function syncFromCloud(){
     // Re-apply accent after renders in case sidebar was rebuilt
     updateLogoColor(localStorage.getItem('flux_accent')||'#00bfff');
     if(typeof FluxPersonal!=='undefined')FluxPersonal.applyAll();
+    updateMasterBacklogCardVisibility();
   }catch(e){console.error('Sync from cloud error',e);setSyncStatus('offline');}
 }
 const syncDebounceTimers={};
@@ -4315,7 +4330,6 @@ function renderCmdResults(){
   const actions=[
     {icon:'🔄',label:'Force Sync',cat:'Actions',action:()=>{closeCommandPalette();forceSyncNow();}},
     {icon:'🎯',label:'Start Deep Work Mode',cat:'Actions',action:()=>{closeCommandPalette();startDeepWork();}},
-    {icon:'📊',label:'Open Kanban View',cat:'Actions',action:()=>{closeCommandPalette();nav('dashboard');setTimeout(()=>showKanban(),200);}},
     {icon:'📆',label:'Explain my week (Flux AI)',cat:'Actions',action:()=>{closeCommandPalette();explainMyWeek();}},
     {icon:'📥',label:'Export grades as CSV',cat:'Actions',action:()=>{closeCommandPalette();if(typeof exportGradesCSV==='function')exportGradesCSV();}},
     {icon:'🖨',label:'Print / save as PDF',cat:'Actions',action:()=>{closeCommandPalette();window.print();}},
@@ -4763,6 +4777,8 @@ function showApp(){
   if(currentUser){
     _updateUserUI(currentUser, currentUser.user_metadata?.full_name||currentUser.email?.split('@')[0]||'');
   }
+  updateMasterBacklogCardVisibility();
+  syncFluxAIModeButtons();
 }
 
 async function handleSignedIn(user,session){
@@ -5088,7 +5104,7 @@ function initDashboardFeatures(){
   renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();
   renderProfile();renderGradeInputs();renderGradeOverview();renderWeightedRows();
   renderNotesList();renderExtrasList();renderSchoolsList();renderECGoals();
-  renderMoodHistory();renderAffirmation();renderAISugs();renderSchool();
+  renderMoodHistory();renderAffirmation();renderAISugs();syncFluxAIModeButtons();renderSchool();
   renderSubjectBudget();renderFocusHeatmap();
   updateTDisplay();renderTDots();updateTStats();
   checkAllPanic();setInterval(checkAllPanic,60000);
@@ -5366,6 +5382,7 @@ function startVoiceInput(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){showToast('Voice input not supported in this browser','error');return;}
   const btn=document.getElementById('voiceBtn');
+  if(!btn)return;
   const r=new SR();r.lang='en-US';r.interimResults=false;r.maxAlternatives=1;
   r.onstart=()=>{if(btn){btn.textContent='🎙 Listening...';btn.style.color='var(--red)';}};
   r.onresult=e=>{
@@ -5626,7 +5643,7 @@ function startOnboardingTour(){
     {nav:'dashboard',sel:'.view-btn[data-view="list"]',title:'Task views',body:'Switch List, Board, or Timeline on the dashboard to match how you like to work.'},
     {nav:'goals',sel:'[data-tab="goals"]',title:'Extracurriculars',body:'Activities, college list, and milestones — IB/AP progress lives here too when relevant.'},
     {nav:'profile',sel:'[data-tab="profile"]',title:'Profile',body:'Academic snapshot, study DNA, and habits — keep it updated for better AI hints.'},
-    {nav:'settings',sel:'[data-tab="settings"]',title:'Settings',body:'Look & theme, accent, sync, account, exports, and replay this tour anytime under Data & info.'},
+    {nav:'settings',sel:'[data-tab="settings"]',title:'Settings',body:'Look & theme, accent, sync, account, and replay this tour anytime under Data & info.'},
   ];
   let step=0;
   function cleanupTour(){
@@ -7482,6 +7499,7 @@ let currentView='list'; // list | kanban | timeline
 
 function switchView(view){
   if(view==='workload')view='list';
+  if(view==='kanban')view='list';
   currentView=view;
   save('flux_view',view);
   document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
@@ -7832,7 +7850,7 @@ setInterval(saveResumptionState,60000);
 // Init all new systems on app start
 function initIntelligenceEngine(){
   currentView=load('flux_view','list');
-  if(currentView==='workload'){currentView='list';save('flux_view','list');}
+  if(currentView==='workload'||currentView==='kanban'){currentView='list';save('flux_view','list');}
   initFullKeyboardNav();
   // initListControls removed
   checkResumption();
