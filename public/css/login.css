@@ -198,16 +198,6 @@
 }
 .login-logo svg{display:block;margin:0 auto;width:100%;max-width:min(236px,100%);height:auto}
 
-/* ── Flux AI examples (sign-in left column) ── */
-.login-flux-ai-demo{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.07)}
-.login-flux-ai-lead{font-size:.8rem;color:rgba(210,220,245,.78);line-height:1.55;margin:0 0 14px}
-.login-flux-ai-pair{
-  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:14px;
-  padding:12px 14px;margin-bottom:10px
-}
-.login-flux-ai-q{font-size:.82rem;font-weight:700;color:#eef2ff;margin-bottom:8px;line-height:1.45}
-.login-flux-ai-a{font-size:.76rem;color:rgba(205,215,240,.9);line-height:1.55}
-.login-flux-ai-a strong{color:var(--accent);font-weight:700}
 .login-tagline{
   font-size:.78rem;color:rgba(255,255,255,.42);
   font-family:'JetBrains Mono',monospace;letter-spacing:.14em;
