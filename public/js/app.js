@@ -3228,7 +3228,7 @@ function getFluxAIModeInstructions(){
   if(mode==='overtime')return`\n\nMODE — OVERTIME (SPEED)\n- Ship ultra-concrete next actions immediately: tight bullets, aggressive time-boxes, minimal chat.\n- Assume the user needs to move in the next minutes—cut theory unless it unlocks a decision.\n- Still obey academic integrity: no doing their homework for them.`;
   return'';
 }
-function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","Plan my next 2 hours around class blocks","What should I work on right now?","/plan — study plan using my tasks","Explain my grades trend","Tighten my schedule for a heavy week"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
+function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","What should I work on right now?","/plan — study plan using my tasks"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
 function handleAIImg(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
