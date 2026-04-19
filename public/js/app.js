@@ -1346,7 +1346,7 @@ ${stBar}${procras}
 <button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${t.id})" title="School vs outside">${sch?'🏫':'🌐'}</button>
 ${!t.done&&!_taskBulkMode?`<button type="button" class="task-action-btn" onclick="event.stopPropagation();startTimerFromTask(${t.id})" title="Start focus timer">⏱</button>`:''}
 <button class="task-action-btn" onclick="openEdit(${t.id})" title="Edit">✎</button>
-<button class="task-action-btn task-action-btn--ai" onclick="event.stopPropagation();(window.fluxAskAIAbout||askFluxAIAboutTask)(${t.id})" title="Ask Flux AI about this task" style="color:var(--accent);font-size:.72rem;letter-spacing:-.01em;padding:0 7px">✦</button>
+<button class="task-action-btn task-action-btn--ai" onclick="event.stopPropagation();askFluxAIAboutTask(${t.id})" title="Ask Flux AI about this task" style="color:var(--accent);font-size:.72rem;letter-spacing:-.01em;padding:0 7px">✦</button>
 <button class="task-action-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button>
 </div>
 </div>`;
