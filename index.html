@@ -1312,14 +1312,6 @@
       <!-- Messages — scrollable -->
       <div id="aiMsgsWrap" style="flex:1;min-height:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:0">
         <div class="ai-sugs" id="aiSugs"></div>
-        <div id="fluxAiScratch" class="card flux-agent-scratch" style="display:none;margin-bottom:12px;padding:12px 14px" aria-label="Editable AI output">
-          <div class="flux-agent-scratch-head">Latest AI output — edit freely</div>
-          <textarea id="fluxAiScratchTa" rows="4" placeholder="Your last AI reply appears here. Tweak it, then insert into chat or copy."></textarea>
-          <div class="flux-agent-scratch-actions">
-            <button type="button" class="btn-sec" onclick="FluxOrchestrator.applyScratchToInput()">Insert into chat</button>
-            <button type="button" class="btn-sec" onclick="navigator.clipboard.writeText(document.getElementById('fluxAiScratchTa').value||'').then(()=>showToast('Copied','success')).catch(()=>{})">Copy</button>
-          </div>
-        </div>
         <div class="ai-msgs" id="aiMsgs"></div>
       </div>
       <!-- Image preview -->
