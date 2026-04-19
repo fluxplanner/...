@@ -566,18 +566,12 @@
           <span class="topbar-new-task-label">New task</span>
         </button>
       </div>
-      <div class="topbar-center-notices" id="topbarCenterNotices" aria-live="polite">
-        <div id="connectivityBanner" class="connectivity-banner" style="display:none" role="status"></div>
-        <div id="examConflictBanner" class="exam-conflict-banner" style="display:none" role="status"></div>
-        <div id="fluxAiInsightStrip" class="flux-ai-insight-strip" style="display:none"></div>
-        <div id="fluxOverdueBanner" class="flux-overdue-wrap" style="display:none"></div>
-      </div>
       <div class="topbar-right">
-        <button type="button" class="btn-icon btn-icon--subtle topbar-cmd-btn" onclick="openCommandPalette()" title="Command palette — ⌘K / Ctrl+K (includes search)" aria-label="Command palette">⌘</button>
         <div class="date-pill" id="datePill"></div>
         <div id="syncIndicator" class="sync-badge offline" style="display:none">○ Local</div>
       </div>
       <!-- Hidden elements still needed by JS -->
+      <div id="topbarCenterNotices" style="display:none"></div>
       <div id="panicPill" style="display:none"></div>
       <div id="momentumPill" style="display:none"></div>
       <div id="cogLoadWrap" style="display:none"><div id="cogLoadBar"></div><span id="cogLoadLabel"></span></div>
@@ -586,6 +580,13 @@
       <div id="topbarEnergy" style="display:none">😐</div>
       <div id="abPill" style="display:none"></div>
       <div id="topbarClock" style="display:none"></div>
+    </div>
+    <!-- Notices sub-bar — sits below topbar, never overlaps controls -->
+    <div class="notices-subbar" id="noticesSubbar" aria-live="polite">
+      <div id="connectivityBanner" class="connectivity-banner" style="display:none" role="status"></div>
+      <div id="examConflictBanner" class="exam-conflict-banner" style="display:none" role="status"></div>
+      <div id="fluxAiInsightStrip" class="flux-ai-insight-strip" style="display:none"></div>
+      <div id="fluxOverdueBanner" class="flux-overdue-wrap" style="display:none"></div>
     </div>
 
     <!-- ─── DASHBOARD ─── -->

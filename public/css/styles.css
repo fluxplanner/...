@@ -177,30 +177,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .main-content{flex:1;min-width:0;display:flex;flex-direction:column;overflow-x:hidden}
 
 .topbar{padding:8px 18px;border-bottom:1px solid rgba(var(--accent-rgb),.12);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:linear-gradient(180deg,rgba(var(--accent-rgb),.14) 0%,rgba(14,18,32,.76) 38%,rgba(8,10,20,.64) 100%);backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 1px 0 rgba(var(--accent-rgb),.1) inset,0 4px 28px rgba(0,0,0,.14),0 0 40px rgba(var(--accent-rgb),.06);z-index:30;gap:10px;min-height:46px}
-.topbar-center-notices{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  z-index:31;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
-  max-width:min(520px,calc(100% - 300px));width:max-content;pointer-events:none;
+/* Legacy — kept for any JS that checks this class, but visually inert */
+.topbar-center-notices{display:none!important}
+
+/* Notices sub-bar — appears below topbar, never overlaps controls */
+.notices-subbar{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:0;overflow:hidden;
+  /* Collapse to zero height when all children are hidden */
+  transition:padding .2s ease;
 }
-.topbar-center-notices>*{pointer-events:auto}
-.topbar-center-notices .connectivity-banner{
-  margin:0;padding:5px 12px;font-size:.7rem;border-radius:10px;border:1px solid rgba(251,191,36,.28);
-  border-bottom:1px solid rgba(251,191,36,.28);
+.notices-subbar:has(>*:not([style*="display:none"])){
+  padding:5px 16px 4px;
 }
-.topbar-center-notices .connectivity-banner[data-state="syncfail"]{
-  border-color:rgba(244,63,94,.28);
+.notices-subbar .exam-conflict-banner{
+  margin:0;padding:5px 14px;font-size:.72rem;width:100%;max-width:680px;text-align:center;line-height:1.35;border-radius:10px;
 }
-.topbar-center-notices .exam-conflict-banner{margin:0;padding:6px 12px;font-size:.72rem;max-width:100%;text-align:center;line-height:1.35}
-.topbar-center-notices .flux-ai-insight-strip,.topbar-center-notices .flux-overdue-wrap{margin:0}
+.notices-subbar .connectivity-banner{
+  margin:0;padding:5px 14px;font-size:.7rem;border-radius:10px;border:1px solid rgba(251,191,36,.28);width:100%;max-width:680px;text-align:center;
+}
+.notices-subbar .connectivity-banner[data-state="syncfail"]{border-color:rgba(244,63,94,.28);}
+.notices-subbar .flux-ai-insight-strip,.notices-subbar .flux-overdue-wrap{margin:0;width:100%;max-width:680px;}
 @media(max-width:700px){
   .topbar{flex-wrap:wrap;align-items:center;padding-bottom:8px}
   .topbar-left-cluster{order:1}
   .topbar-right{order:2;margin-left:auto}
-  .topbar-center-notices{
-    position:static;transform:none;order:3;flex:1 1 100%;
-    max-width:100%;width:100%;margin-top:6px;padding-top:6px;
-    border-top:1px solid rgba(255,255,255,.06);pointer-events:auto;
-  }
+  .notices-subbar{padding:4px 12px}
 }
 .topbar-left-cluster{
   display:flex;align-items:center;gap:8px;flex:1;min-width:0;position:relative;z-index:32;
@@ -3080,7 +3082,7 @@ html.flux-reduce-motion *,html.flux-reduce-motion *::before,html.flux-reduce-mot
   animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important;
 }
 @media print{
-  .sidebar,.bottom-nav,.fab-container,.mob-menu-btn,.dash-toolbar,.dash-filters,.skip-link,#connectivityBanner,.topbar-center-notices{display:none!important}
+  .sidebar,.bottom-nav,.fab-container,.mob-menu-btn,.dash-toolbar,.dash-filters,.skip-link,#connectivityBanner,.topbar-center-notices,.notices-subbar{display:none!important}
   #app,.main-content{height:auto!important;overflow:visible!important}
   .panel{break-inside:avoid}
 }
