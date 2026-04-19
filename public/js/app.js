@@ -3839,18 +3839,17 @@ function updateConnectivityBanner(){
   const el=document.getElementById('connectivityBanner');if(!el)return;
   if(!navigator.onLine){
     el.textContent='Offline — changes stay on this device. Reconnect to sync.';
-    el.style.display='flex';
     el.dataset.state='offline';
-    return;
+    if(typeof syncNoticesBar==='function')syncNoticesBar();return;
   }
   if(window._fluxSyncFailed&&currentUser){
     el.textContent='Couldn’t sync to the cloud. Check Settings → Force sync.';
-    el.style.display='flex';
     el.dataset.state='syncfail';
-    return;
+    if(typeof syncNoticesBar==='function')syncNoticesBar();return;
   }
   el.style.display='none';
   el.removeAttribute('data-state');
+  if(typeof syncNoticesBar==='function')syncNoticesBar();
 }
 function initConnectivityAndNotifications(){
   if(_fluxConnInit)return;

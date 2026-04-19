@@ -180,24 +180,29 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 /* Legacy — kept for any JS that checks this class, but visually inert */
 .topbar-center-notices{display:none!important}
 
-/* Notices sub-bar — appears below topbar, never overlaps controls */
+/* Notices sub-bar — appears below topbar, only ever shows ONE notice at a time */
 .notices-subbar{
-  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:0;overflow:hidden;
-  /* Collapse to zero height when all children are hidden */
+  flex-shrink:0;display:flex;justify-content:center;align-items:center;
+  padding:5px 16px 4px;overflow:hidden;
   transition:padding .2s ease;
 }
-.notices-subbar:has(>*:not([style*="display:none"])){
-  padding:5px 16px 4px;
-}
+.notices-subbar > *{margin:0!important;width:auto;max-width:680px}
 .notices-subbar .exam-conflict-banner{
-  margin:0;padding:5px 14px;font-size:.72rem;width:100%;max-width:680px;text-align:center;line-height:1.35;border-radius:10px;
+  padding:5px 14px;font-size:.72rem;text-align:center;line-height:1.35;border-radius:10px;
+  background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:var(--gold);font-weight:600;
 }
 .notices-subbar .connectivity-banner{
-  margin:0;padding:5px 14px;font-size:.7rem;border-radius:10px;border:1px solid rgba(251,191,36,.28);width:100%;max-width:680px;text-align:center;
+  padding:5px 14px;font-size:.7rem;border-radius:10px;border:1px solid rgba(251,191,36,.28);text-align:center;
 }
 .notices-subbar .connectivity-banner[data-state="syncfail"]{border-color:rgba(244,63,94,.28);}
-.notices-subbar .flux-ai-insight-strip,.notices-subbar .flux-overdue-wrap{margin:0;width:100%;max-width:680px;}
+.notices-subbar .flux-ai-strip-inner{
+  padding:6px 14px;font-size:.72rem;border-radius:10px;background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.2);color:var(--accent);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.notices-subbar .flux-overdue-banner{
+  padding:5px 12px;font-size:.72rem;border-radius:10px;background:rgba(var(--red-rgb),.1);border:1px solid rgba(var(--red-rgb),.25);color:var(--red);
+  display:inline-flex;align-items:center;gap:10px;
+}
 @media(max-width:700px){
   .topbar{flex-wrap:wrap;align-items:center;padding-bottom:8px}
   .topbar-left-cluster{order:1}
