@@ -1815,7 +1815,7 @@
     </div>
     <label style="display:none"><input type="checkbox" id="taskRecurringWeekly"></label>
     <div class="mrow" style="margin-bottom:8px"><label>Waiting on (optional)</label><input type="text" id="taskWaitingOn" placeholder="e.g. teacher reply, group member" style="margin:0"></div>
-    <div class="mactions"><button type="button" onclick="closeDashAddTaskModal()" class="btn-sec">Cancel</button><button type="button" onclick="askFluxAIAboutTask()" class="btn-sec" style="color:var(--accent);border-color:rgba(var(--accent-rgb),.3)">✦ AI Help</button><button type="button" onclick="addTask()">+ Add Task</button></div>
+    <div class="mactions"><button type="button" onclick="closeDashAddTaskModal()" class="btn-sec">Cancel</button><button type="button" onclick="addTask()">+ Add Task</button></div>
   </div>
 </div>
 
@@ -1844,7 +1844,7 @@
     <div class="mrow"><label>Waiting on</label><input type="text" id="editWaitingOn" placeholder="Optional" style="margin:0"></div>
     <div class="mrow"><label>Blocked By</label><div id="editDeps" style="max-height:140px;overflow-y:auto"></div></div>
     <div class="mrow" style="margin-bottom:8px"><label class="modal-micro-label" for="editRecurringType">Repeat</label><select id="editRecurringType" style="margin:0;width:100%"><option value="none">No repeat</option><option value="weekly">🔁 Weekly</option><option value="biweekly">🔁 Biweekly</option><option value="monthly">🔁 Monthly</option></select></div>
-    <div class="mactions"><button onclick="closeEdit()" class="btn-sec">Cancel</button><button type="button" onclick="askFluxAIAboutTask()" class="btn-sec" style="color:var(--accent);border-color:rgba(var(--accent-rgb),.3)">✦ Ask AI</button><button onclick="saveEdit()">Save</button></div>
+    <div class="mactions"><button onclick="closeEdit()" class="btn-sec">Cancel</button><button onclick="saveEdit()">Save</button></div>
   </div>
 </div>
 

@@ -1346,6 +1346,7 @@ ${stBar}${procras}
 <button type="button" class="scope-pill mini ${sch?'scope-pill-school':'scope-pill-out'}" onclick="event.stopPropagation();toggleTaskScope(${t.id})" title="School vs outside">${sch?'🏫':'🌐'}</button>
 ${!t.done&&!_taskBulkMode?`<button type="button" class="task-action-btn" onclick="event.stopPropagation();startTimerFromTask(${t.id})" title="Start focus timer">⏱</button>`:''}
 <button class="task-action-btn" onclick="openEdit(${t.id})" title="Edit">✎</button>
+<button class="task-action-btn task-action-btn--ai" onclick="event.stopPropagation();(window.fluxAskAIAbout||askFluxAIAboutTask)(${t.id})" title="Ask Flux AI about this task" style="color:var(--accent);font-size:.72rem;letter-spacing:-.01em;padding:0 7px">✦</button>
 <button class="task-action-btn" onclick="deleteTask(${t.id})" title="Delete">✕</button>
 </div>
 </div>`;
@@ -8571,15 +8572,29 @@ function setTaskDateInline(id,date,pickerEl){
 }
 
 // ── Feature: Ask Flux AI about a task ──
-function askFluxAIAboutTask(){
-  const name=(document.getElementById('editText')||document.getElementById('taskName'))?.value||'';
-  const subKey=document.getElementById('editSubject')?.value||document.getElementById('taskSubject')?.value||'';
+function askFluxAIAboutTask(taskId){
+  let name,subKey,due,type,notes;
+  // Called with a task ID from the task card action button
+  if(taskId!=null){
+    const t=tasks.find(x=>x.id===taskId||String(x.id)===String(taskId));
+    if(t){
+      name=t.name||t.text||'';
+      subKey=t.subject||'';
+      due=t.date||t.due||'';
+      type=t.type||'';
+      notes=t.notes||'';
+    }
+  } else {
+    // Called from an open modal — read from fields
+    name=(document.getElementById('editText')||document.getElementById('taskName'))?.value||'';
+    subKey=document.getElementById('editSubject')?.value||document.getElementById('taskSubject')?.value||'';
+    due=document.getElementById('editDue')?.value||document.getElementById('taskDate')?.value||'';
+    type=document.getElementById('editType')?.value||document.getElementById('taskType')?.value||'';
+    notes=document.getElementById('editNotes')?.value||document.getElementById('taskNotes')?.value||'';
+    if(typeof closeEdit==='function')closeEdit();
+    if(typeof closeDashAddTaskModal==='function')closeDashAddTaskModal();
+  }
   const sub=getSubjects()[subKey];
-  const due=document.getElementById('editDue')?.value||document.getElementById('taskDate')?.value||'';
-  const type=document.getElementById('editType')?.value||document.getElementById('taskType')?.value||'';
-  const notes=document.getElementById('editNotes')?.value||document.getElementById('taskNotes')?.value||'';
-  if(typeof closeEdit==='function')closeEdit();
-  if(typeof closeDashAddTaskModal==='function')closeDashAddTaskModal();
   const parts=[`Task: "${name||'untitled'}"`,sub?`Subject: ${sub.name}`:'',due?`Due: ${due}`:'',type?`Type: ${type}`:'',notes?`Notes: ${notes.slice(0,100)}`:''].filter(Boolean);
   const prompt=`Help me with this task:\n${parts.join('\n')}\n\nWhat are the best steps to tackle it? Any tips for this type of work?`;
   setTimeout(()=>{
