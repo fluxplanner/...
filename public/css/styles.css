@@ -866,6 +866,8 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 .ai-av.bot{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;font-size:.65rem}
 .ai-av.me{background:rgba(255,255,255,.08);color:var(--muted2)}
 .ai-bub{max-width:85%;padding:11px 15px;border-radius:16px;font-size:.86rem;line-height:1.65}
+.ai-link{color:var(--accent);text-decoration:underline;text-decoration-color:rgba(var(--accent-rgb),.4);text-underline-offset:2px;word-break:break-all}
+.ai-link:hover{text-decoration-color:var(--accent);opacity:.85}
 .ai-bub.bot{background:var(--glass-tint),var(--card);border:1px solid var(--border2);border-top-left-radius:4px;backdrop-filter:var(--glass-soft);-webkit-backdrop-filter:var(--glass-soft);box-shadow:0 4px 20px rgba(0,0,0,.2),var(--liquid-edge)}
 .ai-bub.user{background:var(--accent);color:#fff;border-top-right-radius:4px}
 .ai-think{display:flex;gap:5px;align-items:center;padding:12px 15px}

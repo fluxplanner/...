@@ -3238,7 +3238,21 @@ function clearAIChat(){
     if(chat){chat.messages=[];chat.title='New Chat';saveAIChats();renderAIChatTabs();}
   }
 }
-function fmtAI(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^### (.+)$/gm,'<strong style="display:block;margin-top:8px;margin-bottom:2px">$1</strong>').replace(/^- (.+)$/gm,'<li style="margin-left:14px;margin-bottom:3px">$1</li>').replace(/Q:\s*(.+)/g,'<strong style="color:var(--accent)">Q:</strong> $1').replace(/A:\s*(.+)/g,'<strong style="color:var(--green)">A:</strong> $1').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');}
+function fmtAI(t){
+  return String(t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // Markdown links [text](url) → clickable anchor
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer" class="ai-link">$1</a>')
+    // Bare URLs (http/https) not already inside an href=""
+    .replace(/(?<!href=")(https?:\/\/[^\s<>")\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" class="ai-link">$1</a>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<strong style="display:block;margin-top:8px;margin-bottom:2px">$1</strong>')
+    .replace(/^- (.+)$/gm,'<li style="margin-left:14px;margin-bottom:3px">$1</li>')
+    .replace(/Q:\s*(.+)/g,'<strong style="color:var(--accent)">Q:</strong> $1')
+    .replace(/A:\s*(.+)/g,'<strong style="color:var(--green)">A:</strong> $1')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
 function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const f=isBot?fmtAI(content):esc(content);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
 function setFluxAIMode(mode,btn){
