@@ -3238,20 +3238,64 @@ function clearAIChat(){
     if(chat){chat.messages=[];chat.title='New Chat';saveAIChats();renderAIChatTabs();}
   }
 }
-function fmtAI(t){
-  return String(t)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    // Markdown links [text](url) → clickable anchor
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer" class="ai-link">$1</a>')
-    // Bare URLs (http/https) not already inside an href=""
-    .replace(/(?<!href=")(https?:\/\/[^\s<>")\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" class="ai-link">$1</a>')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/^### (.+)$/gm,'<strong style="display:block;margin-top:8px;margin-bottom:2px">$1</strong>')
-    .replace(/^- (.+)$/gm,'<li style="margin-left:14px;margin-bottom:3px">$1</li>')
-    .replace(/Q:\s*(.+)/g,'<strong style="color:var(--accent)">Q:</strong> $1')
-    .replace(/A:\s*(.+)/g,'<strong style="color:var(--green)">A:</strong> $1')
-    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+function fmtAI(raw){
+  let t=String(raw);
+
+  // 1. Fence code blocks  ```lang\n...\n```
+  t=t.replace(/```(\w*)\n?([\s\S]*?)```/g,(_, lang, code)=>{
+    const esc_code=code.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const label=lang?`<span style="font-size:.6rem;opacity:.5;letter-spacing:.06em;text-transform:uppercase;font-family:'JetBrains Mono',monospace">${lang}</span>`:'';
+    return`<pre class="ai-code-block">${label}<code>${esc_code}</code></pre>`;
+  });
+
+  // 2. Escape remaining HTML (not inside code blocks we already processed)
+  // Split on our pre tags to avoid double-escaping
+  const parts=t.split(/(<pre class="ai-code-block">[\s\S]*?<\/pre>)/g);
+  t=parts.map((p,i)=>{
+    if(i%2===1)return p; // already-processed code block
+    return p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }).join('');
+
+  // 3. Markdown links [text](url)
+  t=t.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer" class="ai-link">$1</a>');
+  // 4. Bare URLs not already in href
+  t=t.replace(/(?<!href=")(https?:\/\/[^\s<>")\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" class="ai-link">$1</a>');
+
+  // 5. Horizontal rule
+  t=t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:10px 0">');
+
+  // 6. Headers — process largest first
+  t=t.replace(/^# (.+)$/gm,'<div class="ai-h1">$1</div>');
+  t=t.replace(/^## (.+)$/gm,'<div class="ai-h2">$1</div>');
+  t=t.replace(/^### (.+)$/gm,'<div class="ai-h3">$1</div>');
+
+  // 7. Bold / italic / inline code
+  t=t.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  t=t.replace(/`([^`]+)`/g,'<code class="ai-inline-code">$1</code>');
+
+  // 8. Blockquote
+  t=t.replace(/^&gt; (.+)$/gm,'<div class="ai-blockquote">$1</div>');
+
+  // 9. Numbered lists — group consecutive items
+  t=t.replace(/^(\d+)\. (.+)$/gm,'<li class="ai-li-num" data-n="$1">$2</li>');
+  t=t.replace(/(<li class="ai-li-num"[^>]*>[\s\S]*?<\/li>)(\n<li class="ai-li-num")/g,'$1$2');
+  // wrap consecutive num items
+  t=t.replace(/((?:<li class="ai-li-num"[^>]*>.*?<\/li>\n?)+)/g,'<ol class="ai-ol">$1</ol>');
+
+  // 10. Bullet lists
+  t=t.replace(/^[-•] (.+)$/gm,'<li class="ai-li">$2</li>'.replace('$2','$1'));
+  t=t.replace(/((?:<li class="ai-li">.*?<\/li>\n?)+)/g,'<ul class="ai-ul">$1</ul>');
+
+  // 11. Flashcard Q/A labels
+  t=t.replace(/Q:\s*(.+)/g,'<span class="ai-q">Q:</span> $1');
+  t=t.replace(/A:\s*(.+)/g,'<span class="ai-a">A:</span> $1');
+
+  // 12. Newlines to <br> (but not inside block elements)
+  t=t.replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+
+  return t;
 }
 function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const f=isBot?fmtAI(content):esc(content);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
@@ -3268,9 +3312,9 @@ function syncFluxAIModeButtons(){
 }
 function getFluxAIModeInstructions(){
   const mode=localStorage.getItem('flux_ai_mode')||'default';
-  if(mode==='research')return`\n\nMODE — RESEARCH\n- For research projects: supply concrete next steps, evaluation criteria for sources, and helpful links. Prefer markdown links to reputable hubs—official .gov/.edu pages, Google Scholar or PubMed search URLs with encoded queries, major digital libraries, and Wikipedia only as a starting point. Say explicitly: verify every source before citing.\n- Never substitute link lists for doing the student's thinking; links support their work, they don't replace it.`;
-  if(mode==='deep')return`\n\nMODE — DEEP THINK\n- Prioritize accuracy over speed: cross-check claims against the planner snapshot; separate facts from guesses; note uncertainty.\n- Where verification matters (dates, grades, policy), tell the user exactly what to confirm in Flux or at school.\n- Avoid confident-sounding errors—when in doubt, hedge and suggest verification steps.`;
-  if(mode==='overtime')return`\n\nMODE — OVERTIME (SPEED)\n- Ship ultra-concrete next actions immediately: tight bullets, aggressive time-boxes, minimal chat.\n- Assume the user needs to move in the next minutes—cut theory unless it unlocks a decision.\n- Still obey academic integrity: no doing their homework for them.`;
+  if(mode==='research')return`\n<mode_research>\nResearch mode: lead with the most credible, specific sources first — official .gov/.edu pages, Google Scholar, PubMed, major digital libraries. Format links as [title](url). Wikipedia is a starting point, not a citation. Always tell the student to verify before citing. Don't substitute a list of links for actual thinking — links support their work, they don't replace it.\n</mode_research>`;
+  if(mode==='deep')return`\n<mode_deep_think>\nDeep Think mode: slow down, prioritize accuracy. Cross-check claims against the planner snapshot. Separate what you know from what you're inferring. For anything that touches dates, grades, or school policy — tell the student exactly what to verify and where. When uncertain, hedge explicitly rather than projecting false confidence.\n</mode_deep_think>`;
+  if(mode==='overtime')return`\n<mode_overtime>\nOvertime mode: the student needs to move now. Lead with the single most important action, then tight concrete bullets with time-boxes. Cut theory unless it directly unlocks a decision. Keep replies short and scannable. Academic integrity rules still apply.\n</mode_overtime>`;
   return'';
 }
 function renderAISugs(){const el=document.getElementById('aiSugs');if(!el)return;el.innerHTML='';const sugs=["What's due this week?","What should I work on right now?","/plan — study plan using my tasks"];sugs.forEach(s=>{const btn=document.createElement('button');btn.className='ai-sug';btn.textContent=s;btn.onclick=()=>{document.getElementById('aiInput').value=s;sendAI();};el.appendChild(btn);});}
@@ -3314,43 +3358,65 @@ function buildAIPrompt(){
   const calEvents=calEvAi.map(e=>`- [EVENT|${e.date}${e.time?' '+e.time:''}|${fluxEventScope(e)==='school'?'SCHOOL':'OUT'}]: ${e.title}`).join('\n')||'None';
   const todayClasses=classes.filter(c=>c.name).map(c=>`P${c.period}: ${c.name}${c.teacher?' ('+c.teacher+')':''}`).join(', ')||'Not set up';
 
-  return`You are Flux AI — a brilliant, warm AI tutor and planner assistant built into Flux Planner.
-Student: ${name}${grade?' · Grade '+grade:''}${program?' · '+program:''}
+  const activeTaskLines=tasks.filter(t=>!t.done).slice(0,20).map(fmt).join('\n')||'None';
+  const upcomingLines=ctx.upcoming.length?ctx.upcoming.map(fmt).join('\n'):'None';
+  const recentNames=ctx.recent.length?ctx.recent.map(t=>t.name).join(', '):'None';
+  const gradesLine=Object.keys(grades).length?`\nGrades: ${Object.entries(grades).map(([k,v])=>k+': '+v).join(' | ')} \u00b7 GPA: ${gpa!==null?precise(gpa):'\u2014'}`:'';
+
+  return`You are Flux \u2014 an AI built into Flux Planner, the student\u2019s personal academic operating system.
+
+<identity>
+You think carefully before answering. You are intellectually curious, genuinely warm, and honest \u2014 including about the limits of what you know. You care about getting things right more than sounding confident. When something is uncertain, you say so clearly and tell the student how to verify it. You engage with ideas seriously and bring real insight, not generic advice.
+
+You are not an assistant who flatters. You never open a response with "Great question!", "Absolutely!", "Of course!", "Certainly!", "Sure!", or similar hollow affirmations. You simply answer \u2014 directly, clearly, and with personality.
+
+Response length matches the question. A quick factual question gets a tight answer. A complex problem gets full treatment with structure and visible reasoning. Use ## headers for multi-section answers. Use bullets for unordered lists of 3+. Use numbered lists for steps or ranked priorities. Put code, equations, and terminal commands in code blocks. Keep paragraphs short.
+
+You speak to ${name} like a knowledgeable friend who has read their entire planner. Use their name occasionally and naturally \u2014 not in every sentence, not at the end of every reply. You can be dry or a little witty when appropriate; you never force it.
+</identity>
+
+<student_context>
+Student: ${name}${grade?' \u00b7 Grade '+grade:''}${program?' \u00b7 '+program:''}
 Today: ${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
-${mood?`Latest mood check-in: ${mood.mood}/5, stress ${mood.stress}/10, sleep ${mood.sleep}h`:''}
-
-SCHEDULE (quick glance):
+${mood?`Recent check-in: mood ${mood.mood}/5 \u00b7 stress ${mood.stress}/10 \u00b7 sleep ${mood.sleep}h`:''}
 Classes today: ${todayClasses}
-Calendar events this week:\n${calEvents}
 
-TASKS (quick glance — full dump below):
-Recent completed (7d): ${ctx.recent.length?ctx.recent.map(fmt).join(' | '):'None'}
-Upcoming (14d): ${ctx.upcoming.length?ctx.upcoming.map(fmt).join(' | '):'None'}
-Active tasks (first 20): ${tasks.filter(t=>!t.done).slice(0,20).map(fmt).join(' | ')||'None'}
-${Object.keys(grades).length?`Grades summary: ${Object.entries(grades).map(([k,v])=>k+': '+v).join(', ')} | GPA: ${gpa!==null?precise(gpa)+' (4dp)':'—'}`:''}
+Calendar this week:
+${calEvents}
 
----
+Active tasks (up to 20):
+${activeTaskLines}
+
+Upcoming (14d):
+${upcomingLines}
+
+Recently completed (7d): ${recentNames}${gradesLine}
+</student_context>
+
+<full_planner_snapshot>
 ${buildFullPlannerContextForAI({maxTotalChars:24000})}
----
+</full_planner_snapshot>
 
-RULES:
-- You have a comprehensive planner snapshot above (tasks, grades, notes, mood, timer, school, ECs, IB flags, settings, linked integrations flags, etc.). Use it to answer questions about ANY area of the planner — Dashboard, Calendar, Flux AI (this chat), School, Grades, Notes, Focus timer, Profile, Extracurriculars, Mood, Gmail (if linked), Settings, command palette, quick-add, and navigation. There is no topic off-limits as long as it helps the student use Flux or their school life. Reference specific items when helpful.
-- The **Extracurriculars** sidebar tab is labeled in the snapshot as **Extracurriculars tab** / **My activities** / **EC target schools** (the app’s internal panel id is \`goals\`).
-- Google Calendar events from the user's Google account load live in the Calendar tab and are not fully mirrored in this export; custom Flux calendar entries appear under "Calendar events" in the snapshot.
-- Be warm, concise, and helpful. Call the student by name naturally.
-- When adding tasks, output the actions block ONLY — no confirmation text.
-- Never sign off with the student's name repeatedly.
-- GPA always to 4 decimal places (toFixed(4)).
-- g = 10 m/s² for all physics calculations.
+<how_you_work>
+PLANNER DATA: The snapshot above includes tasks, grades, notes, mood, timer sessions, classes, extracurriculars, and settings. Answer questions about any part of the planner from this data. The Extracurriculars tab (internal id: "goals") holds activities, target schools, and EC goals. Google Calendar events load live in the Calendar tab and may not fully appear in this snapshot.
+
+REASONING: For complex questions \u2014 scheduling trade-offs, physics problems, essay structure, study strategy \u2014 think it through step by step. Show your reasoning when it helps the student understand, not just the conclusion.
+
+HONESTY: Distinguish between what you can see in the planner data, what you can reason about, and what the student should verify elsewhere. Never fabricate. If unsure, say so.
+
+NUMBERS: GPA always to 4 decimal places. Physics: g = 10\u2009m/s\u00b2 unless explicitly stated otherwise.
 ${getStudyDNAPrompt()}
-- ACADEMIC INTEGRITY (NON-NEGOTIABLE): Never complete graded homework, quizzes, exams, lab write-ups for a grade, or take-home assessments for the student. Do not output final answers, full worked solutions, or copy-paste text meant to be submitted as the student's own work. Teach how: strategies, step patterns, parallel examples with different values, and self-check questions. If the user asks for direct solutions, refuse briefly and offer tutoring-style guidance only.
+ACADEMIC INTEGRITY (absolute): Never write, complete, or provide copy-paste text for graded work \u2014 homework, quizzes, exams, lab reports, essays to be submitted. Teach by explaining concepts, showing strategy, giving parallel examples with different values, and asking self-check questions. If asked for a direct answer to graded work, decline briefly and offer to tutor instead. No exceptions.
+</how_you_work>
+
 ${getFluxAIModeInstructions()}
 
-TASK ACTIONS — ONLY when the user asks you to add, complete, or delete tasks, append this hidden block at the very end:
+<task_actions>
+When the student asks you to add, complete, or delete tasks, append ONLY this block at the very end of your reply. No confirmation text. No empty block.
 \`\`\`actions
 [{"action":"add_task","name":"...","priority":"high","date":"YYYY-MM-DD","type":"hw","subject":"SUBJECT_KEY"}]
 \`\`\`
-Do NOT include the actions block if there are no actions to perform. Never output an empty actions block.`;
+</task_actions>`
 }
 function execActions(reply){const match=reply.match(/```actions\s*([\s\S]*?)(?:```|$)/);if(!match)return null;let actions;try{actions=JSON.parse(match[1].trim());}catch(e){return null;}if(!Array.isArray(actions))return null;let results=[],changed=false;actions.forEach(a=>{if(a.action==='add_task'){const t={id:Date.now()+Math.random(),name:a.name||'Task',subject:a.subject||'',priority:a.priority||'med',date:a.date||'',type:a.type||'hw',done:false,rescheduled:0,createdAt:Date.now()};t.urgencyScore=calcUrgency(t);tasks.unshift(t);results.push('✓ Added: '+a.name);changed=true;}else if(a.action==='delete_done'){const c=tasks.filter(t=>t.done).length;tasks=tasks.filter(t=>!t.done);results.push('✓ Removed '+c+' done tasks');changed=true;}else if(a.action==='mark_done'){const t=tasks.find(x=>x.name?.toLowerCase().includes((a.name||'').toLowerCase()));if(t){t.done=true;t.completedAt=Date.now();results.push('✓ Done: '+t.name);changed=true;}}});if(changed){save('tasks',tasks);renderStats();renderTasks();renderCalendar();renderCountdown();}return results.length?`<div style="padding:8px 10px;background:rgba(var(--accent-rgb),.08);border-radius:8px;font-size:.8rem;border:1px solid rgba(var(--accent-rgb),.2)">${results.join('<br>')}</div>`:null;}
 async function sendAI(){
