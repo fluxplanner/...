@@ -991,7 +991,7 @@ function toggleTask(id){
     spawnConfetti();
     addMomentum();
     if(window.FluxIntel&&FluxIntel.recordCompletionStreak)FluxIntel.recordCompletionStreak();
-    if(t.estTime)setTimeout(()=>promptEffortTracking(id),600);
+    // effort tracking prompt removed
     if(t.srsEnabled)setTimeout(()=>generateSRSReviews(t),800);
     showUndoSnackbar('Task completed','undoLastChange');
     setTimeout(showAutoNext,1200);
