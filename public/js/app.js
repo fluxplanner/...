@@ -841,8 +841,6 @@ function updateNavAriaCurrent(tabId){
   });
 }
 function nav(id,btn){
-  // Persist last visited tab for "continue where left off"
-  if(id&&id!=='dashboard'){localStorage.setItem('flux_last_tab',id);localStorage.setItem('flux_last_tab_ts',String(Date.now()));}
   // Check if tab is visible
   const tc=tabConfig.find(t=>t.id===id);
   if(tc&&!tc.visible){nav('dashboard');return;}
@@ -875,7 +873,6 @@ function openMobileSheet(){
   ov.setAttribute('aria-hidden','false');
   sh.setAttribute('aria-hidden','false');
   document.body.style.overflow='hidden';
-  if(window.Native&&Native.haptic)Native.haptic('light');
 }
 function closeMobileSheet(){
   const ov=document.getElementById('moreSheetOverlay');
@@ -4359,7 +4356,6 @@ function initFAB(){
   }
   fab.addEventListener('click',e=>{
     e.stopPropagation();
-    if(window.Native&&Native.haptic)Native.haptic('light');
     setOpen(!open);
   });
   menu.addEventListener('click',()=>setOpen(false));
@@ -4965,12 +4961,8 @@ function showApp(){
   updateMasterBacklogCardVisibility();
   syncFluxAIModeButtons();
   clearSvgLogoGradientStyles();
-  // Restore last visited tab (within last 2 days)
-  const _lastTab=localStorage.getItem('flux_last_tab');
-  const _lastTabTs=parseInt(localStorage.getItem('flux_last_tab_ts')||'0');
-  if(_lastTab&&_lastTab!=='dashboard'&&Date.now()-_lastTabTs<172800000){
-    setTimeout(()=>nav(_lastTab),350);
-  }
+  // Always open to the dashboard on load (no tab restore)
+  try{localStorage.removeItem('flux_last_tab');localStorage.removeItem('flux_last_tab_ts');}catch(e){}
   // Smart next-day warning
   setTimeout(checkTomorrowLoad,4500);
   setTimeout(checkWeeklyReview,5000);

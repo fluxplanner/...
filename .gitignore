@@ -7,12 +7,3 @@ supabase/.temp/
 
 # Dependencies (if added later)
 node_modules/
-
-# Capacitor build output + native projects
-www/
-ios/
-android/
-package-lock.json
-.pnpm-debug.log
-*.xcuserstate
-DerivedData/
