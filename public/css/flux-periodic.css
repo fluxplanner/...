@@ -46,6 +46,13 @@
   padding: 18px clamp(10px, 2vw, 28px);
   position: relative;
 }
+/* When mounted inside Toolbox → Science, strip the outer padding so it
+   lines up with the Toolbox body (which already has page padding). */
+.tb-body > #periodic,
+.tb-body > #periodic.pt-host{
+  padding: 0;
+  max-width: 100%;
+}
 #periodic .pt-top{
   display: flex;
   align-items: center;
@@ -208,10 +215,10 @@
 }
 .pt-grid{
   display: grid;
-  grid-template-columns: repeat(18, minmax(50px, 1fr));
-  grid-template-rows: repeat(7, minmax(52px, auto)) 14px minmax(52px, auto) minmax(52px, auto);
+  grid-template-columns: repeat(18, minmax(54px, 1fr));
+  grid-template-rows: repeat(7, minmax(64px, auto)) 14px minmax(64px, auto) minmax(64px, auto);
   gap: 4px;
-  min-width: 980px; /* overflow-x: auto on .pt-wrap handles narrower screens */
+  min-width: 1020px; /* overflow-x: auto on .pt-wrap handles narrower screens */
   margin: 0 auto;
 }
 
@@ -225,7 +232,7 @@
   padding: 5px 5px 4px;
   background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.015));
   border: 1px solid rgba(255,255,255,.08);
-  border-radius: 9px;
+  border-radius: 4px;
   color: var(--text);
   cursor: pointer;
   transition:
@@ -234,7 +241,7 @@
     border-color .18s ease,
     background .18s ease,
     opacity .2s ease;
-  min-height: 54px;
+  min-height: 64px;
   text-align: left;
   font-family: inherit;
   overflow: hidden;
@@ -278,14 +285,14 @@
 .pt-el[data-cat="unknown"]        { color: var(--pt-unknown); }
 
 .pt-el-n{
-  font-size: .58rem;
+  font-size: .62rem;
   color: var(--muted, #8895a7);
   line-height: 1;
   letter-spacing: .02em;
-  font-weight: 600;
+  font-weight: 700;
 }
 .pt-el-s{
-  font-size: 1.05rem;
+  font-size: 1.12rem;
   font-weight: 800;
   color: var(--text);
   line-height: 1;
@@ -294,33 +301,49 @@
   text-shadow: 0 0 14px color-mix(in srgb, currentColor 30%, transparent);
 }
 .pt-el-name{
-  font-size: .54rem;
+  font-size: .56rem;
   color: var(--text2, var(--text));
-  opacity: .85;
+  opacity: .88;
   line-height: 1.1;
   margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
 }
 .pt-el-m{
-  font-size: .52rem;
+  font-size: .55rem;
   color: var(--muted, #8895a7);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   margin-top: auto;
+  font-weight: 600;
 }
 
 /* Filter dim-state */
 .pt-el.pt-dim{
-  opacity: .18;
-  filter: saturate(.5);
+  opacity: .1;
+  filter: saturate(.25) blur(.3px);
   transform: none;
   box-shadow: none;
 }
 .pt-el.pt-dim:hover{
   transform: translateY(-2px);
-  opacity: .45;
+  opacity: .35;
+  filter: saturate(.6);
+}
+/* Elements that survive an active filter get a subtle pulse so the
+   matched cluster is unmistakable — especially when filtered cells
+   live near the right edge (halogens, noble gases). */
+.pt-el:not(.pt-dim){ z-index: 1; }
+@keyframes ptFilterPulse{
+  0%  { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+  70% { box-shadow: 0 0 0 10px color-mix(in srgb, currentColor 0%, transparent); }
+  100%{ box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent); }
+}
+.pt-wrap[data-filtered="1"] .pt-el:not(.pt-dim){
+  animation: ptFilterPulse 1.6s ease-out 1;
+  border-color: currentColor;
 }
 
 /* Phase-mode shading */
@@ -389,16 +412,29 @@
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 14px);
   right: 14px;
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
   border-radius: 50%;
   background: rgba(255,255,255,.05);
   border: 1px solid rgba(255,255,255,.1);
   color: var(--text);
   font-size: .95rem;
+  font-family: inherit;
   cursor: pointer;
-  transition: all .14s ease;
+  transition: background .14s ease, transform .14s ease;
 }
 .pt-detail-close:hover{ background: rgba(255,255,255,.12); transform: scale(1.05); }
+.pt-detail-close:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb,0,191,255),.55);
+}
 
 .pt-detail-head{
   text-align: center;
@@ -568,27 +604,38 @@
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 960px){
   .pt-grid{
-    grid-template-columns: repeat(18, minmax(44px, 1fr));
-    grid-template-rows: repeat(7, minmax(44px, auto)) 12px minmax(44px, auto) minmax(44px, auto);
+    grid-template-columns: repeat(18, minmax(50px, 1fr));
+    grid-template-rows: repeat(7, minmax(58px, auto)) 12px minmax(58px, auto) minmax(58px, auto);
     gap: 3px;
   }
-  .pt-el{ min-height: 44px; padding: 4px; border-radius: 7px; }
-  .pt-el-s{ font-size: .9rem; }
-  .pt-el-name{ display: none; }
-  .pt-el-m{ display: none; }
+  .pt-el{ min-height: 58px; padding: 4px 4px 3px; border-radius: 3px; }
+  .pt-el-n{ font-size: .54rem; }
+  .pt-el-s{ font-size: 1rem; }
+  .pt-el-name{ font-size: .5rem; margin-top: 2px; display: block; }
+  .pt-el-m{ font-size: .48rem; display: block; }
 }
 @media (max-width: 640px){
   .pt-grid{
-    grid-template-columns: repeat(18, 38px);
-    grid-template-rows: repeat(7, 38px) 10px 38px 38px;
+    grid-template-columns: repeat(18, 46px);
+    grid-template-rows: repeat(7, 52px) 10px 52px 52px;
     gap: 2px;
   }
-  .pt-el{ min-height: 38px; padding: 2px; border-radius: 5px; }
-  .pt-el-s{ font-size: .78rem; margin-top: 2px; }
-  .pt-el-n{ font-size: .48rem; }
+  .pt-el{ min-height: 52px; padding: 3px 3px 2px; border-radius: 3px; }
+  .pt-el-n{ font-size: .5rem; }
+  .pt-el-s{ font-size: .88rem; margin-top: 2px; }
+  .pt-el-name{ font-size: .44rem; margin-top: 1px; display: block; }
+  .pt-el-m{ font-size: .42rem; display: block; }
   #periodic{ padding: 12px; }
   #ptDetail{ width: 100%; }
   .pt-detail-symbol{ font-size: 3.8rem; }
+}
+@media (max-width: 420px){
+  .pt-grid{
+    grid-template-columns: repeat(18, 40px);
+    grid-template-rows: repeat(7, 46px) 10px 46px 46px;
+  }
+  .pt-el{ min-height: 46px; }
+  .pt-el-name{ display: none; }
 }
 
 /* Print: show the table, hide the detail overlay */

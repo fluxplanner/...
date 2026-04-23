@@ -289,11 +289,14 @@ function buildFilterChips(){
 
 function applyFiltersAndPhase(){
   const cards = document.querySelectorAll('.pt-el');
+  let firstMatch = null;
+  const isFiltered = state.activeCat !== 'all' || !!state.query;
   cards.forEach(card => {
     const n = parseInt(card.dataset.n, 10);
     const el = ELEMENTS[n - 1];
     const on = isHighlighted(el);
     card.classList.toggle('pt-dim', !on);
+    if (on && !firstMatch && isFiltered) firstMatch = card;
 
     if (state.phaseMode) {
       const ph = phaseAt(el, state.temp);
@@ -303,10 +306,36 @@ function applyFiltersAndPhase(){
     }
   });
 
+  // Mark wrap as filtered so CSS can animate the matched cells.
+  document.querySelectorAll('.pt-wrap').forEach(w => {
+    if (isFiltered) w.setAttribute('data-filtered', '1');
+    else w.removeAttribute('data-filtered');
+  });
+
   const tmpLbl = document.getElementById('ptTempVal');
   if (tmpLbl) tmpLbl.textContent = state.phaseMode
     ? `${state.temp}°C  ·  phase mode`
     : `${state.temp}°C`;
+
+  // When a category filter is applied on a narrow screen, the matching
+  // elements may live in the rightmost columns (e.g. halogens col 17,
+  // noble gases col 18) and sit outside the visible area of .pt-wrap,
+  // making it look like nothing happened. Scroll the matched cell(s)
+  // into view so the filter result is immediately visible.
+  if (firstMatch){
+    const wrap = firstMatch.closest('.pt-wrap');
+    if (wrap){
+      const wrapRect = wrap.getBoundingClientRect();
+      const cardRect = firstMatch.getBoundingClientRect();
+      const overflowsRight = cardRect.right > wrapRect.right - 4;
+      const overflowsLeft  = cardRect.left  < wrapRect.left + 4;
+      if (overflowsRight || overflowsLeft){
+        // Center the first matching cell horizontally in the wrap
+        const targetLeft = firstMatch.offsetLeft - (wrap.clientWidth - firstMatch.offsetWidth) / 2;
+        wrap.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+      }
+    }
+  }
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -462,6 +491,16 @@ function wireSearchAndSlider(){
     if (e.key === 'Escape') closeDetail();
     else if (e.key === 'ArrowRight') step(1);
     else if (e.key === 'ArrowLeft')  step(-1);
+  });
+
+  // Click anywhere outside the detail panel (and not on another element
+  // cell — those intentionally open a different element's detail) to close.
+  document.addEventListener('click', e => {
+    const host = document.getElementById('ptDetail');
+    if (!host || !host.classList.contains('open')) return;
+    if (e.target.closest('#ptDetail .pt-detail-inner')) return; // clicks inside the panel are interactive
+    if (e.target.closest('.pt-el')) return; // click on a cell opens a different element's detail
+    closeDetail();
   });
 }
 

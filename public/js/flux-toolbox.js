@@ -124,12 +124,41 @@ function renderTool(){
   if (!subj){ body.innerHTML = ''; return; }
   const tool = subj.tools.find(t => t.id === state.tool) || subj.tools[0];
   if (!tool){ body.innerHTML = '<p class="tb-empty">No tools yet.</p>'; return; }
+  // Preserve the #periodic element across tool switches so we don't lose its
+  // internal state (selected category, search query, slider value) every time
+  // someone jumps between tools.
+  const periodicEl = document.getElementById('periodic');
+  if (periodicEl && body.contains(periodicEl)){
+    let stash = document.getElementById('periodicStash');
+    if (!stash){
+      stash = document.createElement('div');
+      stash.id = 'periodicStash';
+      stash.hidden = true;
+      document.body.appendChild(stash);
+    }
+    stash.appendChild(periodicEl);
+    periodicEl.hidden = true;
+  }
   try {
     tool.render(body);
   } catch (err){
     body.innerHTML = `<p class="tb-empty">Couldn't render tool: ${esc(err.message || err)}</p>`;
     console.error(err);
   }
+}
+
+// ── Periodic Table tool — hands the reserved #periodic DOM back to Toolbox ──
+function renderPeriodicTool(body){
+  body.innerHTML = '';
+  const periodicEl = document.getElementById('periodic');
+  if (!periodicEl){
+    body.innerHTML = '<p class="tb-empty">Periodic table module didn\'t load.</p>';
+    return;
+  }
+  periodicEl.classList.remove('panel','flux-page');
+  periodicEl.hidden = false;
+  body.appendChild(periodicEl);
+  if (typeof window.renderPeriodic === 'function') window.renderPeriodic();
 }
 
 /* ================================================================
@@ -315,7 +344,7 @@ const UNITS = {
   },
   Volume: {
     base:'L',
-    units:{ L:1, mL:0.001, m³:1000, cm³:0.001,
+    units:{ L:1, mL:0.001, 'm³':1000, 'cm³':0.001,
             gal:3.785411784, qt:0.946352946, pt:0.473176473, 'fl oz':0.0295735296, cup:0.24, tbsp:0.01478676, tsp:0.00492892 },
   },
   Area: {
@@ -634,9 +663,10 @@ function renderMolarMass(body){
 SUBJECTS.push({
   id:'science', label:'Science', icon:'🧪',
   tools:[
-    { id:'formulas-sci', label:'Formula sheet', icon:'∑',  render: renderFormulaSheet },
-    { id:'unit-conv',    label:'Unit converter', icon:'⇄',  render: renderUnitConverter },
-    { id:'molar-mass',   label:'Molecular weight', icon:'⚗', render: renderMolarMass },
+    { id:'periodic-tbl', label:'Periodic Table',  icon:'⚗', render: renderPeriodicTool },
+    { id:'formulas-sci', label:'Formula sheet',   icon:'∑', render: renderFormulaSheet },
+    { id:'unit-conv',    label:'Unit converter',  icon:'⇄', render: renderUnitConverter },
+    { id:'molar-mass',   label:'Molecular weight',icon:'⚖', render: renderMolarMass },
   ],
 });
 
