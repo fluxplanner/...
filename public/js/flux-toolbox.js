@@ -2028,151 +2028,167 @@ SUBJECTS.push({
    LANGUAGES
    ================================================================ */
 
-// ── Spanish conjugation — regular + a few irregulars ────────────
-const SPANISH_VERBS = {
-  hablar: { inf:'hablar', meaning:'to speak', group:'-ar' },
-  comer:  { inf:'comer',  meaning:'to eat',   group:'-er' },
-  vivir:  { inf:'vivir',  meaning:'to live',  group:'-ir' },
-  estudiar:{inf:'estudiar', meaning:'to study', group:'-ar' },
-  trabajar:{inf:'trabajar', meaning:'to work', group:'-ar' },
-  beber:  { inf:'beber',  meaning:'to drink', group:'-er' },
-  escribir:{ inf:'escribir', meaning:'to write', group:'-ir' },
-  ser:    { inf:'ser',  meaning:'to be (permanent)', irregular:true },
-  estar:  { inf:'estar',meaning:'to be (state)',     irregular:true },
-  tener:  { inf:'tener',meaning:'to have',           irregular:true },
-  ir:     { inf:'ir',   meaning:'to go',             irregular:true },
-  hacer:  { inf:'hacer',meaning:'to do / make',      irregular:true },
-  querer: { inf:'querer', meaning:'to want / love',  irregular:true },
-};
-const SP_ENDINGS = {
-  present: {
-    '-ar': ['o','as','a','amos','áis','an'],
-    '-er': ['o','es','e','emos','éis','en'],
-    '-ir': ['o','es','e','imos','ís','en'],
-  },
-  preterite: {
-    '-ar': ['é','aste','ó','amos','asteis','aron'],
-    '-er': ['í','iste','ió','imos','isteis','ieron'],
-    '-ir': ['í','iste','ió','imos','isteis','ieron'],
-  },
-  imperfect: {
-    '-ar': ['aba','abas','aba','ábamos','abais','aban'],
-    '-er': ['ía','ías','ía','íamos','íais','ían'],
-    '-ir': ['ía','ías','ía','íamos','íais','ían'],
-  },
-  future: {
-    '-ar': ['é','ás','á','emos','éis','án'],
-    '-er': ['é','ás','á','emos','éis','án'],
-    '-ir': ['é','ás','á','emos','éis','án'],
-  },
-  conditional: {
-    '-ar': ['ía','ías','ía','íamos','íais','ían'],
-    '-er': ['ía','ías','ía','íamos','íais','ían'],
-    '-ir': ['ía','ías','ía','íamos','íais','ían'],
-  },
-};
-// Minimal irregular tables for the key verbs (present tense only + ir/ser preterite)
-const SP_IRREG = {
-  ser:    { present:['soy','eres','es','somos','sois','son'],     preterite:['fui','fuiste','fue','fuimos','fuisteis','fueron'] },
-  estar:  { present:['estoy','estás','está','estamos','estáis','están'], preterite:['estuve','estuviste','estuvo','estuvimos','estuvisteis','estuvieron'] },
-  tener:  { present:['tengo','tienes','tiene','tenemos','tenéis','tienen'], preterite:['tuve','tuviste','tuvo','tuvimos','tuvisteis','tuvieron'] },
-  ir:     { present:['voy','vas','va','vamos','vais','van'],       preterite:['fui','fuiste','fue','fuimos','fuisteis','fueron'] },
-  hacer:  { present:['hago','haces','hace','hacemos','hacéis','hacen'], preterite:['hice','hiciste','hizo','hicimos','hicisteis','hicieron'] },
-  querer: { present:['quiero','quieres','quiere','queremos','queréis','quieren'], preterite:['quise','quisiste','quiso','quisimos','quisisteis','quisieron'] },
-};
-const SP_PRONOUNS = ['yo','tú','él/ella','nosotros','vosotros','ellos'];
-
-function conjugateSpanish(verb, tense){
-  const V = SPANISH_VERBS[verb];
-  if (!V) return null;
-  if (V.irregular){
-    if (tense === 'present' || tense === 'preterite'){
-      const row = SP_IRREG[verb]?.[tense];
-      if (row) return row;
+// ── AI-powered conjugation ─────────────────────────────────────
+const CJ_CACHE_KEY = 'flux_cj_ai_cache_v1';
+const CJ_CACHE_MAX = 200;
+function cjCacheGet(lang, verb){
+  try {
+    const c = JSON.parse(localStorage.getItem(CJ_CACHE_KEY) || '{}');
+    return c[`${lang}:${verb}`] || null;
+  } catch { return null; }
+}
+function cjCacheSet(lang, verb, data){
+  try {
+    const c = JSON.parse(localStorage.getItem(CJ_CACHE_KEY) || '{}');
+    c[`${lang}:${verb}`] = { ...data, _at: Date.now() };
+    const keys = Object.keys(c);
+    if (keys.length > CJ_CACHE_MAX){
+      keys.sort((a,b) => (c[a]._at||0) - (c[b]._at||0))
+          .slice(0, keys.length - CJ_CACHE_MAX)
+          .forEach(k => delete c[k]);
     }
-    // fall back to regular endings for other tenses using stem
-    const base = verb.slice(0, -2);
-    const group = verb.endsWith('ar') ? '-ar' : verb.endsWith('er') ? '-er' : '-ir';
-    const ends = SP_ENDINGS[tense]?.[group];
-    if (!ends) return null;
-    if (tense === 'future' || tense === 'conditional'){
-      return ends.map(e => verb + e);
-    }
-    return ends.map(e => base + e);
-  }
-  const group = V.group;
-  const base = verb.slice(0, -2);
-  const ends = SP_ENDINGS[tense]?.[group];
-  if (!ends) return null;
-  if (tense === 'future' || tense === 'conditional'){
-    return ends.map(e => verb + e);
-  }
-  return ends.map(e => base + e);
+    localStorage.setItem(CJ_CACHE_KEY, JSON.stringify(c));
+  } catch {}
 }
 
-// ── French conjugation — regular ─────────────────────────────────
-const FRENCH_VERBS = {
-  parler:   { inf:'parler',   meaning:'to speak',  group:'-er' },
-  finir:    { inf:'finir',    meaning:'to finish', group:'-ir' },
-  vendre:   { inf:'vendre',   meaning:'to sell',   group:'-re' },
-  aimer:    { inf:'aimer',    meaning:'to like/love', group:'-er' },
-  manger:   { inf:'manger',   meaning:'to eat',    group:'-er' },
-  choisir:  { inf:'choisir',  meaning:'to choose', group:'-ir' },
-  attendre: { inf:'attendre', meaning:'to wait',   group:'-re' },
-  être:     { inf:'être',     meaning:'to be',     irregular:true },
-  avoir:    { inf:'avoir',    meaning:'to have',   irregular:true },
-  aller:    { inf:'aller',    meaning:'to go',     irregular:true },
-  faire:    { inf:'faire',    meaning:'to do/make',irregular:true },
+// Popular verbs surfaced as quick chips for each language.
+const CJ_POPULAR = {
+  es: ['ser','estar','tener','hacer','ir','decir','poder','querer','saber','ver','dar','poner','venir','salir','jugar','pensar','dormir','pedir'],
+  fr: ['être','avoir','aller','faire','dire','pouvoir','vouloir','savoir','voir','venir','prendre','mettre','devoir','sortir','finir','aimer','manger','connaître'],
 };
-const FR_ENDINGS = {
-  present: {
-    '-er': ['e','es','e','ons','ez','ent'],
-    '-ir': ['is','is','it','issons','issez','issent'],
-    '-re': ['s','s','','ons','ez','ent'],
-  },
-  imparfait: {
-    '-er': ['ais','ais','ait','ions','iez','aient'],
-    '-ir': ['issais','issais','issait','issions','issiez','issaient'],
-    '-re': ['ais','ais','ait','ions','iez','aient'],
-  },
-  futur: {
-    '-er': ['ai','as','a','ons','ez','ont'],
-    '-ir': ['ai','as','a','ons','ez','ont'],
-    '-re': ['ai','as','a','ons','ez','ont'],
-  },
-  conditionnel: {
-    '-er': ['ais','ais','ait','ions','iez','aient'],
-    '-ir': ['ais','ais','ait','ions','iez','aient'],
-    '-re': ['ais','ais','ait','ions','iez','aient'],
-  },
-};
-const FR_IRREG = {
-  être:  { present:['suis','es','est','sommes','êtes','sont'],      imparfait:['étais','étais','était','étions','étiez','étaient'] },
-  avoir: { present:['ai','as','a','avons','avez','ont'],             imparfait:['avais','avais','avait','avions','aviez','avaient'] },
-  aller: { present:['vais','vas','va','allons','allez','vont'],      imparfait:['allais','allais','allait','allions','alliez','allaient'] },
-  faire: { present:['fais','fais','fait','faisons','faites','font'], imparfait:['faisais','faisais','faisait','faisions','faisiez','faisaient'] },
-};
-const FR_PRONOUNS = ['je','tu','il/elle','nous','vous','ils/elles'];
 
-function conjugateFrench(verb, tense){
-  const V = FRENCH_VERBS[verb];
-  if (!V) return null;
-  if (V.irregular){
-    if (tense === 'present' || tense === 'imparfait'){
-      return FR_IRREG[verb]?.[tense] || null;
-    }
-    // future/conditional use stem (irregular stems — we approximate with infinitive)
-    const ends = FR_ENDINGS[tense]?.['-er'];
-    return ends ? ends.map(e => (verb.replace(/e$/, '')) + e) : null;
+const CJ_TENSE_ORDER = {
+  es: ['present','preterite','imperfect','future','conditional','present_subjunctive','imperative'],
+  fr: ['present','imparfait','passe_simple','futur','conditionnel','subjonctif_present','imperatif'],
+};
+const CJ_TENSE_LABEL = {
+  es: { present:'Presente', preterite:'Pretérito', imperfect:'Imperfecto', future:'Futuro', conditional:'Condicional', present_subjunctive:'Pres. subjuntivo', imperative:'Imperativo' },
+  fr: { present:'Présent', imparfait:'Imparfait', passe_simple:'Passé simple', futur:'Futur simple', conditionnel:'Conditionnel', subjonctif_present:'Subj. présent', imperatif:'Impératif' },
+};
+const CJ_PRONOUN_ORDER = {
+  es: ['yo','tu','el','nosotros','vosotros','ellos'],
+  fr: ['je','tu','il','nous','vous','ils'],
+};
+const CJ_PRONOUN_LABEL = {
+  es: { yo:'yo', tu:'tú', el:'él/ella/Ud.', nosotros:'nosotros', vosotros:'vosotros', ellos:'ellos/Uds.' },
+  fr: { je:'je', tu:'tu', il:'il/elle', nous:'nous', vous:'vous', ils:'ils/elles' },
+};
+const CJ_IMPERATIVE_KEYS = {
+  es: ['tu','usted','nosotros','vosotros','ustedes'],
+  fr: ['tu','nous','vous'],
+};
+const CJ_IMPERATIVE_LABEL = {
+  es: { tu:'tú', usted:'Ud.', nosotros:'nosotros', vosotros:'vosotros', ustedes:'Uds.' },
+  fr: { tu:'tu', nous:'nous', vous:'vous' },
+};
+
+async function conjugateWithAI(lang, verb){
+  const cached = cjCacheGet(lang, verb.toLowerCase());
+  if (cached) return cached;
+
+  if (typeof API === 'undefined' || !API.ai || typeof API_HEADERS === 'undefined'){
+    throw new Error('AI unavailable — check your connection and try again.');
   }
-  const ends = FR_ENDINGS[tense]?.[V.group];
-  if (!ends) return null;
-  if (tense === 'futur' || tense === 'conditionnel'){
-    const stem = V.group === '-re' ? verb.replace(/e$/, '') : verb;
-    return ends.map(e => stem + e);
+
+  const isEs = lang === 'es';
+  const langName = isEs ? 'Spanish' : 'French';
+  const pronounsLine = isEs
+    ? '"yo", "tu", "el", "nosotros", "vosotros", "ellos" (keys are ASCII; el covers él/ella/usted; ellos covers ellos/ellas/ustedes)'
+    : '"je", "tu", "il", "nous", "vous", "ils" (keys are ASCII; il covers il/elle; ils covers ils/elles)';
+  const tenseList = isEs
+    ? '"present","preterite","imperfect","future","conditional","present_subjunctive","imperative"'
+    : '"present","imparfait","passe_simple","futur","conditionnel","subjonctif_present","imperatif"';
+  const imperativePronouns = isEs
+    ? '"tu","usted","nosotros","vosotros","ustedes"'
+    : '"tu","nous","vous"';
+
+  const system = `You are a world-class ${langName} linguist and verb-conjugation expert. Given any input (infinitive, conjugated form, or mild typo), identify the correct infinitive and return the complete standard conjugation as strict JSON. Handle every irregular pattern correctly: stem changes (e→ie, o→ue, e→i, u→ue), yo-go verbs, orthographic changes (c→qu, g→gu, z→c, c→z), preterite-irregulars, spelling-change verbs, and defective verbs. Accent marks are always required.`;
+
+  const user = `Conjugate the ${langName} verb input: "${verb}"
+
+Return ONLY a valid JSON object, no markdown, no backticks, no prose. Exact shape:
+
+{
+  "verb": "<correct infinitive; fix spelling if needed>",
+  "meaning": "<1–5 word English gloss>",
+  "irregular": <true|false>,
+  "group": "<-ar|-er|-ir|-re|reflexive|other>",
+  "notes": "<one sentence about irregularities or stem changes; empty string if fully regular>",
+  "tenses": {
+    <each of ${tenseList} as a key, each mapping to an object with pronoun keys>
   }
-  const base = verb.slice(0, -2);
-  return ends.map(e => base + e);
+}
+
+Pronoun keys for non-imperative tenses: ${pronounsLine}.
+Pronoun keys for imperative only: ${imperativePronouns}.
+
+Every pronoun for every tense must be present. Use "—" for any genuinely defective slot. Accent marks (é, á, ñ, ç, è, ê, î, etc.) MUST be correct. If the input is clearly not a real ${langName} verb even after typo correction, return exactly {"error":"not_a_verb"}.`;
+
+  const res = await fetch(API.ai, {
+    method: 'POST',
+    headers: API_HEADERS,
+    body: JSON.stringify({ system, messages: [{ role:'user', content: user }] }),
+  });
+  if (!res.ok) throw new Error('AI error ' + res.status);
+  const data = await res.json();
+  let txt = (data.content?.[0]?.text || '').replace(/```json|```/g, '').trim();
+  const s = txt.indexOf('{'), e = txt.lastIndexOf('}');
+  if (s === -1 || e === -1) throw new Error('AI response not JSON — try again.');
+  let parsed;
+  try { parsed = JSON.parse(txt.slice(s, e + 1)); }
+  catch { throw new Error('Could not parse conjugation — try again.'); }
+  if (parsed && parsed.error === 'not_a_verb') throw new Error(`"${verb}" isn't a recognised ${langName} verb. Check spelling?`);
+  if (!parsed.tenses || typeof parsed.tenses !== 'object') throw new Error('Incomplete conjugation — try again.');
+
+  cjCacheSet(lang, verb.toLowerCase(), parsed);
+  // Also cache under the corrected infinitive if the user typed something else.
+  if (parsed.verb && parsed.verb.toLowerCase() !== verb.toLowerCase()){
+    cjCacheSet(lang, parsed.verb.toLowerCase(), parsed);
+  }
+  return parsed;
+}
+
+function renderConjTable(lang, data){
+  const order = CJ_TENSE_ORDER[lang];
+  const label = CJ_TENSE_LABEL[lang];
+  const pOrder = CJ_PRONOUN_ORDER[lang];
+  const pLabel = CJ_PRONOUN_LABEL[lang];
+  const impKeys = CJ_IMPERATIVE_KEYS[lang];
+  const impLabel = CJ_IMPERATIVE_LABEL[lang];
+
+  const blocks = order.map(tKey => {
+    const forms = data.tenses[tKey] || {};
+    const keys = /imperativ|imperative/.test(tKey) ? impKeys : pOrder;
+    const labels = /imperativ|imperative/.test(tKey) ? impLabel : pLabel;
+    return `
+      <div class="cj-tense">
+        <h5>${esc(label[tKey] || tKey)}</h5>
+        <div class="cj-grid">
+          ${keys.map(k => `<div class="cj-row"><span class="cj-p">${esc(labels[k] || k)}</span><span class="cj-f">${esc(forms[k] ?? '—')}</span></div>`).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const irregPill = data.irregular
+    ? '<span class="cj-chip cj-chip--irreg">irregular</span>'
+    : '<span class="cj-chip cj-chip--reg">regular</span>';
+  const groupPill = data.group ? `<span class="cj-chip">${esc(data.group)}</span>` : '';
+
+  return `
+    <div class="cj-result">
+      <div class="cj-head">
+        <div class="cj-head-l">
+          <h4>${esc(data.verb || '')}</h4>
+          <span class="cj-meaning">${esc(data.meaning || '')}</span>
+        </div>
+        <div class="cj-head-r">${irregPill}${groupPill}</div>
+      </div>
+      ${data.notes ? `<p class="cj-notes">${esc(data.notes)}</p>` : ''}
+      <div class="cj-tenses-grid">${blocks}</div>
+      <p class="cj-note">Generated by Flux AI · cached locally so repeats are instant.</p>
+    </div>
+  `;
 }
 
 function renderConjugation(body){
@@ -2185,38 +2201,59 @@ function renderConjugation(body){
           <button type="button" data-lang="fr">Français</button>
         </div>
       </div>
-      <div class="cj-controls">
-        <label>Verb <select id="cjVerb"></select></label>
-        <label>Tense <select id="cjTense"></select></label>
+      <p class="tb-sub" style="margin:0 0 10px">Type any verb — infinitive or conjugated form. Flux AI returns all major tenses including irregulars.</p>
+      <div class="cj-input-row">
+        <input type="text" id="cjInput" class="cj-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. hablar, tener, decir">
+        <button type="button" class="tb-btn" id="cjGo">Conjugate</button>
       </div>
+      <div class="cj-quick" id="cjQuick"></div>
       <div id="cjOut" class="cj-out"></div>
     </div>
   `;
 
   let lang = 'es';
-  function populate(){
-    const v = $('cjVerb'), t = $('cjTense');
-    if (lang === 'es'){
-      v.innerHTML = Object.entries(SPANISH_VERBS).map(([k, o]) => `<option value="${k}">${esc(k)} — ${esc(o.meaning)}</option>`).join('');
-      t.innerHTML = ['present','preterite','imperfect','future','conditional'].map(x => `<option value="${x}">${esc(x)}</option>`).join('');
-    } else {
-      v.innerHTML = Object.entries(FRENCH_VERBS).map(([k, o]) => `<option value="${k}">${esc(k)} — ${esc(o.meaning)}</option>`).join('');
-      t.innerHTML = ['present','imparfait','futur','conditionnel'].map(x => `<option value="${x}">${esc(x)}</option>`).join('');
-    }
+  const inputEl = $('cjInput');
+  const quickEl = $('cjQuick');
+  const outEl = $('cjOut');
+
+  function updatePlaceholder(){
+    inputEl.placeholder = lang === 'es'
+      ? 'e.g. hablar, tener, decir, pedir…'
+      : 'e.g. être, avoir, aller, courir…';
   }
-  function draw(){
-    const verb = $('cjVerb').value;
-    const tense = $('cjTense').value;
-    const pronouns = lang === 'es' ? SP_PRONOUNS : FR_PRONOUNS;
-    const forms = lang === 'es' ? conjugateSpanish(verb, tense) : conjugateFrench(verb, tense);
-    if (!forms){ $('cjOut').innerHTML = '<div class="tb-empty">Conjugation not available.</div>'; return; }
-    $('cjOut').innerHTML = `
-      <div class="cj-title">${esc(verb)} · ${esc(tense)}</div>
-      <div class="cj-grid">
-        ${pronouns.map((p, i) => `<div class="cj-row"><span class="cj-p">${esc(p)}</span><span class="cj-f">${esc(forms[i] || '—')}</span></div>`).join('')}
+
+  function populateQuick(){
+    quickEl.innerHTML = `<span class="cj-quick-label">Popular:</span>` +
+      CJ_POPULAR[lang].map(v => `<button type="button" class="tb-chip" data-v="${esc(v)}">${esc(v)}</button>`).join('');
+  }
+
+  function showIdle(){
+    outEl.innerHTML = `<div class="tb-empty">Type a ${lang === 'es' ? 'Spanish' : 'French'} verb above — Flux AI handles regulars <em>and</em> every irregular.</div>`;
+  }
+
+  function showLoading(v){
+    outEl.innerHTML = `
+      <div class="cj-loading">
+        <span class="cj-spinner" aria-hidden="true"></span>
+        <span>Flux AI is conjugating <strong>${esc(v)}</strong>…</span>
       </div>
-      <p class="cj-note">Regular verbs conjugated algorithmically; most common irregulars have hard-coded forms for the most-asked tenses.</p>
     `;
+  }
+
+  function showError(msg){
+    outEl.innerHTML = `<div class="cj-error">${esc(msg)}</div>`;
+  }
+
+  async function run(v){
+    const verb = (v || '').trim().toLowerCase();
+    if (!verb){ inputEl.focus(); return; }
+    showLoading(verb);
+    try {
+      const data = await conjugateWithAI(lang, verb);
+      outEl.innerHTML = renderConjTable(lang, data);
+    } catch (err){
+      showError(err?.message || 'Could not conjugate.');
+    }
   }
 
   body.querySelector('.tb-seg').addEventListener('click', e => {
@@ -2224,10 +2261,25 @@ function renderConjugation(body){
     body.querySelectorAll('.tb-seg button').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     lang = b.dataset.lang;
-    populate(); draw();
+    updatePlaceholder();
+    populateQuick();
+    showIdle();
+    inputEl.value = '';
   });
-  body.addEventListener('change', e => { if (e.target.matches('#cjVerb,#cjTense')) draw(); });
-  populate(); draw();
+
+  $('cjGo').addEventListener('click', () => run(inputEl.value));
+  inputEl.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); run(inputEl.value); }});
+  quickEl.addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    inputEl.value = b.dataset.v;
+    run(b.dataset.v);
+  });
+
+  updatePlaceholder();
+  populateQuick();
+  showIdle();
+  setTimeout(() => inputEl.focus(), 50);
 }
 
 // ── IPA chart (simplified pulmonic consonants + vowels) ─────────
