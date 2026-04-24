@@ -1,5 +1,5 @@
 <svg width="680" height="680" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flux AI mark">
-<!-- Same lemniscate stroke as flux-planner-logo.svg, background removed for inline use -->
+<!-- Same lemniscate stroke as flux-planner-logo.png, background removed for inline use -->
 <defs>
   <linearGradient id="fluxAiMarkStroke" x1="0%" y1="0%" x2="100%" y2="0%">
     <stop offset="0%" stop-color="#00C2FF" stop-opacity="0.05"/><stop offset="40%" stop-color="#00C2FF"/><stop offset="60%" stop-color="#7C5CFF"/><stop offset="100%" stop-color="#7C5CFF" stop-opacity="0.05"/>

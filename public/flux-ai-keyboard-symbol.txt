@@ -8,5 +8,5 @@ Flux AI — plain-text / keyboard symbols (optional; app UI unchanged)
   Already used in Flux for AI accents (not the same shape as the logo):  ✦  U+2726
 
 Assets (no UI edits required):
-  • Tab / favicon / PWA / social preview: public/flux-planner-logo.svg
+  • Tab / favicon / PWA / social preview: public/flux-planner-logo.png
   • Transparent mark only (paste into designs or future UI): public/flux-ai-mark.svg

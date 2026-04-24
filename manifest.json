@@ -9,9 +9,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "public/flux-planner-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "public/flux-planner-logo.png",
+      "sizes": "680x680",
+      "type": "image/png",
       "purpose": "any"
     },
     {
@@ -33,9 +33,9 @@
   ],
   "screenshots": [
     {
-      "src": "public/flux-planner-logo.svg",
+      "src": "public/flux-planner-logo.png",
       "sizes": "680x680",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "form_factor": "narrow",
       "label": "Flux Planner"
     }
