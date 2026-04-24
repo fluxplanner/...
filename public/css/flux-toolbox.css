@@ -344,12 +344,27 @@
 }
 .gc-toggle{
   width: 22px; height: 22px;
+  min-width: 22px; max-width: 22px;
+  padding: 0;
+  margin: 0;
   background: transparent;
   border: 1px solid rgba(255,255,255,.15);
   border-radius: 50%;
   color: var(--gc-color, var(--accent));
-  font-size: .7rem;
+  font-size: .65rem;
+  line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: inherit;
+  font-weight: 700;
+}
+.gc-toggle:hover{
+  background: rgba(255,255,255,.05);
+  transform: none;
+  box-shadow: none;
 }
 .gc-stage{ position: relative; }
 #gcCanvas{

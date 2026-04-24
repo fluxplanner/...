@@ -14,10 +14,10 @@
 (function(){
   try{
     var raw=localStorage.getItem('flux_liquid_glass');
-    var on=raw===null?false:JSON.parse(raw)===true;
+    var on=raw===null?true:JSON.parse(raw)===true;
     document.documentElement.setAttribute('data-flux-glass',on?'on':'off');
   }catch(e){
-    document.documentElement.setAttribute('data-flux-glass','off');
+    document.documentElement.setAttribute('data-flux-glass','on');
   }
 })();
 </script>
@@ -1392,9 +1392,9 @@
           <div class="srow" style="border:none;padding-top:0">
             <div>
               <div class="slabel">Liquid glass</div>
-              <div class="ssub">Off by default — turn on for backdrop blur, softer cards, and accent glow on the sidebar and chrome. Leave off for a flatter, faster UI.</div>
+              <div class="ssub">On by default — backdrop blur, softer cards, and accent glow on the sidebar and chrome. Turn off for a flatter, faster UI.</div>
             </div>
-            <button type="button" class="toggle" id="fluxLiquidGlassToggle" aria-label="Liquid glass" aria-pressed="false"></button>
+            <button type="button" class="toggle on" id="fluxLiquidGlassToggle" aria-label="Liquid glass" aria-pressed="true"></button>
           </div>
           <div class="srow" style="border:none;padding-top:0">
             <div>
@@ -1519,14 +1519,6 @@
             <div><div class="slabel">Reduce motion</div><div class="ssub">Minimize animations (also respects system setting)</div></div>
             <button type="button" class="toggle" id="reduceMotionToggle" onclick="toggleReduceMotion()"></button>
           </div>
-          <div class="srow" style="border:none;margin-top:8px;flex-direction:column;align-items:stretch;gap:6px">
-            <div><div class="slabel">UI density</div><div class="ssub">Control spacing and padding throughout the app</div></div>
-            <select id="fluxDensitySelect" style="margin:0;width:100%">
-              <option value="minimal">Minimal — more breathing room</option>
-              <option value="comfortable" selected>Comfortable — default</option>
-              <option value="dense">Dense — compact layout</option>
-            </select>
-          </div>
         </div>
         <div class="card">
           <h3>Panel layout</h3>
@@ -1622,23 +1614,6 @@
         </div>
       </div>
       <div class="spane" id="spane-data">
-        <div class="card" style="border-color:rgba(var(--accent-rgb),.22);background:linear-gradient(165deg,rgba(var(--accent-rgb),.06),transparent 55%)">
-          <h3>For schools &amp; families</h3>
-          <p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:0 0 12px">Quick facts for administrators, counselors, and parents. Flux is a <strong>voluntary</strong> student planner—it does not replace official school systems (Canvas, SIS, email from the district).</p>
-          <ul style="margin:0;padding-left:1.15rem;font-size:.78rem;color:var(--text2);line-height:1.7">
-            <li style="margin-bottom:8px"><strong>Voluntary use.</strong> Students choose whether to use it. Teachers and staff are not required to adopt or support it.</li>
-            <li style="margin-bottom:8px"><strong>Data.</strong> Planner data can stay on the device (guest) or sync to a signed-in account (cloud). Optional connections (e.g. Google, Canvas) only use what the student authorizes. Details are in the Privacy Policy.</li>
-            <li style="margin-bottom:8px"><strong>AI.</strong> AI features are assistive only—outputs can be wrong and should not be the sole basis for graded work or official decisions.</li>
-            <li style="margin-bottom:8px"><strong>Audience.</strong> Built for <strong>high school</strong> students; younger users should use it with a parent or guardian and school policy in mind.</li>
-            <li style="margin-bottom:8px"><strong>Accessibility.</strong> Look → High contrast, font scaling, and reduce motion help usability; we welcome feedback on barriers.</li>
-            <li style="margin-bottom:8px"><strong>Reliability.</strong> Works best online. Some features need sync or integrations; plan critical deadlines in official school tools too.</li>
-            <li><strong>Contact.</strong> Questions for school review: <a href="mailto:azfermohammed21@gmail.com" style="color:var(--accent)">azfermohammed21@gmail.com</a></li>
-          </ul>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
-            <a href="privacy.html" target="_blank" rel="noopener" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">Privacy Policy →</a>
-            <button type="button" onclick="showTOS()" class="btn-sec" style="padding:6px 14px;font-size:.78rem">Terms of Service →</button>
-          </div>
-        </div>
         <!-- Developer & about -->
         <div class="card">
           <h3>Developer</h3>
@@ -1652,6 +1627,31 @@
             </div>
           </div>
         </div>
+
+        <!-- Tech Stack -->
+        <div class="card">
+          <h3>Tech Stack</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">AI Engine</div>
+              <div style="font-size:.82rem;font-weight:600">Groq · Llama 3.3 70B</div>
+            </div>
+            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Vision AI</div>
+              <div style="font-size:.82rem;font-weight:600">Groq · Llama 4 Scout</div>
+            </div>
+            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Auth & Sync</div>
+              <div style="font-size:.82rem;font-weight:600">Supabase</div>
+            </div>
+            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Integrations</div>
+              <div style="font-size:.82rem;font-weight:600">Google · Canvas LMS</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center">Cloud sync · Focus tools · AI where you need it</div>
+        </div>
+
         <div class="card">
           <h3>Local storage</h3>
           <p style="font-size:.72rem;color:var(--muted2);margin:0 0 8px;line-height:1.5">Rough size of data this site keeps in your browser (tasks, notes, cache).</p>
@@ -1711,46 +1711,7 @@
             <div style="margin-top:8px">Flux AI → <strong>Explain my week</strong> summarizes deadlines &amp; priorities (command palette too).</div>
           </div>
         </div>
-        <div class="card">
-          <h3>MLA citation (web)</h3>
-          <p style="font-size:.72rem;color:var(--muted2);margin:0 0 10px;line-height:1.5">Fill what you have — Flux builds a simple web-style line you can paste into a bibliography.</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label style="font-size:.65rem;color:var(--muted)">Author</label><input type="text" id="mlaAuthor" placeholder="Last, First" style="margin:0"></div>
-            <div><label style="font-size:.65rem;color:var(--muted)">Year</label><input type="text" id="mlaYear" placeholder="2026" style="margin:0"></div>
-          </div>
-          <div style="margin-bottom:8px"><label style="font-size:.65rem;color:var(--muted)">Page / article title</label><input type="text" id="mlaTitle" placeholder="Title in quotes" style="margin:0"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label style="font-size:.65rem;color:var(--muted)">Site</label><input type="text" id="mlaSite" placeholder="Site name" style="margin:0"></div>
-            <div><label style="font-size:.65rem;color:var(--muted)">URL</label><input type="text" id="mlaUrl" placeholder="https://…" style="margin:0"></div>
-          </div>
-          <button type="button" onclick="generateMLACitation()" style="width:100%;margin-bottom:8px">Generate</button>
-          <div id="mlaOut" style="font-size:.78rem;line-height:1.55;padding:10px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:10px;font-family:'JetBrains Mono',monospace;color:var(--text);min-height:2.5em;white-space:pre-wrap"></div>
-        </div>
         <div class="card"><h3>Danger Zone</h3><div class="srow" style="border:none"><div><div class="slabel">Clear local cache</div><div class="ssub">Permanently deletes all tasks, grades, notes, extracurriculars</div></div><button onclick="clearCache()" class="btn-sec" style="padding:6px 12px;font-size:.78rem;color:var(--red)">Clear Data</button></div></div>
-
-        <!-- Tech Stack -->
-        <div class="card">
-          <h3>Tech Stack</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
-              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">AI Engine</div>
-              <div style="font-size:.82rem;font-weight:600">Groq · Llama 3.3 70B</div>
-            </div>
-            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
-              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Vision AI</div>
-              <div style="font-size:.82rem;font-weight:600">Groq · Llama 4 Scout</div>
-            </div>
-            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
-              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Auth & Sync</div>
-              <div style="font-size:.82rem;font-weight:600">Supabase</div>
-            </div>
-            <div style="padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
-              <div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Integrations</div>
-              <div style="font-size:.82rem;font-weight:600">Google · Canvas LMS</div>
-            </div>
-          </div>
-          <div style="margin-top:10px;font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center">Cloud sync · Focus tools · AI where you need it</div>
-        </div>
 
         <!-- Privacy & Legal -->
         <div class="card">
@@ -1759,25 +1720,29 @@
           <details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600;font-size:.85rem">Will I lose data?</summary><p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:8px 0 0">Clearing browser data or uninstalling the browser can remove local guest data. Sign in with Google to sync your planner to the cloud across devices.</p></details>
           <details><summary style="cursor:pointer;font-weight:600;font-size:.85rem">What does AI see?</summary><p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:8px 0 0">Flux AI uses your chat and optional planner context you send. See the Privacy Policy for details.</p></details>
         </div>
-        <div class="card">
-          <h3>Privacy &amp; Legal</h3>
-          <div class="srow">
-            <div><div class="slabel">Privacy Policy</div><div class="ssub">How we handle your data</div></div>
-            <a href="privacy.html" target="_blank" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">View →</a>
-          </div>
-          <div class="srow" style="border:none">
-            <div>
-              <div class="slabel">Terms of Service</div>
-              <div class="ssub">Your agreement to use Flux Planner</div>
-            </div>
-            <button onclick="showTOS()" class="btn-sec" style="padding:6px 14px;font-size:.78rem">View →</button>
-          </div>
-        </div>
-
         <!-- Quick Stats -->
         <div class="card">
           <h3>Your Flux Stats</h3>
           <div id="aboutStats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+        </div>
+
+        <!-- For schools & families (kept at the bottom for admin/counselor reference) -->
+        <div class="card" style="border-color:rgba(var(--accent-rgb),.22);background:linear-gradient(165deg,rgba(var(--accent-rgb),.06),transparent 55%)">
+          <h3>For schools &amp; families</h3>
+          <p style="font-size:.78rem;color:var(--muted2);line-height:1.65;margin:0 0 12px">Quick facts for administrators, counselors, and parents. Flux is a <strong>voluntary</strong> student planner—it does not replace official school systems (Canvas, SIS, email from the district).</p>
+          <ul style="margin:0;padding-left:1.15rem;font-size:.78rem;color:var(--text2);line-height:1.7">
+            <li style="margin-bottom:8px"><strong>Voluntary use.</strong> Students choose whether to use it. Teachers and staff are not required to adopt or support it.</li>
+            <li style="margin-bottom:8px"><strong>Data.</strong> Planner data can stay on the device (guest) or sync to a signed-in account (cloud). Optional connections (e.g. Google, Canvas) only use what the student authorizes. Details are in the Privacy Policy.</li>
+            <li style="margin-bottom:8px"><strong>AI.</strong> AI features are assistive only—outputs can be wrong and should not be the sole basis for graded work or official decisions.</li>
+            <li style="margin-bottom:8px"><strong>Audience.</strong> Built for <strong>high school</strong> students; younger users should use it with a parent or guardian and school policy in mind.</li>
+            <li style="margin-bottom:8px"><strong>Accessibility.</strong> Look → High contrast, font scaling, and reduce motion help usability; we welcome feedback on barriers.</li>
+            <li style="margin-bottom:8px"><strong>Reliability.</strong> Works best online. Some features need sync or integrations; plan critical deadlines in official school tools too.</li>
+            <li><strong>Contact.</strong> Questions for school review: <a href="mailto:azfermohammed21@gmail.com" style="color:var(--accent)">azfermohammed21@gmail.com</a></li>
+          </ul>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+            <a href="privacy.html" target="_blank" rel="noopener" class="btn-sec" style="padding:6px 14px;font-size:.78rem;text-decoration:none;display:inline-block">Privacy Policy →</a>
+            <button type="button" onclick="showTOS()" class="btn-sec" style="padding:6px 14px;font-size:.78rem">Terms of Service →</button>
+          </div>
         </div>
       </div>
       </div>
@@ -1909,6 +1874,7 @@
 <script defer src="public/js/splash.js"></script>
 <script defer src="public/js/login-motion.js"></script>
 <script defer src="public/js/app.js"></script>
+<script defer src="public/js/flux-release-gate.js"></script>
 <script defer src="public/js/flux-personalization.js"></script>
 <script defer src="public/js/flux-estimate-learn.js"></script>
 <script defer src="public/js/flux-intelligence.js"></script>

@@ -1271,7 +1271,7 @@ button:active:not(:disabled){transform:scale(.97)!important}
 .fab-action-primary:hover{box-shadow:0 6px 24px rgba(var(--accent-rgb),.45)}
 
 /* ══ KEYBOARD HINT ══ */
-#keyHint{animation:slideUp .3s var(--ease-spring)}
+#keyHint{animation:slideUpToast .3s var(--ease-spring)}
 
 
 /* ══ TOPBAR PILLS ══ */
@@ -1696,12 +1696,79 @@ button[onclick*="generateStudyRoadmap"]:hover{
 /* Tour tooltip */
 .tour-tooltip{
   position:fixed;z-index:9000;
-  background:var(--card,#1a1b2e);
+  top:0;left:0;
+  background:var(--card-solid,#121826);
   border:1px solid rgba(var(--accent-rgb),.4);
-  border-radius:14px;padding:16px;
-  max-width:260px;
-  box-shadow:0 12px 40px rgba(0,0,0,.5);
-  animation:slideUp .3s ease both;
+  border-radius:14px;
+  padding:16px 18px;
+  width:min(320px,calc(100vw - 24px));
+  max-width:calc(100vw - 24px);
+  box-shadow:0 12px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(8px);
+  transition:opacity .22s var(--ease-out,cubic-bezier(0,0,.2,1)),transform .28s var(--ease-spring,cubic-bezier(.34,1.56,.64,1));
+  pointer-events:none;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+}
+.tour-tooltip.is-visible{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+.tour-tooltip__title{
+  font-size:.82rem;font-weight:800;
+  margin-bottom:6px;
+  letter-spacing:-.01em;
+  color:var(--text);
+}
+.tour-tooltip__step{
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.7rem;
+  margin-right:6px;
+}
+.tour-tooltip__body{
+  font-size:.78rem;
+  color:var(--text2,#c8cad8);
+  line-height:1.6;
+  margin-bottom:14px;
+}
+.tour-tooltip__actions{
+  display:flex;gap:8px;
+}
+.tour-tooltip__actions button{
+  flex:1;
+  padding:7px 10px;
+  font-size:.74rem;
+  font-weight:600;
+  border-radius:9px;
+  cursor:pointer;
+  font-family:inherit;
+  letter-spacing:-.01em;
+  transition:background .14s ease,border-color .14s ease,color .14s ease,transform .14s ease;
+}
+.tour-tooltip__skip{
+  background:transparent;
+  border:1px solid var(--border2,rgba(255,255,255,.1));
+  color:var(--muted2,#7b809a);
+}
+.tour-tooltip__skip:hover{
+  background:rgba(255,255,255,.05);
+  color:var(--text2,#c8cad8);
+}
+.tour-tooltip__next{
+  background:var(--accent);
+  border:1px solid var(--accent);
+  color:#0b0f1a;
+  font-weight:700;
+}
+.tour-tooltip__next:hover{
+  filter:brightness(1.08);
 }
 
 /* Friction glow on rescheduled tasks */
@@ -1892,7 +1959,7 @@ body.high-contrast .nav-item{
 #coachPrompt{transition:opacity .4s ease}
 
 /* ── Achievement Toast ── */
-@keyframes slideUp{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes slideUpToast{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 
 /* ── Why Popup ── */
 @keyframes fadeScale{from{opacity:0;transform:translate(-50%,-50%) scale(.95)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
@@ -2074,6 +2141,50 @@ button:focus-visible,.nav-item:focus-visible,.tmode-btn:focus-visible,.check:foc
   margin-left:8px;padding:5px 12px;border-radius:8px;background:var(--card);
   border:1px solid var(--border2);font-size:.8rem;color:var(--text);white-space:nowrap;
   box-shadow:var(--shadow-sm);z-index:100;pointer-events:none;
+}
+
+/* ── Collapsed sidebar: tight padding so icons & avatar don't get clipped ── */
+.sidebar.collapsed .sidebar-header{
+  padding:10px 6px!important;
+  margin:10px 6px 0!important;
+  justify-content:center!important;
+  gap:0!important;
+}
+.sidebar.collapsed .sidebar-toggle{margin:0 auto}
+.sidebar.collapsed .sidebar-nav{
+  margin:8px 6px 0!important;
+  padding:8px 4px 10px!important;
+}
+.sidebar.collapsed .sidebar-nav .nav-group:not(:first-child){padding-top:8px;margin-top:6px}
+.sidebar.collapsed .nav-group-label{
+  height:0!important;padding:0!important;margin:0!important;
+  overflow:hidden!important;pointer-events:none!important;
+}
+.sidebar.collapsed .nav-item .ni{margin:0 auto}
+.sidebar.collapsed .sidebar-footer{
+  padding:8px 6px!important;
+  margin:8px 6px 12px!important;
+}
+.sidebar.collapsed .user-card{
+  padding:6px!important;
+  justify-content:center!important;
+  gap:0!important;
+}
+.sidebar.collapsed .uc-av{margin:0 auto}
+.sidebar.collapsed #modBadge{
+  padding:6px 4px!important;
+  justify-content:center!important;
+  gap:0!important;
+  font-size:.85rem!important;
+}
+.sidebar.collapsed #modBadge > span:not(:first-child){display:none!important}
+
+/* ── Release preview banner (owner/dev only): push sticky chrome below it ── */
+body.flux-has-release-banner .topbar{top:var(--flux-release-banner-h,34px)!important}
+body.flux-has-release-banner .sidebar{top:var(--flux-release-banner-h,34px)!important;height:calc(100vh - var(--flux-release-banner-h,34px))!important}
+body.flux-has-release-banner #app{padding-top:var(--flux-release-banner-h,34px)}
+@media(max-width:768px){
+  body.flux-has-release-banner #app{padding-top:calc(var(--flux-release-banner-h,34px))}
 }
 
 /* ── 6. TASK CARDS ── */

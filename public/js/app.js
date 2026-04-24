@@ -319,7 +319,7 @@ function showToast(msg,type='success'){
   t.style.cssText=`position:fixed;bottom:${window.innerWidth<768?'80':'20'}px;left:50%;transform:translateX(-50%);
     background:${colors[type]||colors.success};color:${textColors[type]||'#080a0f'};
     padding:10px 20px;border-radius:12px;font-size:.82rem;font-weight:700;z-index:9999;
-    ${reduce?'':'animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);'}white-space:nowrap;
+    ${reduce?'':'animation:slideUpToast .3s cubic-bezier(.34,1.56,.64,1);'}white-space:nowrap;
     box-shadow:0 4px 20px rgba(0,0,0,.4);`;
   t.textContent=msg;
   document.body.appendChild(t);
@@ -472,23 +472,6 @@ function loadJournalLineUI(){
   const inp=document.getElementById('journalLine');if(!inp)return;
   const j=load('flux_journal_lines',{});
   inp.value=j[todayStr()]||'';
-}
-function generateMLACitation(){
-  const author=(document.getElementById('mlaAuthor')?.value||'').trim();
-  const title=(document.getElementById('mlaTitle')?.value||'').trim();
-  const year=(document.getElementById('mlaYear')?.value||'').trim();
-  const site=(document.getElementById('mlaSite')?.value||'').trim();
-  const url=(document.getElementById('mlaUrl')?.value||'').trim();
-  const out=document.getElementById('mlaOut');if(!out)return;
-  if(!title){out.textContent='Add at least a title.';return;}
-  let s='';
-  if(author)s+=author+'. ';
-  s+='"'+title+'." ';
-  if(site)s+=site+(year?', ':' ');
-  if(year)s+=year;
-  if(url)s+'. '+url;
-  s+='.';
-  out.textContent=s;
 }
 function pushQuickAddHistory(line){
   if(!line||!line.trim())return;
@@ -3062,6 +3045,23 @@ function openModPanel(){
         <button onclick="forceSyncNow()" style="flex:1;font-size:.78rem;min-width:100px">⟳ Force Sync</button>
       </div>
 
+      ${(()=>{
+        const buildId=(typeof FLUX_BUILD_ID!=='undefined'&&FLUX_BUILD_ID)||(window.FLUX_BUILD_ID||'unknown');
+        const gate=(typeof FluxRelease!=='undefined'&&FluxRelease.getGate())||null;
+        const released=gate&&gate.released?String(gate.released).replace(/^build-/,''):'— none yet';
+        const preview=String(buildId).replace(/^build-/,'');
+        const isLive=gate&&gate.released===buildId;
+        return`
+        <div style="margin-top:16px;padding:12px 14px;background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(124,92,255,.08));border:1px solid rgba(251,191,36,.28);border-radius:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:.6rem;font-weight:800;letter-spacing:.08em;color:#fbbf24;font-family:JetBrains Mono,monospace">STAGED ROLLOUT</span>
+            <span style="margin-left:auto;font-size:.62rem;color:var(--muted);font-family:JetBrains Mono,monospace">${isLive?'live':'preview'}</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted2);line-height:1.55;margin-bottom:10px">Preview build <b style="color:var(--text)">${preview}</b> · users on <b style="color:var(--text)">${released}</b>${isLive?' ✓':''}</div>
+          <button type="button" onclick="window.FluxRelease&&window.FluxRelease.openPushDialog()" ${isLive?'disabled':''} style="width:100%;padding:8px;font-size:.78rem;font-weight:700;border-radius:10px;background:${isLive?'var(--card2)':'linear-gradient(135deg,#fbbf24,#f59e0b)'};border:1px solid ${isLive?'var(--border)':'rgba(251,191,36,.4)'};color:${isLive?'var(--muted)':'#080a0f'};cursor:${isLive?'default':'pointer'};opacity:${isLive?.6:1}">${isLive?'✓ Build already released':'🚀 Push this build to all users'}</button>
+        </div>`;
+      })()}
+
       ${devAccountsHTML}
     </div>`;
   document.body.appendChild(panel);
@@ -3869,13 +3869,28 @@ async function syncFromCloud(){
       if(d.platformConfig&&typeof d.platformConfig==='object')save('flux_platform_config',d.platformConfig);
       if(Array.isArray(d.ownerAuditLog))save('flux_owner_audit',d.ownerAuditLog.slice(-300));
     }
-    // Dev accounts: fetch owner's devAccounts list to check permissions
-    if(!isOwner()&&!d.devAccounts){
-      // Try to load dev accounts from owner's row
+    // Dev accounts + release gate: fetch from owner's row (single source of truth).
+    // Owner's row also hosts platformConfig.releaseGate which controls staged rollout.
+    if(!isOwner()){
       try{
-        const ownerRes=await sb.from('user_data').select('data').eq('id',(await sb.from('user_data').select('id,data').limit(100)).data?.find(r=>r.data?.ownerEmail===OWNER_EMAIL)?.id||'').single();
-        if(ownerRes.data?.data?.devAccounts)save('flux_dev_accounts',ownerRes.data.data.devAccounts);
+        if(!window.__fluxOwnerRowId){
+          const rows=await sb.from('user_data').select('id,data').limit(100);
+          const hit=(rows.data||[]).find(r=>r?.data?.ownerEmail===OWNER_EMAIL);
+          if(hit)window.__fluxOwnerRowId=hit.id;
+          if(hit?.data?.devAccounts)save('flux_dev_accounts',hit.data.devAccounts);
+          if(hit?.data?.platformConfig?.releaseGate){
+            save('flux_release_gate',hit.data.platformConfig.releaseGate);
+          }
+        }else{
+          const ownerRes=await sb.from('user_data').select('data').eq('id',window.__fluxOwnerRowId).single();
+          const od=ownerRes?.data?.data;
+          if(od?.devAccounts)save('flux_dev_accounts',od.devAccounts);
+          if(od?.platformConfig?.releaseGate)save('flux_release_gate',od.platformConfig.releaseGate);
+        }
       }catch(e){}
+    }
+    if(typeof FluxRelease!=='undefined'&&FluxRelease&&typeof FluxRelease.applyGate==='function'){
+      FluxRelease.applyGate();
     }
     setSyncStatus('synced');
     window._fluxSyncFailed=false;
@@ -4967,6 +4982,9 @@ function showApp(){
   updateMasterBacklogCardVisibility();
   syncFluxAIModeButtons();
   clearSvgLogoGradientStyles();
+  if(typeof FluxRelease!=='undefined'&&FluxRelease&&typeof FluxRelease.applyGate==='function'){
+    FluxRelease.applyGate();
+  }
   // Always open to the dashboard on load (no tab restore)
   try{localStorage.removeItem('flux_last_tab');localStorage.removeItem('flux_last_tab_ts');}catch(e){}
   // Smart next-day warning
@@ -5006,6 +5024,7 @@ async function handleSignedIn(user,session){
     console.log('🔄 Account switched — wiped previous user data');
   }
   localStorage.setItem('flux_last_user_id', user.id);
+  localStorage.setItem('flux_last_user_email', user.email||'');
   // ────────────────────────────────────────────────────────────
 
   currentUser=user;
@@ -5484,7 +5503,7 @@ function showAutoNext(){
   if(!next)return;
   const bar=document.createElement('div');
   bar.id='autoNextBar';
-  bar.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:3000;background:var(--card);border:1px solid rgba(var(--accent-rgb),.3);border-radius:14px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideUp .3s var(--ease-spring);max-width:400px;width:90%';
+  bar.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:3000;background:var(--card);border:1px solid rgba(var(--accent-rgb),.3);border-radius:14px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideUpToast .3s var(--ease-spring);max-width:400px;width:90%';
   bar.innerHTML=`
     <div style="flex:1;min-width:0">
       <div style="font-size:.65rem;color:var(--accent);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">Up next</div>
@@ -5657,7 +5676,7 @@ function showUndoSnackbar(msg,undoFn){
   const existing=document.getElementById('undoSnackbar');if(existing)existing.remove();
   const bar=document.createElement('div');
   bar.id='undoSnackbar';
-  bar.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:3500;background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:9px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.4);animation:slideUp .25s var(--ease-spring);font-size:.8rem;white-space:nowrap';
+  bar.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:3500;background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:9px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.4);animation:slideUpToast .25s var(--ease-spring);font-size:.8rem;white-space:nowrap';
   bar.innerHTML=`<span style="color:var(--text)">${esc(msg)}</span><button onclick="undoLastChange();document.getElementById('undoSnackbar')?.remove()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-weight:700;font-size:.78rem;padding:0">Undo</button><button onclick="this.closest('#undoSnackbar').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 2px">✕</button>`;
   document.body.appendChild(bar);
   setTimeout(()=>{const el=document.getElementById('undoSnackbar');if(el){el.style.opacity='0';el.style.transition='opacity .4s';setTimeout(()=>el.remove(),400);}},5000);
@@ -5864,38 +5883,72 @@ function startOnboardingTour(){
   document.addEventListener('keydown',tourEscHandler);
   function placeTip(tip,target){
     const rect=target.getBoundingClientRect();
-    const pad=12,w=Math.min(280,window.innerWidth-24),h=tip.offsetHeight||200;
-    let top=rect.bottom+pad;
-    if(top+h>window.innerHeight-16&&rect.top>h+pad)top=Math.max(8,rect.top-h-pad);
-    tip.style.top=Math.min(top,window.innerHeight-h-8)+'px';
-    tip.style.left=Math.min(Math.max(8,rect.left),window.innerWidth-w-8)+'px';
+    const pad=12;
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const tipRect=tip.getBoundingClientRect();
+    const w=tipRect.width||320, h=tipRect.height||180;
+    const margin=12;
+    const spaceBelow=vh-rect.bottom-margin;
+    const spaceAbove=rect.top-margin;
+    let top;
+    if(spaceBelow>=h+pad){
+      top=rect.bottom+pad;
+    }else if(spaceAbove>=h+pad){
+      top=rect.top-h-pad;
+    }else{
+      top=Math.max(margin,vh-h-margin);
+    }
+    top=Math.max(margin,Math.min(top,vh-h-margin));
+    let left=rect.left+rect.width/2-w/2;
+    left=Math.max(margin,Math.min(left,vw-w-margin));
+    tip.style.top=Math.round(top)+'px';
+    tip.style.left=Math.round(left)+'px';
   }
   function showStep(){
     document.querySelectorAll('.tour-tooltip').forEach(e=>e.remove());
     if(step>=steps.length){cleanupTour();markTourCompleted();return;}
     const s=steps[step];
     const run=()=>{
-      const target=document.querySelector(s.sel);
+      const candidates=document.querySelectorAll(s.sel);
+      let target=null;
+      for(const el of candidates){
+        const r=el.getBoundingClientRect();
+        if(r.width>0&&r.height>0&&getComputedStyle(el).visibility!=='hidden'&&getComputedStyle(el).display!=='none'){target=el;break;}
+      }
+      if(!target)target=candidates[0];
       if(!target){step++;showStep();return;}
       const tip=document.createElement('div');
       tip.className='tour-tooltip';
-      tip.style.cssText=`position:fixed;z-index:9000;background:var(--card);border:1px solid rgba(var(--accent-rgb),.4);border-radius:14px;padding:16px;max-width:280px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:slideUp .3s var(--ease-spring)`;
-      tip.innerHTML=`<div style="font-size:.82rem;font-weight:800;margin-bottom:4px">${step+1}/${steps.length} · ${s.title}</div>
-        <div style="font-size:.75rem;color:var(--muted2);line-height:1.6;margin-bottom:10px">${s.body}</div>
-        <div style="display:flex;gap:6px">
-          <button type="button" class="tour-skip" style="flex:1;padding:5px;font-size:.72rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Skip tour</button>
-          <button type="button" class="tour-next" style="flex:1;padding:5px;font-size:.72rem;background:var(--accent);border:none;color:#fff;border-radius:8px;cursor:pointer">${step<steps.length-1?'Next →':'Done ✓'}</button>
+      tip.innerHTML=`
+        <div class="tour-tooltip__title"><span class="tour-tooltip__step">${step+1}/${steps.length}</span>${esc(s.title)}</div>
+        <div class="tour-tooltip__body">${esc(s.body)}</div>
+        <div class="tour-tooltip__actions">
+          <button type="button" class="tour-tooltip__skip">Skip tour</button>
+          <button type="button" class="tour-tooltip__next">${step<steps.length-1?'Next →':'Done ✓'}</button>
         </div>`;
       document.body.appendChild(tip);
-      placeTip(tip,target);
-      tip.querySelector('.tour-skip').onclick=()=>{tip.remove();cleanupTour();markTourCompleted();};
-      tip.querySelector('.tour-next').onclick=()=>{tip.remove();step++;showStep();};
-      target.scrollIntoView({behavior:'smooth',block:'center'});
       target.style.outline='2px solid rgba(var(--accent-rgb),.6)';
       target.style.outlineOffset='3px';
-      setTimeout(()=>{target.style.outline='';},3000);
+      try{target.scrollIntoView({behavior:'smooth',block:'center'});}catch(_){target.scrollIntoView();}
+      const showAt=()=>{
+        if(!document.body.contains(tip))return;
+        placeTip(tip,target);
+        requestAnimationFrame(()=>tip.classList.add('is-visible'));
+      };
+      setTimeout(showAt,520);
+      const onScroll=()=>{if(document.body.contains(tip))placeTip(tip,target);};
+      const onResize=()=>{if(document.body.contains(tip))placeTip(tip,target);};
+      window.addEventListener('resize',onResize);
+      window.addEventListener('scroll',onScroll,true);
+      const cleanupTip=()=>{
+        window.removeEventListener('resize',onResize);
+        window.removeEventListener('scroll',onScroll,true);
+        target.style.outline='';
+      };
+      tip.querySelector('.tour-tooltip__skip').onclick=()=>{cleanupTip();tip.remove();cleanupTour();markTourCompleted();};
+      tip.querySelector('.tour-tooltip__next').onclick=()=>{cleanupTip();tip.remove();step++;showStep();};
     };
-    if(s.nav){nav(s.nav);setTimeout(run,420);}else run();
+    if(s.nav){nav(s.nav);setTimeout(run,500);}else run();
   }
   window._tourStep=()=>{step++;showStep();};
   setTimeout(showStep,1500);
@@ -8237,7 +8290,7 @@ function checkAchievement(id){
   save('flux_achievements',_achievements);
   syncKey('achievements',_achievements);
   const el=document.createElement('div');
-  el.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:3500;padding:10px 18px;background:var(--card);border:1px solid rgba(var(--accent-rgb),.25);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);font-size:.8rem;display:flex;align-items:center;gap:10px;animation:slideUp .3s var(--ease-spring);backdrop-filter:blur(12px)';
+  el.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:3500;padding:10px 18px;background:var(--card);border:1px solid rgba(var(--accent-rgb),.25);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);font-size:.8rem;display:flex;align-items:center;gap:10px;animation:slideUpToast .3s var(--ease-spring);backdrop-filter:blur(12px)';
   el.innerHTML=`<span style="font-size:1.2rem">${a.icon}</span><div><div style="font-weight:700;font-size:.78rem;color:var(--accent)">${a.title}</div><div style="font-size:.68rem;color:var(--muted2)">${a.desc}</div></div>`;
   document.body.appendChild(el);
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .5s';setTimeout(()=>el.remove(),500);},3500);

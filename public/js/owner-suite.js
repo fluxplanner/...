@@ -258,7 +258,7 @@
     return`padding:8px 12px;font-size:.72rem;font-weight:600;border-radius:10px;border:1px solid ${active?'rgba(var(--accent-rgb),.4)':'var(--border2)'};background:${active?'rgba(var(--accent-rgb),.12)':'transparent'};color:${active?'var(--accent)':'var(--muted2)'};cursor:pointer;font-family:inherit`;
   }
 
-  const OS_TABS=new Set(['overview','megamap','team','data','config','integrations','analytics','usage','audit','advanced']);
+  const OS_TABS=new Set(['overview','megamap','team','release','data','config','integrations','analytics','usage','audit','advanced']);
 
   window.openOwnerSuite=function(prefTab){
     if(!isOwner())return;
@@ -348,6 +348,37 @@
           <label style="font-size:.72rem;color:var(--accent);cursor:pointer">Import JSON<input type="file" accept="application/json" style="display:none" onchange="ownerImportDevsFile(event)"></label>
         </div>`;
 
+      if(tab==='release'){
+        const buildId=(typeof FLUX_BUILD_ID!=='undefined'&&FLUX_BUILD_ID)||(window.FLUX_BUILD_ID||'unknown');
+        const gate=(typeof FluxRelease!=='undefined'&&FluxRelease.getGate())||pc.releaseGate||null;
+        const released=gate&&gate.released?String(gate.released).replace(/^build-/,''):'— (no release pushed yet)';
+        const buildLabel=String(buildId).replace(/^build-/,'');
+        const isLive=gate&&gate.released===buildId;
+        const diff=!isLive;
+        return`
+          <div style="font-size:.72rem;color:var(--muted2);line-height:1.55;margin-bottom:14px">
+            Staged rollout: every deploy lands on <b>owner + dev</b> accounts first. Click <b>Push to all users</b> to release the current build to everyone. Normal users see an <i>"Update under review"</i> screen until you push.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px">
+              <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Preview (you)</div>
+              <div style="font-size:1rem;font-weight:800;color:var(--gold);margin-top:3px;font-family:JetBrains Mono,monospace">${esc(buildLabel)}</div>
+            </div>
+            <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px">
+              <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Live (users)</div>
+              <div style="font-size:1rem;font-weight:800;color:${isLive?'var(--green)':'var(--muted2)'};margin-top:3px;font-family:JetBrains Mono,monospace">${esc(released)}</div>
+            </div>
+          </div>
+          ${gate&&gate.pushedBy?`<div style="font-size:.7rem;color:var(--muted2);margin-bottom:12px">Last push by <b>${esc(gate.pushedBy)}</b> · ${esc(new Date(gate.pushedAt||0).toLocaleString())}${gate.notes?`<br><span style="color:var(--muted)">Notes:</span> ${esc(gate.notes)}`:''}</div>`:''}
+          <button type="button" id="osReleasePushBtn" ${isLive?'disabled':''} style="width:100%;padding:12px;font-size:.9rem;font-weight:800;border-radius:12px;background:${isLive?'var(--card2)':'linear-gradient(135deg,#fbbf24,#f59e0b)'};border:1px solid ${isLive?'var(--border)':'rgba(251,191,36,.4)'};color:${isLive?'var(--muted)':'#080a0f'};cursor:${isLive?'default':'pointer'};opacity:${isLive?.6:1}">${isLive?'✓ This build is already released':'🚀 Push '+esc(buildLabel)+' to all users'}</button>
+          <div style="margin-top:10px;font-size:.66rem;color:var(--muted);line-height:1.5">
+            ${diff?'Users currently see the "Update under review" screen. Push when you\'re ready to roll out.':'All users on the current build. New deploys will re-enter preview until pushed.'}
+          </div>
+          <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:.66rem;color:var(--muted);line-height:1.5">
+            <b>How deploys work:</b> Bump <code style="font-size:.7rem">FLUX_BUILD_ID</code> in <code style="font-size:.7rem">public/js/flux-release-gate.js</code> before committing. After you deploy, the new build is automatically gated for non-devs until you push it here.
+          </div>`;
+      }
+
       if(tab==='data')return`
         <div style="font-size:.72rem;color:var(--muted2);line-height:1.55;margin-bottom:14px">
           Full <b>backup</b> includes planner payload shape (tasks, notes, grades, dev list, audit tail, platform config). Restoring merges into this browser then syncs if signed in.
@@ -429,6 +460,14 @@
       root.querySelectorAll('[data-os-tab]').forEach(b=>{
         b.style.cssText=tabStyle(b.getAttribute('data-os-tab')===tab);
       });
+      const pushBtn=root.querySelector('#osReleasePushBtn');
+      if(pushBtn&&!pushBtn.disabled){
+        pushBtn.addEventListener('click',()=>{
+          if(typeof FluxRelease!=='undefined'&&FluxRelease&&typeof FluxRelease.openPushDialog==='function'){
+            FluxRelease.openPushDialog();
+          }
+        });
+      }
     }
 
     root.innerHTML=`
@@ -445,6 +484,7 @@
           <button type="button" data-os-tab="overview" onclick="window.__osSetTab('overview')">Overview</button>
           <button type="button" data-os-tab="megamap" onclick="window.__osSetTab('megamap')">Mega map</button>
           <button type="button" data-os-tab="team" onclick="window.__osSetTab('team')">Team & roles</button>
+          <button type="button" data-os-tab="release" onclick="window.__osSetTab('release')">Release</button>
           <button type="button" data-os-tab="data" onclick="window.__osSetTab('data')">Data & backup</button>
           <button type="button" data-os-tab="config" onclick="window.__osSetTab('config')">Platform config</button>
           <button type="button" data-os-tab="integrations" onclick="window.__osSetTab('integrations')">Integrations</button>

@@ -72,11 +72,11 @@
   }
 
   function applyLiquidGlass(){
-    let on=false;
+    let on=true;
     try{
       const raw=localStorage.getItem(KEY_LIQUID_GLASS);
       if(raw!==null)on=JSON.parse(raw)===true;
-    }catch(e){on=false;}
+    }catch(e){on=true;}
     document.documentElement.setAttribute('data-flux-glass',on?'on':'off');
   }
   function setLiquidGlassEnabled(on){
@@ -335,11 +335,11 @@
     }
     const lg=document.getElementById('fluxLiquidGlassToggle');
     if(lg){
-      let en=false;
+      let en=true;
       try{
         const raw=localStorage.getItem(KEY_LIQUID_GLASS);
         if(raw!==null)en=JSON.parse(raw)===true;
-      }catch(e){en=false;}
+      }catch(e){en=true;}
       lg.classList.toggle('on',en);
       lg.setAttribute('aria-pressed',en?'true':'false');
       lg.onclick=()=>{
