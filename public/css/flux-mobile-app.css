@@ -1011,8 +1011,9 @@ body.flux-panic .task-card.flux-task-urgent{
 }
 
 /* ════════════════════════════════════════════════════════════════
-   Reference / study tool modals (ref-*) — inline hub removed
+   Study tools panel (unified #toolbox.st-panel) — legacy ref-* kept for modals
    ════════════════════════════════════════════════════════════════ */
+#toolbox.st-panel{ max-width: 1240px; margin: 0 auto; }
 
 .ref-search-row{ margin: 0 0 14px; }
 .ref-search-input{
@@ -1177,6 +1178,12 @@ body.flux-panic .task-card.flux-task-urgent{
   border-radius: 14px;
   background: rgba(255,255,255,.02);
   border: 1px dashed rgba(255,255,255,.1);
+}
+
+@media (max-width: 768px){
+  #toolbox.st-panel{
+    padding: 12px max(14px, var(--sa-left)) max(120px, calc(92px + var(--sa-bottom))) max(14px, var(--sa-right)) !important;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════

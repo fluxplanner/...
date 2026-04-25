@@ -3065,7 +3065,7 @@ function updateStudySearchUI(){
       if (inp) inp.value = '';
       updateStudySearchUI();
       setLsStudyTool(sid, cid);
-      if (typeof window.openToolboxTool === 'function') window.openToolboxTool(sid, cid);
+      if (typeof nav === 'function') nav('toolbox');
       setTimeout(() => {
         scrollToStudySection(sid, true);
         refreshSectionToolUI(sid);
