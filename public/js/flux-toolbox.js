@@ -126,6 +126,8 @@ function renderLinkPreview(body, title, desc, btnLabel, navId){
 
 // ── Periodic Table tool — hands the reserved #periodic DOM back to Toolbox ──
 function renderPeriodicTool(body){
+  // #periodic is appended under this body while open; clearing innerHTML would destroy it.
+  ensurePeriodicStashedUnlessOpening();
   body.innerHTML = '';
   const periodicEl = document.getElementById('periodic');
   if (!periodicEl){
