@@ -427,7 +427,7 @@ function fluxInitGCalAutoPushToggle(){
   btn.setAttribute('aria-pressed',on?'true':'false');
 }
 try{ window.fluxToggleGCalAutoPush=fluxToggleGCalAutoPush; window.fluxInitGCalAutoPushToggle=fluxInitGCalAutoPushToggle; }catch(e){}
-document.addEventListener('DOMContentLoaded',()=>{ setTimeout(fluxInitGCalAutoPushToggle,400); });
+document.addEventListener('DOMContentLoaded',()=>{ setTimeout(fluxInitGCalAutoPushToggle,400); setTimeout(wireStudyToolsTabsOnce,0); });
 function toggleBulkOne(id,on){if(on)_bulkIds.add(id);else _bulkIds.delete(id);const el=document.getElementById('bulkCount');if(el)el.textContent=_bulkIds.size+' selected';}
 function bulkCompleteSelected(){
   _bulkIds.forEach(id=>{const t=tasks.find(x=>x.id===id);if(t&&!t.done){t.done=true;t.completedAt=Date.now();}});
@@ -649,7 +649,7 @@ function flushTasksOffRestDays(){
   }
   return n;
 }
-const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',canvas:'Canvas & Gmail',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Toolbox',references:'References',settings:'Settings'};
+const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',canvas:'Canvas & Gmail',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Study tools',references:'Study tools',settings:'Settings'};
 
 function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
@@ -794,12 +794,11 @@ const DEFAULT_TABS=[
   {id:'profile',icon:'👤',label:'Profile',visible:true},
   {id:'goals',icon:'🎯',label:'Extracurriculars',visible:true},
   {id:'mood',icon:'😊',label:'Mood',visible:true},
-  {id:'toolbox',icon:'🧰',label:'Toolbox',visible:true},
-  {id:'references',icon:'📚',label:'References',visible:true},
+  {id:'toolbox',icon:'🧰',label:'Study tools',visible:true},
   {id:'settings',icon:'⚙',label:'Settings',visible:true},
 ];
 let tabConfig=load('flux_tabs',DEFAULT_TABS);
-tabConfig=tabConfig.filter(t=>t.id!=='gmail'&&t.id!=='periodic');
+tabConfig=tabConfig.filter(t=>t.id!=='gmail'&&t.id!=='periodic'&&t.id!=='references');
 // Ensure new tabs get added if missing
 DEFAULT_TABS.forEach(dt=>{if(!tabConfig.find(t=>t.id===dt.id))tabConfig.push({...dt});});
 // Legacy tab label (older builds / stored flux_tabs)
@@ -891,13 +890,56 @@ if(!window.runSplash){
 // ══ LOGIN FEATURE PILLS ══
 
 // ══ NAV ══
+const STUDY_SUBVIEW_KEY='flux_study_subview_v1';
+function getStudySubView(){
+  const v=localStorage.getItem(STUDY_SUBVIEW_KEY);
+  return v==='references'||v==='toolbox'?v:'toolbox';
+}
+function setStudySubView(v){
+  if(v!=='references'&&v!=='toolbox')v='toolbox';
+  try{ localStorage.setItem(STUDY_SUBVIEW_KEY, v);}catch(e){}
+}
+/** Merged #toolbox panel: subject hub vs class-based reference library */
+function setTrUnifiedView(view, o){
+  const v=view==='references'?'references':'toolbox';
+  if(!o||!o.skipSave) setStudySubView(v);
+  const tb=document.getElementById('trBodyToolbox');
+  const ref=document.getElementById('references');
+  const t1=document.getElementById('trTabTool');
+  const t2=document.getElementById('trTabRef');
+  if(tb&&ref){
+    const showRef=v==='references';
+    tb.toggleAttribute('hidden', showRef);
+    ref.toggleAttribute('hidden', !showRef);
+    if(t1){ t1.classList.toggle('active', !showRef); t1.setAttribute('aria-selected', String(!showRef)); }
+    if(t2){ t2.classList.toggle('active', showRef); t2.setAttribute('aria-selected', String(!!showRef)); }
+  }
+  if(v==='toolbox'){
+    if(typeof window.renderToolbox==='function') window.renderToolbox();
+  } else if(v==='references' && typeof window.fluxRefsMount==='function'){
+    try{ window.fluxRefsMount(); }catch(e){}
+  }
+}
+function wireStudyToolsTabsOnce(){
+  const root=document.getElementById('toolbox');
+  if(!root || root._trWired || !root.classList.contains('tr-unified')) return;
+  root._trWired=1;
+  root.querySelectorAll('.tr-tab').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const d=b.getAttribute('data-tr');
+      if(d==='toolbox'||d==='references') setTrUnifiedView(d, {});
+    });
+  });
+}
+try{ window.setTrUnifiedView=setTrUnifiedView; }catch(e){}
 function updateNavAriaCurrent(tabId){
   document.querySelectorAll('.nav-item[data-tab], .bnav-item[data-tab]').forEach(b=>{
     if(b.getAttribute('data-tab')===tabId)b.setAttribute('aria-current','page');
     else b.removeAttribute('aria-current');
   });
 }
-function nav(id,btn){
+function nav(id,btn,navOpt){
+  if(id==='references'){ id='toolbox'; navOpt=Object.assign({ trView: 'references' }, navOpt||{}); }
   // Check if tab is visible
   const tc=tabConfig.find(t=>t.id===id);
   if(tc&&!tc.visible){nav('dashboard');return;}
@@ -920,12 +962,19 @@ function nav(id,btn){
   }
   updateNavAriaCurrent(id);
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},toolbox:()=>{if(typeof renderToolbox==='function')renderToolbox();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel()};
-  fns[id]?.();
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel()};
+  if(id==='toolbox'&&typeof setTrUnifiedView==='function'){
+    const forced=navOpt&&navOpt.trView;
+    const v=forced||getStudySubView()||'toolbox';
+    setTrUnifiedView(v, { skipSave: !forced });
+    wireStudyToolsTabsOnce();
+  } else {
+    fns[id]?.();
+  }
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
   if(window.Flux100&&typeof Flux100.onNavAfter==='function')try{Flux100.onNavAfter(id);}catch(e){}
 }
-function navMob(id){closeDrawer();closeMobileSheet();nav(id);}
+function navMob(id,opt){closeDrawer();closeMobileSheet();nav(id,null,opt);}
 
 // ── Mobile "More" bottom sheet ──
 function openMobileSheet(){
@@ -1012,7 +1061,7 @@ const BNAV_ICONS={
 function renderSidebars(){
   const groups=[
     {label:'Main',ids:['dashboard','calendar','ai']},
-    {label:'School',ids:['school','grades','notes','timer','canvas','toolbox','references']},
+    {label:'School',ids:['school','grades','notes','timer','canvas','toolbox']},
     {label:'Me',ids:['profile','goals','mood','settings']},
   ];
   const visibleIds=new Set(tabConfig.filter(t=>t.visible).map(t=>t.id));
@@ -4829,7 +4878,7 @@ function renderCmdResults(){
   navItems.forEach(n=>{if(!q||n.label.toLowerCase().includes(q))cmds.push({...n,cat:'Navigate'});});
 
   const refTools=[
-    {icon:'📚',label:'References panel',action:()=>{nav('references');closeCommandPalette();}},
+    {icon:'📚',label:'Reference library',action:()=>{nav('toolbox',null,{trView:'references'});closeCommandPalette();}},
     {icon:'📐',label:'Math Formula Sheet',action:()=>{closeCommandPalette();window.openMathFormulas&&window.openMathFormulas();}},
     {icon:'⚗️',label:'Chemistry Reference',action:()=>{closeCommandPalette();window.openChemReference&&window.openChemReference();}},
     {icon:'🧬',label:'Biology Codon Table',action:()=>{closeCommandPalette();window.openCodonTable&&window.openCodonTable();}},

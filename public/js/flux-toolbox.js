@@ -56,7 +56,7 @@ const state = {
 // MAIN RENDER
 // ────────────────────────────────────────────────────────────────
 function render(){
-  const host = $('toolbox');
+  const host = $('trBodyToolbox') || $('toolbox');
   if (!host) return;
   if (!state.built){
     host.innerHTML = `

@@ -181,23 +181,6 @@
   // Re-render when user navigates to panel (classes may have been edited)
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(mount, 300);
-    // Hook into nav() via a small wrapper
-    const origNav = window.nav;
-    if(typeof origNav === 'function'){
-      window.nav = function(id){
-        const r = origNav.apply(this, arguments);
-        if(id === 'references'){ setTimeout(mount, 30); }
-        return r;
-      };
-    }
-    const origNavMob = window.navMob;
-    if(typeof origNavMob === 'function'){
-      window.navMob = function(id){
-        const r = origNavMob.apply(this, arguments);
-        if(id === 'references'){ setTimeout(mount, 30); }
-        return r;
-      };
-    }
   });
 
   // Helper used by Periodic Table + Physics Sandbox cards: navigate to
@@ -208,10 +191,7 @@
         window.fluxToolbox.state.subject = subjectId;
         window.fluxToolbox.state.tool = toolId;
       }
-      if(typeof window.nav === 'function') window.nav('toolbox');
-      setTimeout(() => {
-        if(typeof window.renderToolbox === 'function') window.renderToolbox();
-      }, 50);
+      if(typeof window.nav === 'function') window.nav('toolbox', null, { trView: 'toolbox' });
     }catch(e){ console.warn(e); }
   }
   try{
