@@ -1358,6 +1358,13 @@ button:active:not(:disabled){transform:scale(.97)!important}
     display:flex!important;flex-direction:column!important;
   }
   .topbar{flex-shrink:0!important;position:sticky!important;top:0!important;z-index:30!important}
+  /* Only one main column child should participate in flex growth — inactive panels stay out of layout */
+  .main-content > .panel:not(.active){
+    display:none!important;
+    flex:0 0 0!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
   .panel{flex:1!important;overflow-y:auto!important;height:0!important;overscroll-behavior:contain!important}
   .panel.active{display:block!important}
   #ai.active{

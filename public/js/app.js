@@ -1071,6 +1071,7 @@ function nav(id,btn,navOpt){
     if(moreBtn)moreBtn.classList.add('active');
   }
   updateNavAriaCurrent(id);
+  syncPanelScrollLayout();
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
   const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel(),toolbox:()=>{if(typeof window.renderToolbox==='function')window.renderToolbox();}};
   fns[id]?.();
@@ -5242,6 +5243,30 @@ function applyPanicGlow(){
 }
 
 // ══ ITEM 21 — FIXED LAYOUT: PANEL SCROLL INDEPENDENCE ══
+/** Inline flex/scroll on *every* .panel caused inactive panels (e.g. #toolbox) to stack over the active tab in the flex column. Only the active direct child of main gets scroll sizing. */
+function syncPanelScrollLayout(){
+  const mainContent=document.querySelector('.main-content');
+  if(!mainContent)return;
+  mainContent.querySelectorAll(':scope > .panel').forEach(panel=>{
+    panel.style.flex='';
+    panel.style.overflowY='';
+    panel.style.overscrollBehavior='';
+    panel.style.webkitOverflowScrolling='';
+  });
+  const active=mainContent.querySelector(':scope > .panel.active');
+  if(active){
+    active.style.flex='1 1 0%';
+    active.style.overflowY='auto';
+    active.style.overscrollBehavior='contain';
+    active.style.webkitOverflowScrolling='touch';
+  }
+  const aiPanel=document.getElementById('ai');
+  if(aiPanel&&aiPanel.classList.contains('active')){
+    aiPanel.style.overflow='hidden';
+    aiPanel.style.flex='1 1 0%';
+  }
+}
+
 function initScrollLayout(){
   // App container: sidebar + main are fixed height, main scrolls independently
   const app=document.getElementById('app');
@@ -5274,20 +5299,7 @@ function initScrollLayout(){
     topbar.style.zIndex='30';
   }
 
-  // Each panel becomes independent scroll container
-  document.querySelectorAll('.panel').forEach(panel=>{
-    panel.style.flex='1';
-    panel.style.overflowY='auto';
-    panel.style.overscrollBehavior='contain';
-    panel.style.webkitOverflowScrolling='touch';
-  });
-
-  // AI panel special — already flex column with fixed height
-  const aiPanel=document.getElementById('ai');
-  if(aiPanel){
-    aiPanel.style.overflow='hidden';
-    aiPanel.style.flex='1';
-  }
+  syncPanelScrollLayout();
 }
 
 /** Pop-up OAuth → opener tab stays on login; same strings in initAuth callback window */

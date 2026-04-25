@@ -970,11 +970,8 @@
 }
 .flux-modal-anim{ animation: fluxModalIn .22s cubic-bezier(.2,.85,.3,1) both; }
 
-/* content-visibility on inactive panels improves performance when many panels exist */
-.panel:not(.active){
-  content-visibility: auto;
-  contain-intrinsic-size: 800px 600px;
-}
+/* Inactive .panel nodes must not use content-visibility + intrinsic size in the
+   flex column — it caused #toolbox and other hidden panels to overlap the active tab. */
 
 /* ════════════════════════════════════════════════════════════════
    PANIC MODE — subtle dim + glow on urgent tasks + nav dot
