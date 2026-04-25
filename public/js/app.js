@@ -329,7 +329,7 @@ function showToast(msg,type='success'){
   const reduce=document.documentElement.classList.contains('flux-reduce-motion');
   t.style.cssText=`pointer-events:auto;background:${colors[type]||colors.success};color:${textColors[type]||'#080a0f'};
     padding:10px 20px;border-radius:12px;font-size:.82rem;font-weight:700;max-width:100%;
-    ${reduce?'':'animation:slideUpToast .3s cubic-bezier(.34,1.56,.64,1);'}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    ${reduce?'':'animation:fluxToastIn .3s cubic-bezier(.34,1.56,.64,1) both;'}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     box-shadow:0 4px 20px rgba(0,0,0,.4);`;
   t.textContent=msg;
   // Prepend so newest sits visually on top of column-reverse stack
@@ -427,7 +427,7 @@ function fluxInitGCalAutoPushToggle(){
   btn.setAttribute('aria-pressed',on?'true':'false');
 }
 try{ window.fluxToggleGCalAutoPush=fluxToggleGCalAutoPush; window.fluxInitGCalAutoPushToggle=fluxInitGCalAutoPushToggle; }catch(e){}
-document.addEventListener('DOMContentLoaded',()=>{ setTimeout(fluxInitGCalAutoPushToggle,400); setTimeout(wireStudyToolsTabsOnce,0); });
+document.addEventListener('DOMContentLoaded',()=>{ setTimeout(fluxInitGCalAutoPushToggle,400); });
 function toggleBulkOne(id,on){if(on)_bulkIds.add(id);else _bulkIds.delete(id);const el=document.getElementById('bulkCount');if(el)el.textContent=_bulkIds.size+' selected';}
 function bulkCompleteSelected(){
   _bulkIds.forEach(id=>{const t=tasks.find(x=>x.id===id);if(t&&!t.done){t.done=true;t.completedAt=Date.now();}});
@@ -649,7 +649,7 @@ function flushTasksOffRestDays(){
   }
   return n;
 }
-const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',canvas:'Canvas & Gmail',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Study tools',references:'Study tools',settings:'Settings'};
+const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',canvas:'Canvas & Gmail',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Study Tools',references:'Study Tools',settings:'Settings'};
 
 function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
@@ -705,6 +705,12 @@ function getWeeklyRules(){return load('flux_weekly_events',[]);}
 /** 'school' | 'outside' — default school when unset. */
 function fluxEventScope(o){if(!o)return'school';return o.scope==='outside'?'outside':'school';}
 function fluxScopeSortKey(o){return fluxEventScope(o)==='outside'?1:0;}
+/** Milliseconds for task due date (local midnight). No date or invalid date sorts last. */
+function fluxTaskDueDateMs(t){
+  if(!t||!t.date)return Number.POSITIVE_INFINITY;
+  const ms=+new Date(t.date+'T00:00:00');
+  return Number.isNaN(ms)?Number.POSITIVE_INFINITY:ms;
+}
 /** Minutes since midnight for calendar ordering; missing time sorts last within the same scope. */
 function fluxTimeSortMinutes(t){
   if(t==null||t==='')return 24*60;
@@ -816,6 +822,8 @@ let fluxCanvasHubData=null;
 let fluxCanvasHubSubTab=load('flux_canvas_hub_tab','assignments');
 let fluxCanvasDueFilterDays=load('flux_canvas_due_filter',120);
 let _canvasHubSel=new Set();
+/** When set, next render of the Canvas "In Flux" tab loads this assignment into the reader. */
+let _fluxCanvasReaderPending=null;
 let calYear=TODAY.getFullYear(),calMonth=TODAY.getMonth(),calSelected=TODAY.getDate();
 let currentNoteId=null,noteFilter='all',flashcards=[],fcIndex=0,fcFlipped=false;
 let breathingActive=false,breathTimer=null;
@@ -902,48 +910,6 @@ if(!window.runSplash){
 // ══ LOGIN FEATURE PILLS ══
 
 // ══ NAV ══
-const STUDY_SUBVIEW_KEY='flux_study_subview_v1';
-function getStudySubView(){
-  const v=localStorage.getItem(STUDY_SUBVIEW_KEY);
-  return v==='references'||v==='toolbox'?v:'toolbox';
-}
-function setStudySubView(v){
-  if(v!=='references'&&v!=='toolbox')v='toolbox';
-  try{ localStorage.setItem(STUDY_SUBVIEW_KEY, v);}catch(e){}
-}
-/** Merged #toolbox panel: subject hub vs class-based reference library */
-function setTrUnifiedView(view, o){
-  const v=view==='references'?'references':'toolbox';
-  if(!o||!o.skipSave) setStudySubView(v);
-  const tb=document.getElementById('trBodyToolbox');
-  const ref=document.getElementById('references');
-  const t1=document.getElementById('trTabTool');
-  const t2=document.getElementById('trTabRef');
-  if(tb&&ref){
-    const showRef=v==='references';
-    tb.toggleAttribute('hidden', showRef);
-    ref.toggleAttribute('hidden', !showRef);
-    if(t1){ t1.classList.toggle('active', !showRef); t1.setAttribute('aria-selected', String(!showRef)); }
-    if(t2){ t2.classList.toggle('active', showRef); t2.setAttribute('aria-selected', String(!!showRef)); }
-  }
-  if(v==='toolbox'){
-    if(typeof window.renderToolbox==='function') window.renderToolbox();
-  } else if(v==='references' && typeof window.fluxRefsMount==='function'){
-    try{ window.fluxRefsMount(); }catch(e){}
-  }
-}
-function wireStudyToolsTabsOnce(){
-  const root=document.getElementById('toolbox');
-  if(!root || root._trWired || !root.classList.contains('tr-unified')) return;
-  root._trWired=1;
-  root.querySelectorAll('.tr-tab').forEach(b=>{
-    b.addEventListener('click',()=>{
-      const d=b.getAttribute('data-tr');
-      if(d==='toolbox'||d==='references') setTrUnifiedView(d, {});
-    });
-  });
-}
-try{ window.setTrUnifiedView=setTrUnifiedView; }catch(e){}
 function updateNavAriaCurrent(tabId){
   document.querySelectorAll('.nav-item[data-tab], .bnav-item[data-tab]').forEach(b=>{
     if(b.getAttribute('data-tab')===tabId)b.setAttribute('aria-current','page');
@@ -951,7 +917,7 @@ function updateNavAriaCurrent(tabId){
   });
 }
 function nav(id,btn,navOpt){
-  if(id==='references'){ id='toolbox'; navOpt=Object.assign({ trView: 'references' }, navOpt||{}); }
+  if(id==='references'){ id='toolbox'; }
   // Check if tab is visible
   const tc=tabConfig.find(t=>t.id===id);
   if(tc&&!tc.visible){nav('dashboard');return;}
@@ -974,15 +940,8 @@ function nav(id,btn,navOpt){
   }
   updateNavAriaCurrent(id);
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel()};
-  if(id==='toolbox'&&typeof setTrUnifiedView==='function'){
-    const forced=navOpt&&navOpt.trView;
-    const v=forced||getStudySubView()||'toolbox';
-    setTrUnifiedView(v, { skipSave: !forced });
-    wireStudyToolsTabsOnce();
-  } else {
-    fns[id]?.();
-  }
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel(),toolbox:()=>{ if(typeof window.renderToolbox==='function') window.renderToolbox(); }};
+  fns[id]?.();
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
   if(window.Flux100&&typeof Flux100.onNavAfter==='function')try{Flux100.onNavAfter(id);}catch(e){}
 }
@@ -1060,15 +1019,54 @@ function populateSubjectSelects(){
   });
 }
 
-// Inline SVG icons for the 5 mobile bottom-nav tabs. Keep spec-accurate:
-// Home, Calendar, AI (sparkle), Grades (bar chart), More (grid of dots).
-const BNAV_ICONS={
-  dashboard:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"/></svg>`,
-  calendar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
-  ai:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>`,
-  grades:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>`,
-  more:`<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="19" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="19" cy="18" r="1.6"/></svg>`,
+// Stroke-matched tab icons: shared by bottom nav, sidebar, drawer, and More sheet.
+// Emojis in tabConfig remain for the tab customizer and legacy data; nav uses these SVGs.
+const NAV_TAB_SVGS={
+  dashboard:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"/></svg>`,
+  calendar:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
+  ai:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>`,
+  grades:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>`,
+  more:`<svg class="nt-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="19" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="19" cy="18" r="1.6"/></svg>`,
+  school:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v9"/><path d="M20 10v9"/><path d="M2 20h20"/><path d="m4 10 8-3 8 3"/><path d="M9 20v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg>`,
+  notes:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>`,
+  timer:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="14" r="7"/><path d="M12 7V4"/><path d="M9 2h6"/><path d="M12 14l1.5-1.2"/></svg>`,
+  canvas:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5Z"/><path d="M6 12v5c0 1.1 1.8 2 4 2s4-.9 4-2v-5"/></svg>`,
+  toolbox:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/></svg>`,
+  profile:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>`,
+  goals:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2"/></svg>`,
+  mood:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01"/><path d="M8.2 15a4 4 0 0 0 7.6 0"/></svg>`,
+  settings:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
+  references:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8M8 11h6"/></svg>`,
+  periodic:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
 };
+// Bottom bar primary five (Home, Calendar, AI, Grades, More) — alias for existing code paths.
+const BNAV_ICONS={
+  dashboard:NAV_TAB_SVGS.dashboard,
+  calendar:NAV_TAB_SVGS.calendar,
+  ai:NAV_TAB_SVGS.ai,
+  grades:NAV_TAB_SVGS.grades,
+  more:NAV_TAB_SVGS.more,
+};
+
+/** Sidebar / drawer / More: SVG when defined; else emoji from tabConfig. */
+function getNavIconHtml(tabId,variant){
+  const key=tabId==='references'?'toolbox':tabId;
+  const svg=NAV_TAB_SVGS[key]||null;
+  if(svg){
+    const wrap=variant==='moreSheet'?'ms-svg-wrap':'ni-svg-wrap';
+    return`<span class="${wrap}" aria-hidden="true">${svg}</span>`;
+  }
+  const tc=tabConfig.find(t=>t.id===tabId)||DEFAULT_TABS.find(t=>t.id===tabId);
+  return`<span class="ni-emoji" aria-hidden="true">${esc(tc?.icon||'•')}</span>`;
+}
+function syncMoreSheetNavIcons(){
+  document.querySelectorAll('.more-sheet-item[data-nav-tab]').forEach(btn=>{
+    const id=btn.getAttribute('data-nav-tab');
+    const el=btn.querySelector('.more-sheet-icon');
+    if(!el)return;
+    el.innerHTML=getNavIconHtml(id,'moreSheet');
+  });
+}
 
 function renderSidebars(){
   const groups=[
@@ -1082,7 +1080,7 @@ function renderSidebars(){
     const items=g.ids.filter(id=>visibleIds.has(id)).map(id=>{
       const tc=tabConfig.find(t=>t.id===id)||DEFAULT_TABS.find(t=>t.id===id);
       const lab=esc(tc?.label||id);
-      return`<button type="button" class="nav-item" onclick="${clickFn}('${id}')" data-tab="${id}" aria-label="${lab}"><span class="ni" aria-hidden="true">${tc?.icon||'•'}</span><span class="nl">${tc?.label||id}</span></button>`;
+      return`<button type="button" class="nav-item" onclick="${clickFn}('${id}')" data-tab="${id}" aria-label="${lab}"><span class="ni">${getNavIconHtml(id)}</span><span class="nl">${tc?.label||id}</span></button>`;
     }).join('');
     if(!items)return'';
     return`<div class="nav-group"><div class="nav-group-label">${g.label}</div>${items}</div>`;
@@ -1111,6 +1109,7 @@ function renderSidebars(){
     }).join('')
       +`<button type="button" class="bnav-item" onclick="openMobileSheet()" id="moreBtn" aria-label="More"><span class="bni" aria-hidden="true">${BNAV_ICONS.more}</span><span class="bnl">More</span></button>`;
   }
+  syncMoreSheetNavIcons();
 }
 function toggleSidebar(){
   sidebarCollapsed=!sidebarCollapsed;
@@ -1628,6 +1627,13 @@ function renderTasks(){
   if(taskFilter==='overdue')list=list.filter(t=>!t.done&&t.date&&new Date(t.date+'T00:00:00')<now);
   if(taskFilter==='today')list=list.filter(t=>t.date&&t.date===todayStr());
   if(taskFilter==='high')list=list.filter(t=>!t.done&&t.priority==='high');
+  if(taskFilter==='active'){
+    list.sort((a,b)=>{
+      const d=fluxTaskDueDateMs(a)-fluxTaskDueDateMs(b);
+      if(d!==0)return d;
+      return (a.id||0)-(b.id||0);
+    });
+  }else{
   const energy=parseInt(localStorage.getItem('flux_energy')||'3');
   let moodStress=5;
   try{const mh=moodHistory&&moodHistory.length?moodHistory[moodHistory.length-1]:null;if(mh&&mh.stress!=null)moodStress=parseInt(mh.stress,10);}catch(e){}
@@ -1643,6 +1649,7 @@ function renderTasks(){
     if(a.date&&b.date)return new Date(a.date)-new Date(b.date);
     return 0;
   });
+  }
   const el=document.getElementById('taskList');
   updateDocTitle();
   if(!list.length){
@@ -3811,6 +3818,8 @@ ${buildFullPlannerContextForAI({maxTotalChars:24000})}
 <how_you_work>
 PLANNER DATA: The snapshot above includes tasks, grades, notes, mood, timer sessions, classes, extracurriculars, and settings. Answer questions about any part of the planner from this data. The Extracurriculars tab (internal id: "goals") holds activities, target schools, and EC goals. Google Calendar events load live in the Calendar tab and may not fully appear in this snapshot.
 
+CANVAS: If sections "Canvas — pinned in Flux" or "Canvas — synced assignments" appear, they are from the student's Canvas LMS (API + optional reader pin in the Canvas tab). Help them understand assignments, due dates, and instructions from that text. You cannot see their Canvas iframe if the school blocks embedding — rely on these sections.
+
 REASONING: For complex questions \u2014 scheduling trade-offs, physics problems, essay structure, study strategy \u2014 think it through step by step. Show your reasoning when it helps the student understand, not just the conclusion.
 
 HONESTY: Distinguish between what you can see in the planner data, what you can reason about, and what the student should verify elsewhere. Never fabricate. If unsure, say so.
@@ -4045,6 +4054,18 @@ function buildFullPlannerContextForAI(opts){
   add('Enabled app tabs (goals = Extracurriculars in UI)',tabConfig.filter(t=>t.visible).map(t=>t.id).join(', '));
   add('Linked integrations',{canvas:!!(canvasToken&&canvasUrl),gmail:!!gmailToken});
 
+  if(canvasToken&&canvasUrl){
+    try{
+      const f=load('flux_canvas_ai_focus',null);
+      if(f&&f.bodyPlain){
+        const head=`# ${String(f.title||'Canvas').replace(/\n/g,' ')}\nCourse: ${String(f.courseName||'').replace(/\n/g,' ')}\nPinned: ${f.updatedAt?new Date(f.updatedAt).toLocaleString():''}${f.html_url?'\nLink: '+f.html_url:''}\n`;
+        add('Canvas — pinned in Flux (reader; ask questions about this)',clip(head+String(f.bodyPlain),9200));
+      }
+    }catch(e){}
+    const hubSnap=buildCanvasHubAssignmentsAISnapshot(26);
+    if(hubSnap)add('Canvas — synced assignments (instruction excerpts)',clip(hubSnap,6200));
+  }
+
   let out=`# FULL PLANNER SNAPSHOT (read-only for Flux)\nLocal today: ${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}\n\n`+sections.join('\n\n');
   if(out.length>maxTotal)out=out.slice(0,maxTotal)+'\n…[planner snapshot truncated]';
   return out;
@@ -4251,13 +4272,73 @@ async function syncFromCloud(){
   }catch(e){console.error('Sync from cloud error',e);setSyncStatus('offline');}
 }
 const syncDebounceTimers={};
+const SYNC_DEBOUNCE_MS=600;
+const SYNC_DEBOUNCE_TASKS_MS=350;
+function clearAllSyncDebounceTimers(){
+  Object.keys(syncDebounceTimers).forEach(k=>{ clearTimeout(syncDebounceTimers[k]); delete syncDebounceTimers[k]; });
+}
+/**
+ * Pushes the latest in-memory + localStorage state to Supabase.
+ * Use after any cloud-backed edit; debounced by syncKey, or call directly for a flush.
+ */
+function flushPendingSyncToCloud(){
+  if(!currentUser)return;
+  clearAllSyncDebounceTimers();
+  void syncToCloud();
+}
+/**
+ * Unload / tab-close: PostgREST upsert with fetch keepalive so the browser does not
+ * drop the request when the page tears down (normal syncToCloud may never finish).
+ * Skips if payload is too large for the ~64KB keepalive body limit.
+ */
+function trySyncToCloudKeepalive(){
+  if(!currentUser)return;
+  const sb=getSB();
+  if(!sb)return;
+  sb.auth.getSession().then(res=>{
+    const session=res?.data?.session;
+    if(!session?.access_token)return;
+    try{
+      const payload=getCloudPayload();
+      const body=JSON.stringify([{id:currentUser.id,data:payload,updated_at:new Date().toISOString()}]);
+      if(body.length>62000){
+        if(typeof console!=='undefined'&&console.warn)console.warn('Flux: payload large for keepalive; rely on last visibility flush');
+        return;
+      }
+      fetch(SB_URL+'/rest/v1/user_data?on_conflict=id',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'apikey':SB_ANON,
+          'Authorization':'Bearer '+session.access_token,
+          'Prefer':'return=minimal,resolution=merge-duplicates',
+        },
+        body,
+        keepalive:true,
+      }).catch(()=>{});
+    }catch(e){}
+  }).catch(()=>{});
+}
+function initSyncLifecycle(){
+  if(typeof window!=='undefined'&&window._fluxSyncLifecycleWired)return;
+  if(typeof window!=='undefined')window._fluxSyncLifecycleWired=1;
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState!=='hidden'||!currentUser)return;
+    flushPendingSyncToCloud();
+  });
+  const onLeave=()=>{
+    if(!currentUser)return;
+    clearAllSyncDebounceTimers();
+    trySyncToCloudKeepalive();
+  };
+  window.addEventListener('pagehide',onLeave);
+  window.addEventListener('beforeunload',onLeave);
+}
 function syncKey(key,val){
   if(!currentUser)return;
   clearTimeout(syncDebounceTimers[key]);
-  // Sync after 1.5s of inactivity (was 3s — faster feedback)
-  syncDebounceTimers[key]=setTimeout(async()=>{
-    await syncToCloud();
-  },1500);
+  const delay=key==='tasks'?SYNC_DEBOUNCE_TASKS_MS:SYNC_DEBOUNCE_MS;
+  syncDebounceTimers[key]=setTimeout(()=>{ void syncToCloud(); },delay);
 }
 
 // ══ OFFLINE BANNER · NOTIFICATIONS · DEEPLINKS ══
@@ -4290,6 +4371,7 @@ function initConnectivityAndNotifications(){
   },15*60*1000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkDueNotifications();});
   setTimeout(checkDueNotifications,4000);
+  if(typeof initSyncLifecycle==='function')initSyncLifecycle();
 }
 function checkDueNotifications(){
   if(!settings.notifyBrowser)return;
@@ -4885,12 +4967,13 @@ function renderCmdResults(){
     {icon:'🔥',label:'Habits',action:()=>{nav('goals');closeCommandPalette();}},
     {icon:'😊',label:'Mood',action:()=>{nav('mood');closeCommandPalette();}},
     {icon:'🎓',label:'Canvas & Gmail',action:()=>{nav('canvas');closeCommandPalette();}},
+    {icon:'🪟',label:'Canvas in Flux (embed + reader)',action:()=>{closeCommandPalette();fluxCanvasHubSubTab='canvaswindow';save('flux_canvas_hub_tab','canvaswindow');nav('canvas');}},
     {icon:'⚙️',label:'Settings',action:()=>{nav('settings');closeCommandPalette();}},
   ];
   navItems.forEach(n=>{if(!q||n.label.toLowerCase().includes(q))cmds.push({...n,cat:'Navigate'});});
 
   const refTools=[
-    {icon:'📚',label:'Reference library',action:()=>{nav('toolbox',null,{trView:'references'});closeCommandPalette();}},
+    {icon:'📚',label:'Study Tools',action:()=>{nav('toolbox');closeCommandPalette();}},
     {icon:'📐',label:'Math Formula Sheet',action:()=>{closeCommandPalette();window.openMathFormulas&&window.openMathFormulas();}},
     {icon:'⚗️',label:'Chemistry Reference',action:()=>{closeCommandPalette();window.openChemReference&&window.openChemReference();}},
     {icon:'🧬',label:'Biology Codon Table',action:()=>{closeCommandPalette();window.openCodonTable&&window.openCodonTable();}},
@@ -4902,7 +4985,7 @@ function renderCmdResults(){
     {icon:'🧪',label:'Periodic Table',action:()=>{closeCommandPalette();if(typeof window.openPeriodicTableModal==='function')window.openPeriodicTableModal();else if(typeof window.openPeriodicTable==='function')window.openPeriodicTable();else nav('toolbox');}},
     {icon:'🪐',label:'Physics Formula Sheet',action:()=>{closeCommandPalette();if(typeof window.openPhysicsSandbox==='function')window.openPhysicsSandbox();else nav('toolbox');}},
   ];
-  refTools.forEach(r=>{if(!q||r.label.toLowerCase().includes(q))cmds.push({...r,cat:'References'});});
+  refTools.forEach(r=>{if(!q||r.label.toLowerCase().includes(q))cmds.push({...r,cat:'Study Tools'});});
 
   // Task search
   const matchTasks=tasks.filter(t=>!t.done&&t.name.toLowerCase().includes(q)).slice(0,5);
@@ -5463,8 +5546,8 @@ async function handleSignedIn(user,session){
     // Call _updateUserUI AFTER showApp() so DOM elements are visible
     _updateUserUI(user, user.user_metadata?.full_name||user.email?.split('@')[0]||'');
   }
-  // Sync every 2 minutes while logged in
-  if(!window._syncInterval)window._syncInterval=setInterval(syncToCloud,2*60*1000);
+  // Full cloud push every minute while logged in (faster cross-device; debounced typing still uses syncKey)
+  if(!window._syncInterval)window._syncInterval=setInterval(()=>{ if(currentUser)void syncToCloud(); },60*1000);
 }
 
 function _updateUserUI(user,name){
@@ -6581,6 +6664,124 @@ function canvasStripHtml(s){
   return String(s||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
 }
 
+/** Compact assignment list + instruction excerpts for Flux AI snapshot. */
+function buildCanvasHubAssignmentsAISnapshot(maxN){
+  if(!fluxCanvasHubData||!Array.isArray(fluxCanvasHubData.assignments))return'';
+  const n=Math.max(1,Math.min(80,parseInt(maxN,10)||26));
+  const rows=filteredCanvasAssignments().slice().sort((a,b)=>{
+    const da=a.due_at||'',db=b.due_at||'';
+    if(!da&&!db)return 0;
+    if(!da)return 1;
+    if(!db)return-1;
+    return da.localeCompare(db);
+  }).slice(0,n);
+  if(!rows.length)return'(no assignments in current time filter — widen "Hide old" or refresh Canvas)';
+  const meta=fluxCanvasHubData.fetchedAt?`Last hub sync: ${new Date(fluxCanvasHubData.fetchedAt).toLocaleString()}`:'';
+  const lines=rows.map(a=>{
+    const due=a.due_at?String(a.due_at).slice(0,10):'no date';
+    const desc=canvasStripHtml(a.description||'').slice(0,380);
+    return`- [${a.course_name||'Course'}] ${a.name||'Assignment'} — due ${due}${desc?`\n  Excerpt: ${desc}`:''}`;
+  });
+  return [meta,...lines].join('\n');
+}
+
+function pinCanvasPageForAI(payload){
+  if(!payload||!String(payload.bodyPlain||'').trim()){clearCanvasPageForAI();return;}
+  save('flux_canvas_ai_focus',{...payload,bodyPlain:String(payload.bodyPlain).slice(0,120000),updatedAt:Date.now()});
+  showToast('Canvas text pinned for Flux AI','success');
+}
+function clearCanvasPageForAI(){
+  save('flux_canvas_ai_focus',null);
+  showToast('Cleared Canvas pin for Flux AI','info');
+}
+
+function openCanvasReaderForAssignment(courseId,assignmentId){
+  _fluxCanvasReaderPending={cid:+courseId,aid:+assignmentId};
+  fluxCanvasHubSubTab='canvaswindow';
+  save('flux_canvas_hub_tab','canvaswindow');
+  if(typeof nav==='function')nav('canvas');
+}
+
+async function loadCanvasAssignmentIntoReader(courseId,assignmentId,opts){
+  const silent=opts&&opts.silent;
+  const ta=document.getElementById('fluxCanvasReaderBody');
+  const metaEl=document.getElementById('fluxCanvasReaderMeta');
+  if(!courseId||!assignmentId){if(!silent)showToast('Pick a course and assignment','warning');return;}
+  if(ta){ta.value='Loading from Canvas…';}
+  if(metaEl)metaEl.textContent='…';
+  try{
+    const raw=await canvasProxyGet(`/courses/${courseId}/assignments/${assignmentId}`);
+    const title=raw.name||'Assignment';
+    const fromHub=(fluxCanvasHubData?.assignments||[]).find(x=>x.course_id===courseId&&x.id===assignmentId);
+    const courseName=(fromHub&&fromHub.course_name)||(fluxCanvasHubData?.courses||[]).find(c=>c.id===courseId)?.name||('Course '+courseId);
+    const bodyPlain=canvasStripHtml(raw.description||'').trim()||'(No description text in Canvas for this assignment.)';
+    if(ta)ta.value=bodyPlain;
+    if(metaEl)metaEl.textContent=`${courseName} · ${title}`;
+    const autoPin=document.getElementById('fluxCanvasReaderAutoPin');
+    if(!autoPin||autoPin.checked){
+      pinCanvasPageForAI({
+        title,
+        courseName,
+        bodyPlain,
+        html_url:raw.html_url||'',
+        courseId,
+        assignmentId
+      });
+    }
+  }catch(e){
+    if(ta)ta.value='Could not load: '+(e.message||String(e));
+    if(!silent)showToast(e.message||'Canvas load failed','error');
+  }
+}
+
+function pinReaderTextFromCanvasHub(){
+  const ta=document.getElementById('fluxCanvasReaderBody');
+  const meta=document.getElementById('fluxCanvasReaderMeta')?.textContent||'';
+  const parts=meta.split(' · ');
+  const courseName=parts[0]||'';
+  const title=parts.length>1?parts.slice(1).join(' · '):'Canvas assignment';
+  const body=(ta?.value||'').trim();
+  if(!body||body.startsWith('Loading')||body.startsWith('Could not load')){showToast('Load an assignment first, or wait for Canvas to respond','warning');return;}
+  pinCanvasPageForAI({title,courseName,bodyPlain:body,html_url:''});
+}
+
+function fluxCanvasEmbedGo(){
+  const inp=document.getElementById('fluxCanvasIframeUrl');
+  const fr=document.getElementById('fluxCanvasEmbedFrame');
+  if(!inp||!fr)return;
+  let u=(inp.value||'').trim();
+  if(!u)return;
+  if(!/^https?:\/\//i.test(u))u='https://'+u;
+  try{
+    const parsed=new URL(u);
+    const base=new URL((canvasUrl||'').replace(/\/+$/,''));
+    if(parsed.origin!==base.origin){
+      if(!confirm('That URL is not on your saved Canvas host. Load it in the frame anyway?'))return;
+    }
+  }catch(e){}
+  save('flux_canvas_embed_url',u);
+  fr.src=u;
+}
+function fluxCanvasEmbedHome(){
+  const base=(canvasUrl||'').replace(/\/+$/,'');
+  if(!base)return;
+  const home=base+'/';
+  const inp=document.getElementById('fluxCanvasIframeUrl');
+  const fr=document.getElementById('fluxCanvasEmbedFrame');
+  if(inp)inp.value=home;
+  save('flux_canvas_embed_url',home);
+  if(fr)fr.src=home;
+}
+function fluxCanvasEmbedOpenExternal(){
+  const inp=document.getElementById('fluxCanvasIframeUrl');
+  const u=(inp?.value||'').trim()||(canvasUrl||'').replace(/\/+$/,'')+'/';
+  if(u)window.open(/^https?:\/\//i.test(u)?u:'https://'+u,'_blank','noopener,noreferrer');
+}
+function fluxCanvasEmbedRefresh(){
+  const fr=document.getElementById('fluxCanvasEmbedFrame');
+  if(fr&&fr.src)try{fr.contentWindow.location.reload();}catch(e){fr.src=fr.src;}
+}
+
 function canvasPassesTimeFilter(iso){
   if(fluxCanvasDueFilterDays<=0)return true;
   if(!iso)return true;
@@ -7129,10 +7330,84 @@ async function refreshCanvasHubFullFetch(opts){
   }
 }
 
+function fluxCanvasReaderOnCourseChange(){
+  const cid=parseInt(document.getElementById('fluxCanvasReaderCourse')?.value||'0',10);
+  const sel=document.getElementById('fluxCanvasReaderAssignment');
+  if(!sel||!fluxCanvasHubData)return;
+  const list=(fluxCanvasHubData.assignments||[]).filter(a=>a.course_id===cid);
+  sel.innerHTML=list.map(a=>`<option value="${a.id}">${esc(a.name||'Assignment')}</option>`).join('')||'<option value="">No assignments</option>';
+}
+
 function renderCanvasHubPane(){
   const pane=document.getElementById('canvasHubPane');if(!pane)return;
   const d=fluxCanvasHubData;
   const sub=fluxCanvasHubSubTab;
+  const connected=!!(canvasToken&&canvasUrl);
+
+  if(sub==='canvaswindow'){
+    if(!connected){
+      pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Save your Canvas URL and access token in the card above, then open this tab again.</div>';
+      return;
+    }
+    const base=(canvasUrl||'').replace(/\/+$/,'');
+    const saved=(load('flux_canvas_embed_url','')||'').trim();
+    const startUrl=(saved||(base?base+'/':''))||'';
+    const pend=_fluxCanvasReaderPending;
+    _fluxCanvasReaderPending=null;
+    const courseOpts=(fluxCanvasHubData?.courses||[]).map(c=>`<option value="${c.id}">${esc(c.name||c.course_code||'Course')}</option>`).join('')||'<option value="">Refresh hub to load courses</option>';
+    pane.innerHTML=`
+      <div class="card" style="padding:14px 16px;margin-bottom:10px">
+        <h3 style="margin:0 0 8px;font-size:1rem">Canvas in Flux</h3>
+        <p style="font-size:.74rem;color:var(--muted2);line-height:1.55;margin:0 0 12px">Use Canvas inside Flux when your school allows framing (some block iframes — then use <strong>Open in new tab</strong> or the reader below). Flux AI cannot read the iframe directly; it uses the <strong>synced excerpts</strong> plus anything you load in the reader.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px">
+          <input type="text" id="fluxCanvasIframeUrl" placeholder="https://…instructure.com/…" style="flex:1;min-width:200px;margin:0;font-size:.78rem" value="${esc(startUrl)}">
+          <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="fluxCanvasEmbedGo()">Go</button>
+          <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="fluxCanvasEmbedHome()">Home</button>
+          <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="fluxCanvasEmbedOpenExternal()">Open in new tab</button>
+          <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="fluxCanvasEmbedRefresh()">Refresh frame</button>
+        </div>
+        <iframe id="fluxCanvasEmbedFrame" title="Canvas LMS" style="width:100%;min-height:52vh;border:1px solid var(--border2);border-radius:12px;background:var(--card2)" ${startUrl?`src="${esc(startUrl)}"`:''}></iframe>
+      </div>
+      <div class="card" style="padding:14px 16px">
+        <h3 style="margin:0 0 8px;font-size:1rem">Reader → Flux AI</h3>
+        <p style="font-size:.74rem;color:var(--muted2);line-height:1.55;margin:0 0 12px">Loads assignment instructions from Canvas (same API as the hub). Pinned text is included in every Flux AI message until you clear it.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:.68rem;color:var(--muted)">Course</label>
+            <select id="fluxCanvasReaderCourse" style="width:100%;margin:4px 0 0" onchange="fluxCanvasReaderOnCourseChange()">${courseOpts}</select>
+          </div>
+          <div>
+            <label style="font-size:.68rem;color:var(--muted)">Assignment</label>
+            <select id="fluxCanvasReaderAssignment" style="width:100%;margin:4px 0 0"></select>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center">
+          <button type="button" style="padding:8px 14px;font-size:.78rem" onclick="loadCanvasAssignmentIntoReader(parseInt(document.getElementById('fluxCanvasReaderCourse').value,10),parseInt(document.getElementById('fluxCanvasReaderAssignment').value,10))">Load assignment text</button>
+          <label style="font-size:.72rem;color:var(--muted2);display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="fluxCanvasReaderAutoPin" checked style="margin:0"> Auto-pin when loaded
+          </label>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="pinReaderTextFromCanvasHub()">Pin editor text for Flux AI</button>
+          <button type="button" class="btn-sec" style="padding:7px 12px;font-size:.75rem" onclick="clearCanvasPageForAI()">Clear AI pin</button>
+        </div>
+        <div id="fluxCanvasReaderMeta" style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px;min-height:1.2em"></div>
+        <textarea id="fluxCanvasReaderBody" rows="14" style="width:100%;box-sizing:border-box;font-size:.82rem;line-height:1.5;margin:0;border-radius:10px;border:1px solid var(--border2);background:var(--card);color:var(--text);padding:10px 12px" placeholder="Assignment instructions appear here after you load…"></textarea>
+      </div>`;
+    requestAnimationFrame(()=>{
+      fluxCanvasReaderOnCourseChange();
+      const pendC=pend&&pend.cid;
+      const pendA=pend&&pend.aid;
+      if(pendC&&pendA){
+        const cSel=document.getElementById('fluxCanvasReaderCourse');
+        if(cSel){cSel.value=String(pendC);fluxCanvasReaderOnCourseChange();}
+        const aSel=document.getElementById('fluxCanvasReaderAssignment');
+        if(aSel)aSel.value=String(pendA);
+        loadCanvasAssignmentIntoReader(pendC,pendA,{silent:true});
+      }
+    });
+    return;
+  }
 
   if(sub==='assignments'){
     if(!d){pane.innerHTML='<div class="card" style="padding:20px;color:var(--muted2)">Click <strong>Refresh from Canvas</strong> to load assignments.</div>';return;}
@@ -7164,7 +7439,10 @@ function renderCanvasHubPane(){
             <div style="font-size:.72rem;color:var(--muted2);margin-top:4px;font-family:'JetBrains Mono',monospace">${esc(a.course_name)} · Due ${due}${st?` · ${esc(st)}`:''}</div>
             ${a.html_url?`<a href="${esc(a.html_url)}" target="_blank" rel="noopener" style="font-size:.68rem;color:var(--accent);margin-top:6px;display:inline-block">Open in Canvas →</a>`:''}
           </div>
-          <button type="button" class="btn-sec" style="padding:6px 10px;font-size:.72rem;flex-shrink:0;white-space:nowrap" onclick="addCanvasAssignmentToPlanner(${a.course_id},${a.id})">+ Planner</button>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button type="button" class="btn-sec" style="padding:6px 10px;font-size:.72rem;white-space:nowrap" onclick="openCanvasReaderForAssignment(${a.course_id},${a.id})">Reader / AI</button>
+            <button type="button" class="btn-sec" style="padding:6px 10px;font-size:.72rem;white-space:nowrap" onclick="addCanvasAssignmentToPlanner(${a.course_id},${a.id})">+ Planner</button>
+          </div>
         </div>`;
       }).join(''):'<div class="empty">No assignments match the time filter.</div>'}</div>`;
     return;
@@ -7356,9 +7634,9 @@ function renderCanvasHubPanel(){
     {v:0,l:'All time (no date filter)'}
   ];
   const filterSelect=filterOpts.map(o=>`<option value="${o.v}"${fluxCanvasDueFilterDays===o.v?' selected':''}>${o.l}</option>`).join('');
-  const tabs=['assignments','announcements','grades','teachers','courses','discussions','calendar','upload','gmail'];
+  const tabs=['assignments','canvaswindow','announcements','grades','teachers','courses','discussions','calendar','upload','gmail'];
   const tabHtml=tabs.map(id=>{
-    const labels={assignments:'Assignments',announcements:'Announcements',grades:'Grades',teachers:'Teachers',courses:'Courses',discussions:'Discussions',calendar:'Calendar',upload:'To Canvas',gmail:'Gmail'};
+    const labels={assignments:'Assignments',canvaswindow:'In Flux',announcements:'Announcements',grades:'Grades',teachers:'Teachers',courses:'Courses',discussions:'Discussions',calendar:'Calendar',upload:'To Canvas',gmail:'Gmail'};
     const active=fluxCanvasHubSubTab===id?' active':'';
     return`<button type="button" class="stab${active}" onclick="setCanvasHubSubTab('${id}')">${labels[id]}</button>`;
   }).join('');

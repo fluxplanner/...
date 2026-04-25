@@ -27,8 +27,9 @@
   // Applied after first paint so they don't fight the initial layout.
   // Re-applied after major re-renders via requestIdleCallback.
   function hintWillChange(){
+    /* Omit .task-item: will-change + springy hover caused a harsh “snap”; rows animate smoothly without it. */
     var sels = '.bnav, .more-sheet, .more-sheet-overlay, .panel, '
-             + '.modal-overlay .modal, .task-item, .toast, #fluxToastStack, '
+             + '.modal-overlay .modal, .toast, #fluxToastStack, '
              + '.ai-bub, .ref-tool-modal';
     var els = document.querySelectorAll(sels);
     for (var i=0; i<els.length; i++){

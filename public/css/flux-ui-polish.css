@@ -29,9 +29,17 @@
 .flux-muted{font-size:.82rem;color:var(--muted)}
 
 .flux-ai-insight-strip{margin-bottom:10px}
-.flux-ai-strip-inner{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:var(--r-sm);
+.flux-ai-strip-inner{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:var(--r-sm);
   background:linear-gradient(90deg,rgba(var(--purple-rgb),.1),rgba(var(--accent-rgb),.06));border:1px solid rgba(var(--purple-rgb),.2);font-size:.8rem;line-height:1.45;color:var(--text2)}
-.flux-ai-strip-icon{flex-shrink:0;opacity:.85}
+.flux-ai-strip-icon{flex-shrink:0;opacity:.85;line-height:1}
+.flux-ai-strip-text{flex:1;min-width:0}
+.flux-ai-strip-close{
+  flex-shrink:0;margin:0;padding:0 6px;min-width:28px;height:28px;border:none;border-radius:8px;
+  background:transparent;color:var(--muted2);font-size:1.15rem;line-height:1;font-weight:300;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;transition:color .15s ease,background .15s ease;
+}
+.flux-ai-strip-close:hover{color:var(--text);background:rgba(255,255,255,.08)}
+.flux-ai-strip-close:focus-visible{outline:2px solid rgba(var(--accent-rgb),.5);outline-offset:1px}
 
 .flux-overdue-wrap{margin-bottom:10px}
 .flux-overdue-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r-sm);

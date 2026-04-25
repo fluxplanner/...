@@ -131,12 +131,15 @@
 .task-item{
   border-radius:var(--r-sm)!important;
   backdrop-filter:var(--glass-soft)!important;-webkit-backdrop-filter:var(--glass-soft)!important;
-  transition:transform var(--t-base) var(--ease-spring),box-shadow var(--t-base) ease,border-color var(--t-base) ease!important;
+  transition:
+    transform .22s cubic-bezier(.22,1,.36,1),
+    box-shadow .26s cubic-bezier(.22,1,.36,1),
+    border-color .2s ease!important;
 }
 .task-item:not(.task-done):hover{
-  transform:translateX(4px) translateY(-1px);
-  box-shadow:0 8px 28px rgba(0,0,0,.35),0 0 0 1px rgba(var(--accent-rgb),.1);
-  border-color:rgba(var(--accent-rgb),.14)!important;
+  transform:translate3d(1px,-1px,0);
+  box-shadow:0 6px 22px rgba(0,0,0,.28),0 0 0 1px rgba(var(--accent-rgb),.08);
+  border-color:rgba(var(--accent-rgb),.12)!important;
 }
 .task-item.completing{
   animation:taskCompleteGlow .55s cubic-bezier(.34,1.56,.64,1) forwards!important;
@@ -303,8 +306,8 @@
   .panel.active .card{transform:translateZ(0);transition:transform .6s ease-out}
 }
 
-/* ── Buttons: pill + press ── */
-button:not(.fab-trigger):not(.nav-item):not(.bnav-item):not(.check):not(.btn-icon):not(.btn-sm){
+/* ── Buttons: pill + press (skip periodic table cells — those are sharp squares) ── */
+button:not(.fab-trigger):not(.nav-item):not(.bnav-item):not(.check):not(.btn-icon):not(.btn-sm):not(.pt-el){
   border-radius:999px!important;
 }
 button:not(:disabled):active{transform:scale(.97)!important}

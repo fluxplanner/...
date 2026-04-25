@@ -239,6 +239,12 @@
   margin: 0 auto;
 }
 
+/* Enforce square tiles: global `button` + flux-motion use pill radius+!important; beat both here */
+#periodic #ptGrid button.pt-el{
+  border-radius: 0 !important;
+  -webkit-border-radius: 0 !important;
+}
+
 /* Element cell — true squares, 90° corners (no iOS/UA pill rounding) */
 .pt-el{
   -webkit-appearance: none;

@@ -96,7 +96,7 @@
 <link rel="stylesheet" href="public/css/flux-performance.css">
 <link rel="stylesheet" href="public/css/flux-pro.css">
 <link rel="stylesheet" href="public/css/flux-mobile-app.css">
-<link rel="stylesheet" href="public/css/flux-ai-claude.css">
+<link rel="stylesheet" href="public/css/flux-ai-panel.css">
 <link rel="stylesheet" href="public/css/flux-periodic.css">
 <link rel="stylesheet" href="public/css/flux-toolbox.css">
 <link rel="stylesheet" href="public/css/flux-reftool-history.css">
@@ -1185,7 +1185,7 @@
     <!-- ─── CANVAS & GMAIL ─── -->
     <div id="canvas" class="panel flux-page">
       <header class="flux-page-header flux-page-header--lead">
-        <p class="flux-page-sub">Canvas LMS data, text submissions, and school Gmail — tie it to your planner.</p>
+        <p class="flux-page-sub">Canvas LMS data, an in-app Canvas window + reader for Flux AI, text submissions, and school Gmail — tie it to your planner.</p>
       </header>
       <div class="flux-stack" id="canvasHubStack"></div>
     </div>
@@ -1408,34 +1408,24 @@
       </div>
     </div>
 
-    <!-- Study tools: Toolbox (subject modules) + References (class-matched library) — single tab -->
-    <div id="toolbox" class="panel flux-page tr-unified">
-      <div class="tr-unified__chrome">
-        <header class="tr-unified__intro">
-          <h2 class="tr-unified__title">Study tools</h2>
-          <p class="tr-unified__lead">Full toolbox modules and a class-matched reference library in one place.</p>
-        </header>
-        <div class="tr-unified__tabs" role="tablist" aria-label="Study tools sections">
-          <button type="button" class="tr-tab active" data-tr="toolbox" id="trTabTool" role="tab" aria-selected="true">🧰 Toolbox</button>
-          <button type="button" class="tr-tab" data-tr="references" id="trTabRef" role="tab" aria-selected="false">📚 References</button>
+    <!-- Study tools — unified: search, classes, subject sections with tool chips -->
+    <div id="toolbox" class="panel flux-page st-panel">
+      <div class="st-sticky" id="stStickyHeader">
+        <div class="st-search-wrap">
+          <input type="search" id="stSearchInput" class="st-search-input" placeholder="Search tools, formulas, subjects…" autocomplete="off" aria-label="Search study tools" />
+          <button type="button" id="stSearchClear" class="st-search-clear" aria-label="Clear search" hidden>×</button>
         </div>
-      </div>
-      <div id="trBodyToolbox" class="tr-body tr-body--tool" aria-label="Subject toolbox">
-      </div>
-      <div id="references" class="tr-body tr-body--ref" hidden>
-        <header class="flux-page-header flux-page-header--lead tr-ref__head">
-          <p class="flux-page-sub">Tools matched to your schedule — or open the <strong>Toolbox</strong> tab for calculators, solvers, and full modules.</p>
-        </header>
-        <div class="ref-search-row">
-          <input type="text" id="refSearchInput" class="ref-search-input" placeholder="Search references, formulas, tools…" autocomplete="off" />
+        <div class="st-filter-bar" id="stFilterBar" hidden>
+          <label class="st-filter-mode-label"><input type="checkbox" id="stFilterMode" /> Filter to matching section only</label>
         </div>
-        <div class="ref-class-chips" id="refClassChips" role="tablist" aria-label="Filter by class"></div>
-        <div class="ref-grid" id="refGrid" aria-live="polite"></div>
+        <div class="st-class-strip" id="stClassChips" role="tablist" aria-label="Your classes"></div>
       </div>
+      <div id="stSearchResults" class="st-search-results" hidden aria-live="polite"></div>
+      <div id="stSections" class="st-sections" aria-label="Study tools by subject"></div>
     </div>
 
     <!-- ─── AI (Claude-inspired layout) ─── -->
-    <div id="ai" class="panel flux-page flux-ai-claude" style="display:none;flex-direction:column;flex:1;min-height:0;padding:0;max-width:none">
+    <div id="ai" class="panel flux-page flux-ai-panel" style="display:none;flex-direction:column;flex:1;min-height:0;padding:0;max-width:none">
       <div class="flux-ai-canvas">
       <div class="flux-ai-top">
       <div class="flux-ai-tabs-row">
@@ -1443,7 +1433,22 @@
         <button type="button" class="flux-ai-newchat" onclick="newAIChat()">+ New chat</button>
       </div>
       <div class="flux-ai-head">
-        <div class="ai-orb flux-ai-mark" aria-hidden="true"></div>
+        <div class="flux-ai-mark" aria-hidden="true">
+          <svg class="flux-ai-logo flux-ai-mark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" width="32" height="32" aria-hidden="true" focusable="false" overflow="visible" text-rendering="geometricPrecision">
+            <defs>
+              <linearGradient id="fluxAiHeaderMarkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.12"/>
+                <stop offset="40%" stop-color="var(--accent)"/>
+                <stop offset="60%" stop-color="var(--purple)"/>
+                <stop offset="100%" stop-color="var(--purple)" stop-opacity="0.12"/>
+              </linearGradient>
+            </defs>
+            <g transform="translate(392,340)">
+              <path d="M0,0 C18,-52 148,-52 148,0 C148,52 18,52 0,0 C-52,-110 -252,-110 -252,0 C-252,110 -52,110 0,0 Z"
+                fill="none" stroke="url(#fluxAiHeaderMarkGrad)" stroke-width="14" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
         <div class="flux-ai-titleblock">
           <div class="flux-ai-title">Flux AI</div>
           <p class="flux-ai-sub">Planner context · learning help (no direct homework answers)</p>
@@ -1475,7 +1480,7 @@
       <div id="aiImgPreview" class="flux-ai-img-preview" style="display:none"></div>
       <footer class="flux-ai-composer-foot">
         <div class="flux-ai-composer-pill">
-        <div class="ai-irow ai-irow--claude">
+        <div class="ai-irow ai-irow--flux">
           <button type="button" class="ai-attach" id="aiAttachBtn" onclick="document.getElementById('aiImgUpload')?.click()" aria-label="Attach image" title="Attach image">+</button>
           <textarea id="aiInput" rows="1" placeholder="How can I help you today?"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
@@ -2064,32 +2069,32 @@
   </div>
 
   <div class="more-sheet-grid">
-    <button type="button" class="more-sheet-item" onclick="navMob('notes')">
-      <span class="more-sheet-icon">📝</span><span class="more-sheet-label">Notes</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="notes" onclick="navMob('notes')">
+      <span class="more-sheet-icon" aria-hidden="true">📝</span><span class="more-sheet-label">Notes</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('timer')">
-      <span class="more-sheet-icon">⏱</span><span class="more-sheet-label">Timer</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="timer" onclick="navMob('timer')">
+      <span class="more-sheet-icon" aria-hidden="true">⏱</span><span class="more-sheet-label">Timer</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('school')">
-      <span class="more-sheet-icon">🏫</span><span class="more-sheet-label">School</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="school" onclick="navMob('school')">
+      <span class="more-sheet-icon" aria-hidden="true">🏫</span><span class="more-sheet-label">School</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('profile')">
-      <span class="more-sheet-icon">👤</span><span class="more-sheet-label">Profile</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="profile" onclick="navMob('profile')">
+      <span class="more-sheet-icon" aria-hidden="true">👤</span><span class="more-sheet-label">Profile</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('goals')">
-      <span class="more-sheet-icon">🎯</span><span class="more-sheet-label">Goals</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="goals" onclick="navMob('goals')">
+      <span class="more-sheet-icon" aria-hidden="true">🎯</span><span class="more-sheet-label">Goals</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('mood')">
-      <span class="more-sheet-icon">😊</span><span class="more-sheet-label">Mood</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="mood" onclick="navMob('mood')">
+      <span class="more-sheet-icon" aria-hidden="true">😊</span><span class="more-sheet-label">Mood</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('canvas')">
-      <span class="more-sheet-icon">🎓</span><span class="more-sheet-label">Canvas</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="canvas" onclick="navMob('canvas')">
+      <span class="more-sheet-icon" aria-hidden="true">🎓</span><span class="more-sheet-label">Canvas</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('toolbox')">
-      <span class="more-sheet-icon">🧰</span><span class="more-sheet-label">Study tools</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="toolbox" onclick="navMob('toolbox')">
+      <span class="more-sheet-icon" aria-hidden="true">🧰</span><span class="more-sheet-label">Study tools</span>
     </button>
-    <button type="button" class="more-sheet-item" onclick="navMob('settings')">
-      <span class="more-sheet-icon">⚙</span><span class="more-sheet-label">Settings</span>
+    <button type="button" class="more-sheet-item" data-nav-tab="settings" onclick="navMob('settings')">
+      <span class="more-sheet-icon" aria-hidden="true">⚙</span><span class="more-sheet-label">Settings</span>
     </button>
   </div>
 

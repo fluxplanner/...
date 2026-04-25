@@ -53,98 +53,75 @@ const state = {
 };
 
 // ────────────────────────────────────────────────────────────────
-// MAIN RENDER
+// Shared render helpers (unified Study Tools + legacy callers)
 // ────────────────────────────────────────────────────────────────
-function render(){
-  const host = $('trBodyToolbox') || $('toolbox');
-  if (!host) return;
-  if (!state.built){
-    host.innerHTML = `
-      <div class="tb-head">
-        <h1 class="tb-title">Toolbox <span class="tb-sub">— cross-subject study tools</span></h1>
-      </div>
-      <div id="tbSubjects" class="tb-subjects" role="tablist" aria-label="Subjects"></div>
-      <div id="tbTools" class="tb-tools" role="tablist" aria-label="Tools"></div>
-      <div id="tbBody" class="tb-body" aria-live="polite"></div>
-    `;
-    state.built = true;
-  }
-  renderSubjectTabs();
-  renderToolChips();
-  renderTool();
+function lsStudyTool(sectionId){
+  try{ return localStorage.getItem('flux_study_tool_'+sectionId); }catch(e){ return null; }
+}
+function setLsStudyTool(sectionId, chipId){
+  try{ localStorage.setItem('flux_study_tool_'+sectionId, chipId); }catch(e){}
+}
+function lsStudyCollapsed(sectionId){
+  try{ return localStorage.getItem('flux_study_collapsed_'+sectionId)==='1'; }catch(e){ return false; }
+}
+function setLsStudyCollapsed(sectionId, collapsed){
+  try{ localStorage.setItem('flux_study_collapsed_'+sectionId, collapsed?'1':'0'); }catch(e){}
 }
 
-function renderSubjectTabs(){
-  const host = $('tbSubjects');
-  if (!host) return;
-  host.innerHTML = SUBJECTS.map(s => `
-    <button type="button" class="tb-subject-btn${s.id === state.subject ? ' active' : ''}"
-            data-subject="${s.id}" role="tab" aria-selected="${s.id === state.subject}">
-      <span class="tb-sicon" aria-hidden="true">${s.icon}</span>
-      <span>${esc(s.label)}</span>
-    </button>
-  `).join('');
-  host.onclick = (e) => {
-    const btn = e.target.closest('.tb-subject-btn');
-    if (!btn) return;
-    state.subject = btn.dataset.subject;
-    state.tool = null;
-    renderSubjectTabs();
-    renderToolChips();
-    renderTool();
-  };
-}
-
-function renderToolChips(){
-  const host = $('tbTools');
-  if (!host) return;
-  const subj = SUBJECTS.find(s => s.id === state.subject);
-  if (!subj){ host.innerHTML = ''; return; }
-  if (!state.tool) state.tool = subj.tools[0]?.id || null;
-  host.innerHTML = subj.tools.map(t => `
-    <button type="button" class="tb-tool-btn${t.id === state.tool ? ' active' : ''}"
-            data-tool="${t.id}" role="tab" aria-selected="${t.id === state.tool}">
-      <span class="tb-ticon" aria-hidden="true">${t.icon}</span>
-      <span>${esc(t.label)}</span>
-    </button>
-  `).join('');
-  host.onclick = (e) => {
-    const btn = e.target.closest('.tb-tool-btn');
-    if (!btn) return;
-    state.tool = btn.dataset.tool;
-    renderToolChips();
-    renderTool();
-  };
-}
-
-function renderTool(){
-  const body = $('tbBody');
-  if (!body) return;
-  const subj = SUBJECTS.find(s => s.id === state.subject);
-  if (!subj){ body.innerHTML = ''; return; }
-  const tool = subj.tools.find(t => t.id === state.tool) || subj.tools[0];
-  if (!tool){ body.innerHTML = '<p class="tb-empty">No tools yet.</p>'; return; }
-  // Preserve the #periodic element across tool switches so we don't lose its
-  // internal state (selected category, search query, slider value) every time
-  // someone jumps between tools.
+function ensurePeriodicStashedUnlessOpening(){
   const periodicEl = document.getElementById('periodic');
-  if (periodicEl && body.contains(periodicEl)){
-    let stash = document.getElementById('periodicStash');
-    if (!stash){
-      stash = document.createElement('div');
-      stash.id = 'periodicStash';
-      stash.hidden = true;
-      document.body.appendChild(stash);
-    }
-    stash.appendChild(periodicEl);
-    periodicEl.hidden = true;
+  if (!periodicEl) return;
+  let stash = document.getElementById('periodicStash');
+  if (!stash){
+    stash = document.createElement('div');
+    stash.id = 'periodicStash';
+    stash.hidden = true;
+    document.body.appendChild(stash);
   }
-  try {
-    tool.render(body);
-  } catch (err){
+  stash.appendChild(periodicEl);
+  periodicEl.hidden = true;
+}
+
+function renderToolIntoBody(body, subjectId, toolId){
+  const openingPeriodic = subjectId === 'science' && toolId === 'periodic-tbl';
+  if (!openingPeriodic) ensurePeriodicStashedUnlessOpening();
+  const subj = SUBJECTS.find(s => s.id === subjectId);
+  if (!subj){ body.innerHTML = '<p class="tb-empty">No tools for this subject.</p>'; return; }
+  const tool = subj.tools.find(t => t.id === toolId) || subj.tools[0];
+  if (!tool){ body.innerHTML = '<p class="tb-empty">No tools yet.</p>'; return; }
+  try { tool.render(body); }
+  catch (err){
     body.innerHTML = `<p class="tb-empty">Couldn't render tool: ${esc(err.message || err)}</p>`;
     console.error(err);
   }
+}
+
+function callModalFn(name){
+  const fn = name && window[name];
+  if (typeof fn === 'function'){ try{ fn(); }catch(e){ console.error(e); } }
+  else if (typeof showToast === 'function') showToast('Tool could not open', 'info');
+}
+
+function renderModalPreview(body, title, desc, fnName, btnLabel){
+  body.innerHTML = `
+    <div class="st-modal-preview tb-card">
+      <div class="tb-card-h"><h3>${esc(title)}</h3></div>
+      <p class="st-modal-preview-desc">${esc(desc)}</p>
+      <button type="button" class="tb-btn st-modal-preview-btn" data-fn="${esc(fnName)}">${esc(btnLabel || 'Open')}</button>
+    </div>`;
+  body.querySelector('.st-modal-preview-btn')?.addEventListener('click', () => callModalFn(fnName));
+}
+
+function renderLinkPreview(body, title, desc, btnLabel, navId){
+  body.innerHTML = `
+    <div class="st-modal-preview tb-card">
+      <div class="tb-card-h"><h3>${esc(title)}</h3></div>
+      <p class="st-modal-preview-desc">${esc(desc)}</p>
+      <button type="button" class="tb-btn st-link-preview-btn" data-nav="${esc(navId)}">${esc(btnLabel)}</button>
+    </div>`;
+  body.querySelector('.st-link-preview-btn')?.addEventListener('click', () => {
+    if (typeof nav === 'function') nav(navId);
+  });
 }
 
 // ── Periodic Table tool — hands the reserved #periodic DOM back to Toolbox ──
@@ -665,7 +642,6 @@ SUBJECTS.push({
   tools:[
     { id:'periodic-tbl', label:'Periodic Table',  icon:'⚗', render: renderPeriodicTool },
     { id:'formulas-sci', label:'Formula sheet',   icon:'∑', render: renderFormulaSheet },
-    { id:'unit-conv',    label:'Unit converter',  icon:'⇄', render: renderUnitConverter },
     { id:'molar-mass',   label:'Molecular weight',icon:'⚖', render: renderMolarMass },
   ],
 });
@@ -2879,9 +2855,439 @@ SUBJECTS.push({
 });
 
 // ────────────────────────────────────────────────────────────────
+// Unified Study Tools (single scroll: search + classes + sections)
+// ────────────────────────────────────────────────────────────────
+const UNIFIED_LAYOUT = [
+  { id:'science', name:'Science', icon:'🧪', classTags:['physics','chem','bio'],
+    tools:[
+      { id:'periodic-tbl', label:'Periodic Table', icon:'⚗', desc:'Interactive table with properties and categories.', mode:'inline', sub:'science', tid:'periodic-tbl' },
+      { id:'physics-sandbox', label:'Physics sandbox', icon:'🪐', desc:'Mechanics, kinematics, energy, waves — formulas and constants.', mode:'inline', sub:'science', tid:'formulas-sci' },
+      { id:'chem-ref', label:'Chemistry Reference', icon:'⚗️', desc:'Polyatomic ions, solubility rules, acids & bases, constants.', mode:'modal', fn:'openChemReference' },
+      { id:'codon', label:'Biology codon table', icon:'🧬', desc:'64 codons and amino-acid lookup.', mode:'modal', fn:'openCodonTable' },
+      { id:'unit-conv', label:'Unit converter', icon:'🔁', desc:'Length, mass, temperature, energy, data — live conversions.', mode:'modal', fn:'openUnitConverter' },
+      { id:'molar-mass', label:'Molecular weight', icon:'⚖', desc:'Parse formulas (H2O, Ca(OH)2) and get molar mass.', mode:'inline', sub:'science', tid:'molar-mass' },
+    ],
+  },
+  { id:'math', name:'Math', icon:'∑', classTags:['math'],
+    tools:[
+      { id:'math-formulas', label:'Math formula sheet', icon:'📐', desc:'Algebra, trig, calculus, and statistics reference.', mode:'modal', fn:'openMathFormulas' },
+      { id:'graphing', label:'Graphing calculator', icon:'📈', desc:'Plot functions and explore ranges.', mode:'inline', sub:'math', tid:'graphing' },
+      { id:'matrix', label:'Matrix calculator', icon:'⊞', desc:'Multiply, invert, determinant, and more.', mode:'inline', sub:'math', tid:'matrix' },
+      { id:'stats', label:'Statistics toolkit', icon:'𝝈', desc:'Summary stats and z-scores from raw data.', mode:'inline', sub:'math', tid:'stats' },
+      { id:'geo-ref', label:'Geometric formulas', icon:'△', desc:'2D and 3D area, surface, and volume.', mode:'inline', sub:'math', tid:'geo-ref' },
+    ],
+  },
+  { id:'history', name:'History', icon:'🏛', classTags:['history'],
+    tools:[
+      { id:'world-hist', label:'World history map', icon:'🌍', desc:'Clickable world map with eras, empires, and key dates.', mode:'modal', fn:'openHistoryMap' },
+      { id:'timeline', label:'Timeline builder', icon:'🕰', desc:'Build and save timelines for papers and exams.', mode:'inline', sub:'history', tid:'timeline' },
+      { id:'map-quiz', label:'Map & capitals', icon:'🗺', desc:'Browse regions or quiz yourself on capitals.', mode:'inline', sub:'history', tid:'map-quiz' },
+    ],
+  },
+  { id:'english', name:'English', icon:'✒', classTags:['english'],
+    tools:[
+      { id:'grammar', label:'Grammar reference', icon:'📘', desc:'Parts of speech, commas, clauses, and common mistakes.', mode:'inline', sub:'english', tid:'grammar' },
+      { id:'essay', label:'Essay structure guide', icon:'🖊', desc:'Thesis, body paragraphs, evidence, and revision.', mode:'inline', sub:'english', tid:'essay' },
+      { id:'literary', label:'Literary devices', icon:'📖', desc:'Glossary with definitions and examples.', mode:'inline', sub:'english', tid:'literary' },
+      { id:'cite-notes', label:'Citation builder', icon:'❝ ❞', desc:'Build MLA / APA citations — lives in Notes for copying into papers.', mode:'link', nav:'notes', btn:'Open in Notes' },
+    ],
+  },
+  { id:'languages', name:'Languages', icon:'🌍', classTags:['spanish','french','language'],
+    tools:[
+      { id:'spanish-conj', label:'Spanish conjugator', icon:'🇪🇸', desc:'60 high-frequency verbs across major tenses (modal reference).', mode:'modal', fn:'openSpanishConjugator' },
+      { id:'french-conj', label:'French conjugator', icon:'🇫🇷', desc:'French tenses with être / auxiliary flags (modal reference).', mode:'modal', fn:'openFrenchConjugator' },
+      { id:'ipa', label:'IPA chart', icon:'Ƃ', desc:'Pulmonic consonants and vowel quadrilateral.', mode:'inline', sub:'languages', tid:'ipa' },
+      { id:'translate-ai', label:'Translation', icon:'🔁', desc:'Send text to Flux AI with language pair context.', mode:'link', nav:'ai', btn:'Open Flux AI' },
+    ],
+  },
+  { id:'econ', name:'Economics', icon:'💹', classTags:['econ'],
+    tools:[
+      { id:'econ-formulas', label:'Economics formulas', icon:'Σ', desc:'Micro and macro formulas with quick explanations.', mode:'inline', sub:'econ', tid:'econ-formulas' },
+      { id:'fin-calc', label:'Financial calculator', icon:'🧮', desc:'Compound interest, loans, and savings goals.', mode:'inline', sub:'econ', tid:'fin-calc' },
+    ],
+  },
+  { id:'cs', name:'Computer Science', icon:'💻', classTags:['cs'],
+    tools:[
+      { id:'cs-ref', label:'CS reference', icon:'💻', desc:'Number converter, ASCII, Big-O, and logic gates in one place.', mode:'modal', fn:'openCSReference' },
+    ],
+  },
+];
+
+let studySearchQuery = '';
+/** Only one subject section mounts heavy widgets (#periodic, #gcCanvas, …) at a time. */
+let focusedUnifiedSectionId = 'science';
+
+function clearStudyToolBody(secId){
+  const body = document.getElementById('st-tool-body-'+secId);
+  if (!body) return;
+  const per = document.getElementById('periodic');
+  if (per && body.contains(per)) ensurePeriodicStashedUnlessOpening();
+  body.innerHTML = '<p class="tb-sub st-tool-deferred-hint">Pick a tool chip to load it here.</p>';
+}
+
+function getFluxUserClasses(){
+  const cl = Array.isArray(window.classes) ? window.classes : [];
+  const out = [];
+  cl.forEach(c => {
+    if (!c || !c.name) return;
+    const classify = window.fluxRefsClassify || (() => []);
+    const tags = classify(c.name) || [];
+    out.push({ id: String(c.id), name: c.name, color: c.color || 'var(--accent)', tags });
+  });
+  return out;
+}
+
+function primarySectionForTags(tags){
+  if (!tags || !tags.length) return null;
+  for (const sec of UNIFIED_LAYOUT){
+    if (tags.some(t => sec.classTags.includes(t))) return sec.id;
+  }
+  return null;
+}
+
+function classPillsHtml(sec){
+  const cls = getFluxUserClasses();
+  const parts = [];
+  cls.forEach(c => {
+    if (!c.tags || !c.tags.some(t => sec.classTags.includes(t))) return;
+    const col = c.color ? ` style="--chip-col:${esc(c.color)}"` : '';
+    parts.push(`<span class="st-class-tag"${col}>${esc(c.name)}</span>`);
+  });
+  return parts.join('');
+}
+
+function getActiveChipId(sec){
+  const saved = lsStudyTool(sec.id);
+  if (saved && sec.tools.some(t => t.id === saved)) return saved;
+  return sec.tools[0]?.id || null;
+}
+
+function renderToolContentForChip(body, chip){
+  if (chip.mode === 'inline') renderToolIntoBody(body, chip.sub, chip.tid);
+  else if (chip.mode === 'modal') renderModalPreview(body, chip.label, chip.desc, chip.fn, 'Open '+chip.label);
+  else if (chip.mode === 'link') renderLinkPreview(body, chip.label, chip.desc, chip.btn, chip.nav);
+}
+
+function scrollToStudySection(secId, pulse){
+  const wrap = document.getElementById('st-section-'+secId);
+  if (!wrap) return;
+  setLsStudyCollapsed(secId, false);
+  const inner = wrap.querySelector('.st-section-body');
+  const hdr = wrap.querySelector('.st-section-header');
+  if (inner){ inner.classList.remove('collapsed'); inner.style.maxHeight = '2000px'; }
+  if (hdr){ hdr.setAttribute('aria-expanded','true'); hdr.querySelector('.st-section-chevron')?.classList.remove('collapsed'); }
+  wrap.scrollIntoView({ behavior:'smooth', block:'start' });
+  if (pulse && hdr){
+    hdr.classList.add('st-section--pulse');
+    setTimeout(() => hdr.classList.remove('st-section--pulse'), 1400);
+  }
+}
+
+function refreshClassChipsUI(activeKey){
+  const host = $('stClassChips');
+  if (!host) return;
+  const cls = getFluxUserClasses();
+  const mk = (key, label, col) => {
+    const on = activeKey === key ? ' active' : '';
+    const st = col ? ` style="--chip-col:${esc(col)}"` : '';
+    return `<button type="button" class="st-class-chip${on}" data-class="${esc(key)}"${st} role="tab" aria-selected="${activeKey===key}">${esc(label)}</button>`;
+  };
+  const parts = [mk('all', 'All', null)];
+  cls.forEach(c => parts.push(mk(c.id, c.name, c.color)));
+  host.innerHTML = parts.join('');
+  const filterBar = $('stFilterBar');
+  if (filterBar) filterBar.hidden = cls.length <= 6;
+}
+
+function buildStudySearchIndex(){
+  const rows = [];
+  UNIFIED_LAYOUT.forEach(sec => {
+    sec.tools.forEach(t => {
+      rows.push({
+        sec, tool: t,
+        hay: (t.label+' '+t.desc+' '+sec.name).toLowerCase(),
+      });
+    });
+  });
+  return rows;
+}
+
+function updateStudySearchUI(){
+  const inp = $('stSearchInput');
+  if (inp) studySearchQuery = inp.value;
+  const q = (studySearchQuery || '').trim().toLowerCase();
+  const clr = $('stSearchClear');
+  const results = $('stSearchResults');
+  const sections = $('stSections');
+  const strip = $('stClassChips');
+  const filterBar = $('stFilterBar');
+  const sticky = $('stStickyHeader');
+  if (clr) clr.hidden = !q;
+  if (!q){
+    if (results){ results.hidden = true; results.innerHTML = ''; }
+    if (sections) sections.hidden = false;
+    if (strip) strip.hidden = false;
+    if (filterBar && getFluxUserClasses().length > 6) filterBar.hidden = false;
+    if (sticky) sticky.classList.remove('st-sticky--search');
+    const fid = focusedUnifiedSectionId && UNIFIED_LAYOUT.some(s => s.id === focusedUnifiedSectionId)
+      ? focusedUnifiedSectionId : 'science';
+    focusedUnifiedSectionId = fid;
+    UNIFIED_LAYOUT.forEach(s => { if (s.id !== fid) clearStudyToolBody(s.id); });
+    refreshSectionToolUI(fid);
+    return;
+  }
+  if (sticky) sticky.classList.add('st-sticky--search');
+  if (sections) sections.hidden = true;
+  if (strip) strip.hidden = true;
+  if (filterBar) filterBar.hidden = true;
+  if (!results) return;
+  const idx = buildStudySearchIndex().filter(r => r.hay.includes(q));
+  results.hidden = false;
+  if (!idx.length){
+    results.innerHTML = `<div class="st-empty tb-card"><p>No tools found for “${esc(studySearchQuery)}”.</p><p class="tb-sub">Try the Flux AI tab for open-ended help.</p></div>`;
+    return;
+  }
+  results.innerHTML = `<div class="st-search-results-inner">${idx.map(r => {
+    const t = r.tool;
+    const openLabel = t.mode === 'inline' ? 'Use' : (t.mode === 'link' ? 'Open' : 'Open');
+    return `<article class="st-search-card tb-card" data-sec="${esc(r.sec.id)}" data-chip="${esc(t.id)}">
+      <div class="st-search-card-head"><span class="st-search-emoji" aria-hidden="true">${t.icon}</span><span class="st-search-name">${esc(t.label)}</span></div>
+      <span class="st-search-subject-pill">${esc(r.sec.name)}</span>
+      <p class="st-search-desc">${esc(t.desc)}</p>
+      <button type="button" class="tb-btn st-search-open">${esc(openLabel)}</button>
+    </article>`;
+  }).join('')}</div>`;
+  results.querySelectorAll('.st-search-card').forEach(card => {
+    card.querySelector('.st-search-open')?.addEventListener('click', () => {
+      const sid = card.getAttribute('data-sec');
+      const cid = card.getAttribute('data-chip');
+      studySearchQuery = '';
+      if (inp) inp.value = '';
+      updateStudySearchUI();
+      setLsStudyTool(sid, cid);
+      if (typeof nav === 'function') nav('toolbox');
+      setTimeout(() => {
+        scrollToStudySection(sid, true);
+        refreshSectionToolUI(sid);
+      }, 80);
+    });
+  });
+}
+
+function refreshSectionToolUI(secId){
+  const sec = UNIFIED_LAYOUT.find(s => s.id === secId);
+  if (!sec) return;
+  const wrap = document.getElementById('st-section-'+secId);
+  if (!wrap) return;
+  focusedUnifiedSectionId = secId;
+  UNIFIED_LAYOUT.forEach(s => {
+    if (s.id !== secId) clearStudyToolBody(s.id);
+  });
+  const chipId = getActiveChipId(sec);
+  wrap.querySelectorAll('.st-tool-chip').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-chip') === chipId);
+  });
+  UNIFIED_LAYOUT.forEach(s => {
+    if (s.id === secId) return;
+    const w2 = document.getElementById('st-section-'+s.id);
+    w2?.querySelectorAll('.st-tool-chip').forEach(b => {
+      const id = b.getAttribute('data-chip');
+      b.classList.toggle('active', id === getActiveChipId(s));
+    });
+  });
+  const body = wrap.querySelector('.st-tool-content');
+  if (!body) return;
+  const chip = sec.tools.find(t => t.id === chipId) || sec.tools[0];
+  if (!chip) return;
+  if (chip.mode === 'inline'){
+    state.subject = chip.sub;
+    state.tool = chip.tid;
+  }
+  renderToolContentForChip(body, chip);
+}
+
+function wireStudyUnifiedOnce(){
+  const root = $('toolbox');
+  if (!root || root._stUnifiedWired) return;
+  root._stUnifiedWired = 1;
+  const inp = $('stSearchInput');
+  const clr = $('stSearchClear');
+  if (inp){
+    inp.addEventListener('input', () => {
+      studySearchQuery = inp.value;
+      updateStudySearchUI();
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Escape'){
+        studySearchQuery = '';
+        inp.value = '';
+        updateStudySearchUI();
+      }
+    });
+  }
+  if (clr){
+    clr.addEventListener('click', () => {
+      studySearchQuery = '';
+      if (inp) inp.value = '';
+      updateStudySearchUI();
+    });
+  }
+}
+
+function activateStudyTool(subjectId, toolId){
+  for (const sec of UNIFIED_LAYOUT){
+    for (const t of sec.tools){
+      if (t.mode === 'inline' && t.sub === subjectId && t.tid === toolId){
+        state.subject = subjectId;
+        state.tool = toolId;
+        setLsStudyTool(sec.id, t.id);
+        focusedUnifiedSectionId = sec.id;
+        return;
+      }
+    }
+  }
+  state.subject = subjectId;
+  state.tool = toolId;
+}
+
+function renderUnifiedStudyTools(){
+  const root = $('toolbox');
+  const host = $('stSections');
+  if (!root || !host) return;
+  wireStudyUnifiedOnce();
+
+  let activeClass = 'all';
+  try{ activeClass = localStorage.getItem('flux_ref_class') || 'all'; }catch(e){}
+
+  if (!root._stSectionsBuilt){
+    root._stSectionsBuilt = 1;
+    host.innerHTML = UNIFIED_LAYOUT.map(sec => {
+      const collapsed = lsStudyCollapsed(sec.id);
+      const pills = classPillsHtml(sec);
+      const sid = sec.id;
+      return `<section class="st-section" id="st-section-${sid}" data-section="${sid}">
+        <button type="button" class="st-section-header" aria-expanded="${collapsed ? 'false' : 'true'}">
+          <span class="st-section-header-main">
+            <span class="st-section-icon" aria-hidden="true">${sec.icon}</span>
+            <span class="st-section-name">${esc(sec.name)}</span>
+            ${pills ? `<span class="st-class-tags">${pills}</span>` : ''}
+          </span>
+          <span class="st-section-chevron${collapsed ? ' collapsed' : ''}" aria-hidden="true">▼</span>
+        </button>
+        <div class="st-section-body${collapsed ? ' collapsed' : ''}" style="max-height:${collapsed ? '0' : '2000px'}">
+          <div class="st-tool-chips" role="tablist">${sec.tools.map(t => `
+            <button type="button" class="st-tool-chip" data-chip="${esc(t.id)}" role="tab">${t.icon ? `<span class="st-tool-chip-ic" aria-hidden="true">${t.icon}</span>` : ''}<span>${esc(t.label)}</span></button>
+          `).join('')}</div>
+          <div class="st-tool-content tb-body" id="st-tool-body-${sid}" aria-live="polite"></div>
+        </div>
+      </section>`;
+    }).join('');
+
+    host.querySelectorAll('.st-section').forEach(secEl => {
+      const sid = secEl.getAttribute('data-section');
+      secEl.querySelector('.st-section-header')?.addEventListener('click', () => {
+        const body = secEl.querySelector('.st-section-body');
+        const hdr = secEl.querySelector('.st-section-header');
+        const chev = secEl.querySelector('.st-section-chevron');
+        const collapsed = body?.classList.toggle('collapsed');
+        if (body){
+          body.style.maxHeight = body.classList.contains('collapsed') ? '0' : '2000px';
+        }
+        const isCol = body?.classList.contains('collapsed');
+        setLsStudyCollapsed(sid, !!isCol);
+        hdr?.setAttribute('aria-expanded', isCol ? 'false' : 'true');
+        chev?.classList.toggle('collapsed', !!isCol);
+      });
+      secEl.querySelectorAll('.st-tool-chip').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-chip');
+          if (!id) return;
+          setLsStudyTool(sid, id);
+          refreshSectionToolUI(sid);
+        });
+      });
+    });
+
+    const chipsHost = $('stClassChips');
+    function applyClassSelection(key){
+      try{ localStorage.setItem('flux_ref_class', key); }catch(err){}
+      refreshClassChipsUI(key);
+      const filterMode = $('stFilterMode')?.checked;
+      if (key === 'all'){
+        UNIFIED_LAYOUT.forEach(s => { document.getElementById('st-section-'+s.id)?.classList.remove('st-section--filtered-out'); });
+        root.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const cls = getFluxUserClasses().find(c => c.id === key);
+      const secId = cls ? primarySectionForTags(cls.tags) : null;
+      if (filterMode && secId){
+        UNIFIED_LAYOUT.forEach(s => {
+          const el = document.getElementById('st-section-'+s.id);
+          if (!el) return;
+          el.classList.toggle('st-section--filtered-out', s.id !== secId);
+        });
+        scrollToStudySection(secId, true);
+        refreshSectionToolUI(secId);
+      } else {
+        UNIFIED_LAYOUT.forEach(s => { document.getElementById('st-section-'+s.id)?.classList.remove('st-section--filtered-out'); });
+        if (secId) scrollToStudySection(secId, true);
+      }
+    }
+    chipsHost?.addEventListener('click', e => {
+      const b = e.target.closest('.st-class-chip');
+      if (!b) return;
+      const key = b.getAttribute('data-class') || 'all';
+      applyClassSelection(key);
+    });
+
+    $('stFilterMode')?.addEventListener('change', () => {
+      let key = 'all';
+      try{ key = localStorage.getItem('flux_ref_class') || 'all'; }catch(e){}
+      applyClassSelection(key);
+    });
+
+    focusedUnifiedSectionId = 'science';
+  }
+
+  refreshClassChipsUI(activeClass);
+  const filterMode = $('stFilterMode')?.checked;
+  if (filterMode && activeClass !== 'all'){
+    const cls = getFluxUserClasses().find(c => c.id === activeClass);
+    const secId = cls ? primarySectionForTags(cls.tags) : null;
+    UNIFIED_LAYOUT.forEach(s => {
+      const el = document.getElementById('st-section-'+s.id);
+      if (!el) return;
+      el.classList.toggle('st-section--filtered-out', secId ? s.id !== secId : false);
+    });
+  } else {
+    UNIFIED_LAYOUT.forEach(s => { document.getElementById('st-section-'+s.id)?.classList.remove('st-section--filtered-out'); });
+  }
+
+  UNIFIED_LAYOUT.forEach(sec => {
+    const wrap = document.getElementById('st-section-'+sec.id);
+    if (!wrap) return;
+    const pills = classPillsHtml(sec);
+    const tagHost = wrap.querySelector('.st-class-tags');
+    if (tagHost) tagHost.innerHTML = pills;
+    else if (pills){
+      const main = wrap.querySelector('.st-section-header-main');
+      if (main) main.insertAdjacentHTML('beforeend', `<span class="st-class-tags">${pills}</span>`);
+    }
+  });
+
+  updateStudySearchUI();
+}
+
+// ────────────────────────────────────────────────────────────────
 // EXPOSE
 // ────────────────────────────────────────────────────────────────
-window.renderToolbox = render;
-window.fluxToolbox = { render, SUBJECTS, state };
+function renderToolboxCompat(){
+  renderUnifiedStudyTools();
+}
+window.renderToolbox = renderToolboxCompat;
+window.renderStudyTools = renderToolboxCompat;
+window.activateStudyTool = activateStudyTool;
+window.fluxToolbox = { render: renderToolboxCompat, SUBJECTS, state, activateStudyTool, renderToolIntoBody, UNIFIED_LAYOUT };
 
 })();

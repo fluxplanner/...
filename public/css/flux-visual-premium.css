@@ -196,17 +196,17 @@ html[data-flux-glass="on"] #countdownCard .dash-v2-countdown-card{
 /* ═══ Task rows ═══ */
 .task-item:not(.task-done){
   transition:
-    transform .32s var(--flux-ease-spring-soft),
-    box-shadow .32s var(--flux-ease-out-expo),
-    border-color .28s ease,
-    filter .28s ease!important;
+    transform .22s cubic-bezier(.22,1,.36,1),
+    box-shadow .26s cubic-bezier(.22,1,.36,1),
+    border-color .22s ease,
+    filter .22s ease!important;
 }
 .task-item:not(.task-done):hover{
-  transform:translateX(3px) translateY(-2px)!important;
+  transform:translate3d(1px,-1px,0)!important;
   box-shadow:
-    0 10px 32px rgba(0,0,0,.38),
-    0 0 0 1px rgba(var(--accent-rgb),.12),
-    0 0 28px rgba(var(--accent-rgb),.06)!important;
+    0 7px 24px rgba(0,0,0,.3),
+    0 0 0 1px rgba(var(--accent-rgb),.1),
+    0 0 20px rgba(var(--accent-rgb),.05)!important;
 }
 .task-item.priority-high::before{
   box-shadow:0 0 12px rgba(var(--red-rgb),.45)!important;

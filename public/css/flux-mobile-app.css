@@ -153,7 +153,27 @@
 .more-sheet-icon{
   font-size: 1.45rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.6em;
+  color: var(--text);
 }
+.more-sheet-icon .ms-svg-wrap{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.more-sheet-icon .ms-svg-wrap svg.nt-svg{
+  width: 26px;
+  height: 26px;
+  display: block;
+  color: currentColor;
+}
+.more-sheet-item:active .more-sheet-icon .nt-svg{ opacity: 0.95; }
+.nav-item.active .ni-svg-wrap .nt-svg,
+.bnav-item.active .bni .nt-svg{ color: currentColor; }
 .more-sheet-label{
   font-size: .76rem;
   letter-spacing: -.005em;
@@ -979,10 +999,9 @@ body.flux-panic .task-card.flux-task-urgent{
 }
 
 /* ════════════════════════════════════════════════════════════════
-   REFERENCES PANEL — class chips, search bar, tool cards grid
+   Study tools panel (unified #toolbox.st-panel) — legacy ref-* kept for modals
    ════════════════════════════════════════════════════════════════ */
-#references{ max-width: 1240px; margin: 0 auto; }
-#references .flux-page-header--lead{ margin-bottom: 14px; }
+#toolbox.st-panel{ max-width: 1240px; margin: 0 auto; }
 
 .ref-search-row{ margin: 0 0 14px; }
 .ref-search-input{
@@ -1150,8 +1169,9 @@ body.flux-panic .task-card.flux-task-urgent{
 }
 
 @media (max-width: 768px){
-  #references{ padding: 12px max(14px, var(--sa-left)) max(120px, calc(92px + var(--sa-bottom))) max(14px, var(--sa-right)) !important; }
-  #references .flux-page-header--lead{ display: none !important; }
+  #toolbox.st-panel{
+    padding: 12px max(14px, var(--sa-left)) max(120px, calc(92px + var(--sa-bottom))) max(14px, var(--sa-right)) !important;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════

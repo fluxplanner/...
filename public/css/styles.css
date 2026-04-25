@@ -152,7 +152,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px rgba(var(--accent-rgb),.15);
 }
 .nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 3px 3px 0;box-shadow:0 0 8px rgba(var(--accent-rgb),.4)}
-.nav-item .ni{font-size:.95rem;flex-shrink:0;width:20px;text-align:center}
+.nav-item .ni{
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:22px;min-width:22px;text-align:center;
+  font-size:.95rem;
+}
+.nav-item .ni-svg-wrap{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-item .ni-svg-wrap svg,
+.nav-item .ni-emoji{
+  display:block;flex-shrink:0;
+  width:20px;height:20px;max-width:20px;max-height:20px;
+}
+.nav-item .ni-emoji{height:auto;max-height:none;font-size:.95rem;line-height:1;width:auto}
+.nav-item .ni-svg-wrap svg{overflow:visible}
 .nav-item .nl{overflow:hidden;transition:opacity var(--t-base) var(--ease),width var(--t-base) var(--ease)}
 .sidebar.collapsed .nl{opacity:0;width:0}
 .sidebar-footer{
@@ -1959,7 +1971,10 @@ body.high-contrast .nav-item{
 #coachPrompt{transition:opacity .4s ease}
 
 /* ── Achievement Toast ── */
+/* left:50% + translateX(-50%) UIs (keyHint, fixed bars) — keep horizontal centering through the motion */
 @keyframes slideUpToast{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+/* #fluxToastStack children: parent is flex-centered; X must not use -50% or the toast jumps when the keyframe ends */
+@keyframes fluxToastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── Why Popup ── */
 @keyframes fadeScale{from{opacity:0;transform:translate(-50%,-50%) scale(.95)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
@@ -2076,7 +2091,7 @@ button:focus-visible,.nav-item:focus-visible,.tmode-btn:focus-visible,.check:foc
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px rgba(var(--accent-rgb),.18)!important;
 }
 .nav-item.active::before{height:18px!important;width:3px!important;box-shadow:0 0 8px rgba(var(--accent-rgb),.3)!important}
-.nav-item .ni{font-size:.95rem!important;width:20px!important;text-align:center!important}
+.nav-item .ni{font-size:.95rem!important;min-width:22px!important;width:22px!important;text-align:center!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
 .sidebar-footer{
   padding:12px!important;margin:10px 10px 14px!important;
   background:linear-gradient(165deg,rgba(var(--accent-rgb),.1) 0%,rgba(255,255,255,.07) 45%,rgba(255,255,255,.03) 100%)!important;
@@ -2652,15 +2667,25 @@ body::before{opacity:.5!important}
   to{opacity:1;transform:none}
 }
 
-/* ── TASK HOVER: SUBTLE LIFT + LEFT BAR GLOW ── */
-.task-item:not(.task-done){transition:transform .2s var(--ease-spring),border-color .15s ease,box-shadow .2s ease!important}
+/* ── TASK HOVER: subtle lift (smooth ease — no spring overshoot) ── */
+.task-item:not(.task-done){
+  transform:translate3d(0,0,0);
+  transition:
+    transform .22s var(--ease-cinematic),
+    border-color .2s var(--ease),
+    box-shadow .26s var(--ease-cinematic),
+    filter .2s var(--ease)!important;
+}
 .task-item:not(.task-done):hover{
-  transform:translateY(-1px) scale(1.003)!important;
-  box-shadow:0 4px 16px rgba(0,0,0,.18)!important;
+  transform:translate3d(0,-1px,0)!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.2)!important;
+}
+.task-item:not(.task-done)::before{
+  transition:box-shadow .24s var(--ease-cinematic),filter .24s var(--ease),background var(--t-base) var(--ease);
 }
 .task-item:not(.task-done):hover::before{
-  box-shadow:0 0 8px currentColor;
-  filter:brightness(1.3);
+  box-shadow:0 0 6px currentColor;
+  filter:brightness(1.12);
 }
 
 /* ── CHECKBOX INTERACTIONS ── */
