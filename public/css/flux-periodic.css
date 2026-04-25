@@ -239,13 +239,13 @@
   margin: 0 auto;
 }
 
-/* Enforce square tiles: global `button` + flux-motion use pill radius+!important; beat both here */
+/* Slight rounding on cells; keep !important so global button pill rules never win */
 #periodic #ptGrid button.pt-el{
-  border-radius: 0 !important;
-  -webkit-border-radius: 0 !important;
+  border-radius: 3px !important;
+  -webkit-border-radius: 3px !important;
 }
 
-/* Element cell — true squares, 90° corners (no iOS/UA pill rounding) */
+/* Element cell — compact tiles with gentle corner radius */
 .pt-el{
   -webkit-appearance: none;
   appearance: none;
@@ -265,7 +265,7 @@
   padding: 2px;
   background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.015));
   border: 1px solid rgba(255,255,255,.08);
-  border-radius: 0;
+  border-radius: 3px;
   color: var(--text);
   cursor: pointer;
   text-align: left;
@@ -279,11 +279,11 @@
     opacity .2s ease;
 }
 .pt-el::before{
-  /* Category-colored layer — same sharp rectangle as the button */
+  /* Category-colored layer — matches cell corner radius */
   content:'';
   position: absolute;
   inset: 0;
-  border-radius: 0;
+  border-radius: inherit;
   background: currentColor;
   opacity: .09;
   pointer-events: none;
@@ -658,7 +658,7 @@
     aspect-ratio: 951 / 486;
     min-width: 951px;
   }
-  .pt-el{ padding: 2px; border-radius: 0; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
+  .pt-el{ padding: 2px; border-radius: 3px; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
   .pt-el-n{ font-size: .52rem; }
   .pt-el-s{ font-size: .92rem; margin-top: 1px; }
   .pt-el-name{ font-size: .46rem; margin-top: 1px; display: block; }
@@ -672,7 +672,7 @@
     aspect-ratio: auto;
     min-width: calc(18 * 46px + 17 * 2px);
   }
-  .pt-el{ padding: 2px; border-radius: 0; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
+  .pt-el{ padding: 2px; border-radius: 3px; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
   .pt-el-n{ font-size: .48rem; }
   .pt-el-s{ font-size: .82rem; margin-top: 1px; }
   .pt-el-name{ font-size: .42rem; margin-top: 1px; display: block; }
@@ -687,7 +687,7 @@
     grid-template-rows: repeat(7, 40px) 10px 40px 40px;
     min-width: calc(18 * 40px + 17 * 2px);
   }
-  .pt-el{ border-radius: 0; aspect-ratio: 1 / 1; padding: 2px; -webkit-appearance: none; appearance: none; }
+  .pt-el{ border-radius: 3px; aspect-ratio: 1 / 1; padding: 2px; -webkit-appearance: none; appearance: none; }
   .pt-el-name{ display: none; }
 }
 

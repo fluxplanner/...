@@ -306,7 +306,7 @@
   .panel.active .card{transform:translateZ(0);transition:transform .6s ease-out}
 }
 
-/* ── Buttons: pill + press (skip periodic table cells — those are sharp squares) ── */
+/* ── Buttons: pill + press (skip periodic table cells — they use their own small radius) ── */
 button:not(.fab-trigger):not(.nav-item):not(.bnav-item):not(.check):not(.btn-icon):not(.btn-sm):not(.pt-el){
   border-radius:999px!important;
 }
