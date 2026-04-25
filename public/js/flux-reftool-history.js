@@ -1,4 +1,4 @@
-/* World history map — real tiles (OSM + Leaflet), year range, regions, JSON events, Flux AI + geocode */
+/* World history map — Leaflet + theme-aware CARTO raster basemaps (dark_all / light_all), year range, regions, JSON events, Flux AI + geocode */
 (function(){
   'use strict';
   const esc = window.fluxEsc || (s => String(s==null?'':s).replace(/[&<>"']/g, ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])));
@@ -38,6 +38,24 @@
     europe: '#4da3ff', middle_east: '#e6b84d', africa: '#6fdc8c', asia: '#ff6b6b',
     north_america: '#a78bfa', south_america: '#f472b6', oceania: '#2dd4bf', world: '#a3a3a3',
   };
+
+  /** CARTO/OSM tiles — dark basemap matches Flux dark themes; Positron for Cloud (light). */
+  function historyMapTileLayerSpec(){
+    const theme = (typeof document !== 'undefined' && document.body && document.body.getAttribute('data-theme')) || 'dark';
+    const light = theme === 'light';
+    if (light){
+      return {
+        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20,
+      };
+    }
+    return {
+      url: 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      maxZoom: 19,
+    };
+  }
 
   /** Fallback if JSON fetch fails (offline) */
   const HIST_SEED = [
@@ -366,9 +384,11 @@
         loadEl.style.display = 'none';
         const map = L.map(state.mapEl, { worldCopyJump: true, scrollWheelZoom: true, zoomControl: true });
         state.map = map;
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap',
+        const basemap = historyMapTileLayerSpec();
+        L.tileLayer(basemap.url, {
+          maxZoom: basemap.maxZoom,
+          attribution: basemap.attribution,
+          subdomains: 'abcd',
         }).addTo(map);
         map.setView([20, 0], 2);
         state.group = L.layerGroup().addTo(map);
