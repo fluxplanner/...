@@ -78,7 +78,15 @@
     try{
       const raw=localStorage.getItem(KEY_LIQUID_GLASS);
       if(raw!==null)on=JSON.parse(raw)===true;
-    }catch(e){on=true;}
+      else{
+        const narrow=typeof matchMedia!=='undefined'&&matchMedia('(max-width:768px)').matches;
+        on=narrow;
+      }
+    }catch(e){
+      try{
+        on=typeof matchMedia!=='undefined'&&matchMedia('(max-width:768px)').matches;
+      }catch(_){on=false;}
+    }
     document.documentElement.setAttribute('data-flux-glass',on?'on':'off');
   }
   function setLiquidGlassEnabled(on){
@@ -86,22 +94,12 @@
     applyLiquidGlass();
   }
 
-  function perfSnappySuggest(){
-    try{
-      const mobile=typeof matchMedia!=='undefined'&&matchMedia('(max-width:768px)').matches;
-      const lowMem=typeof navigator.deviceMemory==='number'&&navigator.deviceMemory<=4;
-      const fewCores=(navigator.hardwareConcurrency||8)<=2;
-      return mobile||lowMem||fewCores;
-    }catch(e){return false;}
-  }
   function applyPerfSnappy(){
-    let on;
+    let on=true;
     try{
       const raw=localStorage.getItem(KEY_PERF_SNAPPY);
-      on=raw===null?perfSnappySuggest():JSON.parse(raw);
-    }catch(e){
-      on=perfSnappySuggest();
-    }
+      if(raw!==null)on=JSON.parse(raw)===true;
+    }catch(e){on=true;}
     document.documentElement.setAttribute('data-flux-perf',on?'on':'off');
   }
   function setPerfSnappyEnabled(on){
@@ -346,6 +344,10 @@
       try{
         const raw=localStorage.getItem(KEY_LIQUID_GLASS);
         if(raw!==null)en=JSON.parse(raw)===true;
+        else{
+          const narrow=typeof matchMedia!=='undefined'&&matchMedia('(max-width:768px)').matches;
+          en=narrow;
+        }
       }catch(e){en=true;}
       lg.classList.toggle('on',en);
       lg.setAttribute('aria-pressed',en?'true':'false');
@@ -358,11 +360,11 @@
     }
     const perf=document.getElementById('fluxPerfSnappyToggle');
     if(perf){
-      let cur=false;
+      let cur=true;
       try{
         const raw=localStorage.getItem(KEY_PERF_SNAPPY);
-        cur=raw===null?perfSnappySuggest():JSON.parse(raw);
-      }catch(e){cur=perfSnappySuggest();}
+        cur=raw===null?true:JSON.parse(raw)===true;
+      }catch(e){cur=true;}
       perf.classList.toggle('on',!!cur);
       perf.setAttribute('aria-pressed',cur?'true':'false');
       perf.onclick=()=>{

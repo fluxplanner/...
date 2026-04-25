@@ -937,6 +937,16 @@
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+/* Dashboard / shell: many stacked glass cards = heavy GPU; keep solid fills */
+#flux-main .card,
+#flux-main .stat,
+#flux-main .quick-add{
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#taskList{
+  contain: layout style;
+}
 
 /* ════════════════════════════════════════════════════════════════
    PANEL TRANSITION ANIMATIONS (fade + slide 200ms)

@@ -1,6 +1,6 @@
 /**
  * Flux performance layer — snappier UI, fewer full-screen repaints.
- * html[data-flux-perf="on"] = Settings “Snappy mode” or auto (mobile / low memory).
+ * html[data-flux-perf="on"] = “Snappy mode” (default ON; turn off in Settings).
  * html.flux-reduce-motion = accessibility reduce motion (shares many of the same cuts).
  */
 
