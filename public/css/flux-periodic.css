@@ -229,49 +229,55 @@
 .pt-grid{
   display: grid;
   grid-template-columns: repeat(18, minmax(0, 1fr));
-  /* Rows use `1fr` so their height is driven by the grid's aspect-ratio —
-     this guarantees every cell is a true square regardless of container
-     width. Change `aspect-ratio` below if you retune padding/gaps. */
+  /* Rows + grid aspect so each 1fr row matches column width → square cells */
   grid-template-rows: repeat(7, minmax(0, 1fr)) 14px repeat(2, minmax(0, 1fr));
   gap: 4px;
   min-width: 1020px; /* overflow-x: auto on .pt-wrap handles narrower screens */
-  /* 18 cols × cell + 17 gaps(4px) : 9 cells × cell + 8 gaps(4px) + 14px mid-row */
-  /* At cell=54 → 1040×532 ≈ 1.955 — cells come out perfectly square. */
+  place-items: stretch;
+  place-content: start;
   aspect-ratio: 1040 / 532;
   margin: 0 auto;
 }
 
-/* Element cell */
+/* Element cell — true squares, 90° corners (no iOS/UA pill rounding) */
 .pt-el{
+  -webkit-appearance: none;
+  appearance: none;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  padding: 3px 3px 2px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  /* Lock each tile to a square: width is set by the 18 col grid, height matches */
+  aspect-ratio: 1 / 1;
+  height: auto;
+  margin: 0;
+  padding: 2px;
   background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.015));
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 0;
   color: var(--text);
   cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  overflow: hidden;
   transition:
     transform .12s ease,
     box-shadow .16s ease,
     border-color .16s ease,
     background .16s ease,
     opacity .2s ease;
-  min-width: 0;
-  min-height: 0;
-  text-align: left;
-  font-family: inherit;
-  overflow: hidden;
 }
 .pt-el::before{
-  /* Category-colored glowing accent underneath */
+  /* Category-colored layer — same sharp rectangle as the button */
   content:'';
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  border-radius: 0;
   background: currentColor;
   opacity: .09;
   pointer-events: none;
@@ -281,15 +287,17 @@
   transform: translateY(-1px);
   border-color: currentColor;
   box-shadow:
-    0 4px 14px rgba(0,0,0,.28),
+    0 2px 8px rgba(0,0,0,.22),
     0 0 0 1px rgba(255,255,255,.05) inset,
-    0 0 20px -4px currentColor;
+    0 0 0 1px currentColor;
   z-index: 2;
 }
 .pt-el:hover::before{ opacity: .18; }
 .pt-el:focus-visible{
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb,0,191,255),.55);
+  outline: 2px solid rgba(var(--accent-rgb,0,191,255),.8);
+  outline-offset: 0;
+  z-index: 2;
+  box-shadow: none;
 }
 .pt-el[data-cat="alkali"]         { color: var(--pt-alkali); }
 .pt-el[data-cat="alkaline"]       { color: var(--pt-alkaline); }
@@ -644,7 +652,7 @@
     aspect-ratio: 951 / 486;
     min-width: 951px;
   }
-  .pt-el{ padding: 2px 2px 1px; border-radius: 0; }
+  .pt-el{ padding: 2px; border-radius: 0; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
   .pt-el-n{ font-size: .52rem; }
   .pt-el-s{ font-size: .92rem; margin-top: 1px; }
   .pt-el-name{ font-size: .46rem; margin-top: 1px; display: block; }
@@ -658,7 +666,7 @@
     aspect-ratio: auto;
     min-width: calc(18 * 46px + 17 * 2px);
   }
-  .pt-el{ padding: 2px 2px 1px; border-radius: 0; aspect-ratio: 1 / 1; }
+  .pt-el{ padding: 2px; border-radius: 0; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
   .pt-el-n{ font-size: .48rem; }
   .pt-el-s{ font-size: .82rem; margin-top: 1px; }
   .pt-el-name{ font-size: .42rem; margin-top: 1px; display: block; }
@@ -673,7 +681,7 @@
     grid-template-rows: repeat(7, 40px) 10px 40px 40px;
     min-width: calc(18 * 40px + 17 * 2px);
   }
-  .pt-el{ border-radius: 0; }
+  .pt-el{ border-radius: 0; aspect-ratio: 1 / 1; padding: 2px; -webkit-appearance: none; appearance: none; }
   .pt-el-name{ display: none; }
 }
 
@@ -681,6 +689,7 @@
 @media print{
   #ptDetail{ display: none !important; }
   .pt-el{
+    border-radius: 0 !important;
     box-shadow: none !important;
     transform: none !important;
     break-inside: avoid;
