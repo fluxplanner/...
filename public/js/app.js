@@ -832,6 +832,18 @@ const API={
 };
 // Headers for Supabase Edge Functions (AI + Canvas)
 const API_HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`};
+
+/** One-shot call to the same Supabase AI proxy as chat (for reference tools, JSON extraction, etc.). */
+async function fluxAiSimple(system, userMessage){
+  const res=await fetch(API.ai,{ method:'POST', headers:API_HEADERS, body:JSON.stringify({ system, messages:[{ role:'user', content:userMessage }] }) });
+  if(!res.ok){
+    const err=await res.json().catch(()=>({ error:'HTTP '+res.status }));
+    throw new Error(err.error||'AI request failed');
+  }
+  const data=await res.json();
+  return data.content?.[0]?.text||'';
+}
+try{ window.fluxAiSimple=fluxAiSimple; }catch(e){}
 // Gemini proxy doesn't need Authorization header - it uses the server-side key
 const GEMINI_HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`};
 

@@ -1,173 +1,423 @@
-/* History Map — SVG world regions, clickable, era filter, side panel */
+/* World history map — real tiles (OSM + Leaflet), year range, regions, JSON events, Flux AI + geocode */
 (function(){
   'use strict';
-  const esc = window.fluxEsc || ((s)=>String(s==null?'':s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])));
+  const esc = window.fluxEsc || (s => String(s==null?'':s).replace(/[&<>"']/g, ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])));
 
-  // Simplified region data (not a full geographic map, but educational schematic)
-  const REGIONS = {
-    europe:     { name:'Europe',                eras:['ancient','medieval','earlyModern','modern'] },
-    mediterranean: { name:'Mediterranean / Near East', eras:['ancient','medieval'] },
-    africa:     { name:'Africa',                eras:['ancient','medieval','earlyModern','modern'] },
-    mideast:    { name:'Middle East',           eras:['ancient','medieval','earlyModern','modern'] },
-    india:      { name:'South Asia (India)',    eras:['ancient','medieval','earlyModern','modern'] },
-    china:      { name:'East Asia (China)',     eras:['ancient','medieval','earlyModern','modern'] },
-    japan:      { name:'Japan',                 eras:['medieval','earlyModern','modern'] },
-    seasia:     { name:'Southeast Asia',        eras:['medieval','earlyModern','modern'] },
-    oceania:    { name:'Oceania',               eras:['earlyModern','modern'] },
-    namerica:   { name:'North America',         eras:['ancient','earlyModern','modern'] },
-    samerica:   { name:'South America',         eras:['ancient','earlyModern','modern'] },
-  };
+  const EPOCH_MIN = -5000;
+  const EPOCH_MAX = 2030;
+  const LEAFLET_CSS = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css';
+  const LEAFLET_JS = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js';
+  const ICON_PNG = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon.png';
+  const ICON2X = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon-2x.png';
+  const SHADOW = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png';
 
-  const ERAS = [
-    { id:'ancient',     label:'Ancient', range:'c. 3000 BCE – 500 CE' },
-    { id:'medieval',    label:'Medieval', range:'500 – 1500 CE' },
-    { id:'earlyModern', label:'Early Modern', range:'1500 – 1800' },
-    { id:'modern',      label:'Modern', range:'1800 – present' },
+  const CONTINENTS = [
+    { id: 'all', name: 'All' },
+    { id: 'europe', name: 'Europe' },
+    { id: 'middle_east', name: 'M. East' },
+    { id: 'africa', name: 'Africa' },
+    { id: 'asia', name: 'Asia' },
+    { id: 'north_america', name: 'N. Am.' },
+    { id: 'south_america', name: 'S. Am.' },
+    { id: 'oceania', name: 'Oceania' },
+    { id: 'world', name: 'Global' },
   ];
 
-  const DATA = {
-    europe: [
-      { era:'ancient', period:'Greek city-states (Archaic & Classical Greece)', empires:['Athens','Sparta','Macedonia','Alexander\'s empire'], dates:[{y:'776 BCE',e:'First Olympic Games'},{y:'508 BCE',e:'Athenian democracy'},{y:'490 BCE',e:'Battle of Marathon'},{y:'336 BCE',e:'Alexander the Great'},{y:'146 BCE',e:'Rome conquers Greece'}], figures:['Pericles','Socrates','Plato','Aristotle','Alexander the Great'] },
-      { era:'ancient', period:'Roman Republic & Empire', empires:['Roman Republic','Roman Empire'], dates:[{y:'509 BCE',e:'Roman Republic founded'},{y:'27 BCE',e:'Augustus — first emperor'},{y:'117 CE',e:'Empire reaches peak'},{y:'313 CE',e:'Edict of Milan'},{y:'476 CE',e:'Fall of Western Empire'}], figures:['Julius Caesar','Augustus','Cicero','Constantine'] },
-      { era:'medieval', period:'Byzantine, Carolingian, Feudal Europe', empires:['Byzantine Empire','Holy Roman Empire','Kingdoms of England & France'], dates:[{y:'800',e:'Charlemagne crowned'},{y:'1066',e:'Norman Conquest of England'},{y:'1096',e:'First Crusade'},{y:'1215',e:'Magna Carta'},{y:'1347',e:'Black Death'},{y:'1453',e:'Fall of Constantinople'}], figures:['Charlemagne','William the Conqueror','Joan of Arc','Justinian I'] },
-      { era:'earlyModern', period:'Renaissance · Reformation · Enlightenment', empires:['Spain','Portugal','France','Habsburgs','British Empire'], dates:[{y:'1492',e:'Columbus reaches Americas'},{y:'1517',e:'95 Theses (Reformation)'},{y:'1588',e:'Spanish Armada defeated'},{y:'1648',e:'Peace of Westphalia'},{y:'1776',e:'American Revolution begins'},{y:'1789',e:'French Revolution'}], figures:['Leonardo da Vinci','Martin Luther','Elizabeth I','Napoleon','Louis XIV'] },
-      { era:'modern', period:'Industrial & World Wars', empires:['British Empire','German Empire','Soviet Union','EU'], dates:[{y:'1815',e:'Battle of Waterloo'},{y:'1914',e:'WWI begins'},{y:'1917',e:'Russian Revolution'},{y:'1939',e:'WWII begins'},{y:'1989',e:'Fall of Berlin Wall'},{y:'1993',e:'EU Maastricht Treaty'}], figures:['Queen Victoria','Churchill','Stalin','Hitler','de Gaulle'] },
-    ],
-    mediterranean: [
-      { era:'ancient', period:'Bronze Age Mediterranean', empires:['Minoans','Mycenaeans','Phoenicians','Carthage'], dates:[{y:'3000 BCE',e:'Minoan civilization'},{y:'814 BCE',e:'Carthage founded'},{y:'146 BCE',e:'Carthage destroyed'}], figures:['Hannibal','Dido'] },
-    ],
-    africa: [
-      { era:'ancient', period:'Ancient Egypt · Kush · Nok', empires:['Old/Middle/New Kingdom Egypt','Kush','Carthage'], dates:[{y:'3100 BCE',e:'Unification of Egypt'},{y:'2560 BCE',e:'Great Pyramid of Giza'},{y:'1332 BCE',e:'Tutankhamun'},{y:'51 BCE',e:'Cleopatra VII'},{y:'30 BCE',e:'Rome annexes Egypt'}], figures:['Khufu','Hatshepsut','Ramses II','Cleopatra'] },
-      { era:'medieval', period:'Mali, Ghana, Songhai, Swahili', empires:['Ghana Empire','Mali Empire','Songhai','Great Zimbabwe'], dates:[{y:'750',e:'Ghana Empire rises'},{y:'1235',e:'Mali Empire founded'},{y:'1324',e:'Mansa Musa\'s pilgrimage'},{y:'1464',e:'Songhai ascendancy'}], figures:['Mansa Musa','Sundiata Keita','Askia the Great'] },
-      { era:'earlyModern', period:'Atlantic slave trade, Ottoman North Africa', empires:['Ottoman North Africa','Ethiopian Empire'], dates:[{y:'1518',e:'Transatlantic slave trade begins'},{y:'1652',e:'Dutch Cape Colony'},{y:'1804',e:'Haitian independence (diaspora)'}], figures:['Menelik II (later)'] },
-      { era:'modern', period:'Colonization · Decolonization', empires:['British/French/Belgian/German colonies'], dates:[{y:'1884',e:'Berlin Conference'},{y:'1957',e:'Ghana independence'},{y:'1960',e:'"Year of Africa"'},{y:'1994',e:'End of Apartheid'}], figures:['Nelson Mandela','Kwame Nkrumah','Haile Selassie'] },
-    ],
-    mideast: [
-      { era:'ancient', period:'Mesopotamia · Persia', empires:['Sumer','Akkadian','Babylonian','Assyrian','Persian (Achaemenid)'], dates:[{y:'3500 BCE',e:'Writing invented (cuneiform)'},{y:'1754 BCE',e:'Code of Hammurabi'},{y:'550 BCE',e:'Cyrus the Great'},{y:'330 BCE',e:'Alexander conquers Persia'}], figures:['Hammurabi','Cyrus the Great','Darius I'] },
-      { era:'medieval', period:'Rise of Islam · Caliphates', empires:['Rashidun','Umayyad','Abbasid','Seljuk','Ottoman'], dates:[{y:'610',e:'Muhammad\'s revelation'},{y:'632',e:'Death of Muhammad'},{y:'750',e:'Abbasid Caliphate'},{y:'1258',e:'Mongols sack Baghdad'},{y:'1453',e:'Ottomans take Constantinople'}], figures:['Muhammad','Saladin','Harun al-Rashid','Suleiman the Magnificent'] },
-      { era:'earlyModern', period:'Ottoman Empire', empires:['Ottoman Empire','Safavid Persia'], dates:[{y:'1517',e:'Ottoman conquest of Egypt'},{y:'1683',e:'Siege of Vienna'}], figures:['Suleiman I'] },
-      { era:'modern', period:'Post-Ottoman · Oil · Modern Middle East', empires:['British/French Mandates','Kingdoms & Republics'], dates:[{y:'1916',e:'Sykes–Picot Agreement'},{y:'1948',e:'State of Israel'},{y:'1979',e:'Iranian Revolution'},{y:'2011',e:'Arab Spring'}], figures:['Kemal Atatürk','Nasser','Khomeini'] },
-    ],
-    india: [
-      { era:'ancient', period:'Indus · Maurya · Gupta', empires:['Indus Valley','Maurya','Gupta'], dates:[{y:'2600 BCE',e:'Indus Valley civilization'},{y:'322 BCE',e:'Mauryan Empire'},{y:'269 BCE',e:'Ashoka the Great'},{y:'320 CE',e:'Gupta Empire'}], figures:['Chandragupta Maurya','Ashoka','Chandragupta II'] },
-      { era:'medieval', period:'Delhi Sultanate · Vijayanagara', empires:['Delhi Sultanate','Vijayanagara','Bahmani'], dates:[{y:'1206',e:'Delhi Sultanate founded'},{y:'1336',e:'Vijayanagara founded'}], figures:['Razia Sultan'] },
-      { era:'earlyModern', period:'Mughal Empire', empires:['Mughal Empire'], dates:[{y:'1526',e:'Babur founds Mughal dynasty'},{y:'1556',e:'Akbar the Great'},{y:'1632',e:'Taj Mahal construction'},{y:'1707',e:'Aurangzeb dies, decline begins'}], figures:['Babur','Akbar','Shah Jahan','Aurangzeb'] },
-      { era:'modern', period:'British Raj · Independence', empires:['British Raj','India & Pakistan'], dates:[{y:'1858',e:'British Raj begins'},{y:'1919',e:'Amritsar massacre'},{y:'1947',e:'Independence & Partition'}], figures:['Gandhi','Nehru','Jinnah'] },
-    ],
-    china: [
-      { era:'ancient', period:'Xia · Shang · Zhou · Qin · Han', empires:['Shang','Zhou','Qin','Han'], dates:[{y:'1600 BCE',e:'Shang dynasty'},{y:'221 BCE',e:'Qin unification'},{y:'206 BCE',e:'Han dynasty founded'},{y:'100 BCE',e:'Silk Road opens'}], figures:['Qin Shi Huang','Confucius','Han Wudi'] },
-      { era:'medieval', period:'Tang · Song · Yuan · Ming', empires:['Tang','Song','Yuan (Mongol)','Ming'], dates:[{y:'618',e:'Tang dynasty'},{y:'960',e:'Song dynasty'},{y:'1279',e:'Yuan (Mongol) rule'},{y:'1368',e:'Ming dynasty'},{y:'1405',e:'Zheng He\'s voyages'}], figures:['Kublai Khan','Zheng He','Tang Taizong'] },
-      { era:'earlyModern', period:'Qing dynasty', empires:['Qing'], dates:[{y:'1644',e:'Qing dynasty'},{y:'1839',e:'Opium Wars begin'}], figures:['Kangxi','Qianlong'] },
-      { era:'modern', period:'Republic · PRC', empires:['Republic of China','People\'s Republic'], dates:[{y:'1912',e:'Qing falls'},{y:'1949',e:'PRC founded'},{y:'1978',e:'Reform & Opening'}], figures:['Sun Yat-sen','Mao Zedong','Deng Xiaoping'] },
-    ],
-    japan: [
-      { era:'medieval', period:'Heian · Kamakura · Muromachi', empires:['Heian','Kamakura shogunate','Ashikaga'], dates:[{y:'794',e:'Heian period begins'},{y:'1192',e:'Kamakura shogunate'},{y:'1333',e:'Muromachi period'}], figures:['Minamoto no Yoritomo','Prince Shōtoku'] },
-      { era:'earlyModern', period:'Sengoku · Edo', empires:['Oda / Toyotomi / Tokugawa'], dates:[{y:'1603',e:'Tokugawa shogunate'},{y:'1853',e:'Perry arrives'}], figures:['Oda Nobunaga','Tokugawa Ieyasu'] },
-      { era:'modern', period:'Meiji to modern Japan', empires:['Empire of Japan'], dates:[{y:'1868',e:'Meiji Restoration'},{y:'1905',e:'Russo-Japanese War'},{y:'1945',e:'WWII ends, Hiroshima & Nagasaki'}], figures:['Emperor Meiji','Hirohito'] },
-    ],
-    seasia: [
-      { era:'medieval', period:'Khmer · Srivijaya · Majapahit', empires:['Khmer Empire','Srivijaya','Majapahit'], dates:[{y:'802',e:'Khmer Empire'},{y:'1113',e:'Angkor Wat built'},{y:'1293',e:'Majapahit founded'}], figures:['Jayavarman VII','Gajah Mada'] },
-      { era:'earlyModern', period:'European colonization', empires:['Dutch East Indies','Spanish Philippines','French Indochina'], dates:[{y:'1521',e:'Magellan in Philippines'},{y:'1602',e:'Dutch East India Company'}], figures:[] },
-      { era:'modern', period:'Decolonization · Vietnam · ASEAN', empires:['Independent nations'], dates:[{y:'1945',e:'Vietnam declares independence'},{y:'1975',e:'Vietnam War ends'},{y:'1967',e:'ASEAN formed'}], figures:['Ho Chi Minh','Sukarno','Lee Kuan Yew'] },
-    ],
-    oceania: [
-      { era:'earlyModern', period:'Polynesian voyaging & contact', empires:['Maori','Aboriginal nations'], dates:[{y:'1000',e:'Polynesian expansion peaks'},{y:'1770',e:'Cook arrives in Australia'}], figures:['Captain Cook'] },
-      { era:'modern', period:'Australia · NZ · Pacific', empires:['British dominions','Independent Pacific nations'], dates:[{y:'1901',e:'Australian federation'},{y:'1840',e:'Treaty of Waitangi'}], figures:[] },
-    ],
-    namerica: [
-      { era:'ancient', period:'Mound-builders · Pueblo · Mesoamerica', empires:['Olmec','Teotihuacan','Maya','Mississippian'], dates:[{y:'1200 BCE',e:'Olmec civilization'},{y:'250 CE',e:'Classical Maya'},{y:'900',e:'Maya collapse begins'}], figures:[] },
-      { era:'earlyModern', period:'Colonization · Aztec · Colonial America', empires:['Aztec','Spanish New Spain','British Thirteen Colonies'], dates:[{y:'1492',e:'Columbus'},{y:'1521',e:'Cortés conquers Aztec'},{y:'1607',e:'Jamestown'},{y:'1776',e:'American Revolution'}], figures:['Moctezuma II','George Washington','Cortés'] },
-      { era:'modern', period:'USA · Canada · Mexico', empires:['USA','Mexico','Canada'], dates:[{y:'1861',e:'US Civil War'},{y:'1910',e:'Mexican Revolution'},{y:'1945',e:'Post-WWII superpower'}], figures:['Lincoln','MLK','Zapata'] },
-    ],
-    samerica: [
-      { era:'ancient', period:'Chavín · Moche', empires:['Chavín','Moche'], dates:[{y:'900 BCE',e:'Chavín culture'},{y:'100 CE',e:'Moche civilization'}], figures:[] },
-      { era:'earlyModern', period:'Inca · Spanish & Portuguese colonies', empires:['Inca Empire','Spanish Viceroyalty','Portuguese Brazil'], dates:[{y:'1438',e:'Inca Empire expansion'},{y:'1532',e:'Pizarro conquers Inca'},{y:'1500',e:'Portugal claims Brazil'}], figures:['Atahualpa','Pizarro'] },
-      { era:'modern', period:'Independence · Modern states', empires:['Bolivarian Republics','Brazil'], dates:[{y:'1810',e:'Wars of Independence begin'},{y:'1822',e:'Brazilian independence'}], figures:['Simón Bolívar','San Martín'] },
-    ],
+  const BOUNDS = {
+    europe: { sw: [35, -25], ne: [72, 45] },
+    middle_east: { sw: [10, 25], ne: [45, 65] },
+    africa: { sw: [-36, -20], ne: [38, 55] },
+    asia: { sw: [5, 60], ne: [55, 150] },
+    north_america: { sw: [7, -170], ne: [72, -50] },
+    south_america: { sw: [-56, -82], ne: [14, -34] },
+    oceania: { sw: [-50, 110], ne: [0, 180] },
+    world: { sw: [-60, -180], ne: [75, 180] },
   };
 
-  // Schematic region boxes (viewBox 0 0 800 400). Not geographically accurate—
-  // intended as a clickable educational layout.
-  const REGION_PATHS = {
-    namerica:      { d:'M 40,80 L 230,80 L 250,200 L 180,250 L 60,240 L 30,150 Z', label:{x:130,y:160} },
-    samerica:      { d:'M 170,260 L 260,250 L 270,370 L 210,390 L 180,370 L 160,300 Z', label:{x:215,y:320} },
-    europe:        { d:'M 340,60 L 440,60 L 450,140 L 380,155 L 340,130 Z', label:{x:395,y:105} },
-    mediterranean: { d:'M 360,160 L 470,150 L 470,200 L 370,205 Z', label:{x:420,y:180} },
-    africa:        { d:'M 370,215 L 490,215 L 510,340 L 440,375 L 390,350 L 360,270 Z', label:{x:430,y:290} },
-    mideast:       { d:'M 485,160 L 555,150 L 570,220 L 500,225 Z', label:{x:525,y:190} },
-    india:         { d:'M 565,170 L 620,170 L 640,250 L 595,275 L 565,230 Z', label:{x:600,y:220} },
-    china:         { d:'M 645,110 L 735,110 L 740,200 L 655,205 Z', label:{x:690,y:160} },
-    japan:         { d:'M 748,125 L 775,120 L 780,170 L 755,175 Z', label:{x:765,y:150} },
-    seasia:        { d:'M 655,215 L 740,215 L 750,275 L 660,280 Z', label:{x:700,y:250} },
-    oceania:       { d:'M 670,295 L 775,295 L 775,365 L 680,370 Z', label:{x:720,y:335} },
+  const COL = {
+    europe: '#4da3ff', middle_east: '#e6b84d', africa: '#6fdc8c', asia: '#ff6b6b',
+    north_america: '#a78bfa', south_america: '#f472b6', oceania: '#2dd4bf', world: '#a3a3a3',
   };
 
-  let state = { region:'europe', era:null };
+  /** Fallback if JSON fetch fails (offline) */
+  const HIST_SEED = [
+    { y: 1776, t: 'U.S. Declaration of Independence', s: 'Thirteen colonies assert independence from Britain.', lat: 39.95, lon: -75.15, c: 'north_america' },
+    { y: 1789, t: 'French Revolution', s: 'Revolution in France with global ripple effects in politics and rights.', lat: 48.86, lon: 2.35, c: 'europe' },
+    { y: 1945, t: 'End of World War II in Europe', s: 'Nazi defeat; start of a new international order and UN era.', lat: 52.52, lon: 13.41, c: 'europe' },
+  ];
 
-  function renderPanel(body){
-    const key = state.region;
-    const data = DATA[key] || [];
-    const filtered = state.era ? data.filter(d => d.era === state.era) : data;
-    const reg = REGIONS[key];
+  function yLabel(y){
+    if (y < 0) return `${Math.abs(y)} BCE`;
+    if (y === 0) return '0 (BCE/CE bridge)';
+    return `${y} CE`;
+  }
 
-    const erasHTML = ERAS.map(e => `<button type="button" class="ref-map-era ${state.era===e.id?'active':''}" data-era="${e.id}">${esc(e.label)}</button>`).join('') +
-      `<button type="button" class="ref-map-era ${!state.era?'active':''}" data-era="">All eras</button>`;
-
-    const svgPaths = Object.entries(REGION_PATHS).map(([k, info]) => {
-      const classes = [];
-      if(k === state.region) classes.push('active');
-      if(state.era){
-        const matches = (DATA[k] || []).some(d => d.era === state.era);
-        if(matches && k !== state.region) classes.push('era-match');
-      }
-      return `<path data-region="${k}" class="${classes.join(' ')}" d="${info.d}"></path>
-              <text x="${info.label.x}" y="${info.label.y}" text-anchor="middle" fill="currentColor" font-size="11" font-weight="700" pointer-events="none" style="opacity:.8">${esc(REGIONS[k].name)}</text>`;
-    }).join('');
-
-    body.innerHTML = `
-      <div class="ref-map-eras">${erasHTML}</div>
-      <div class="ref-map-wrap">
-        <svg viewBox="0 0 800 400" class="ref-map-svg" role="img" aria-label="World regions map">
-          ${svgPaths}
-        </svg>
-      </div>
-      <div class="ref-map-panel">
-        <h3>${esc(reg.name)}</h3>
-        ${filtered.length ? filtered.map(d => `
-          <div style="margin-bottom:16px">
-            <h4>${esc(ERAS.find(e=>e.id===d.era)?.label || d.era)} — ${esc(d.period)}</h4>
-            ${d.empires.length ? `<div style="font-size:.84rem;color:var(--muted2);margin-bottom:6px"><strong style="color:var(--text)">Major states/empires:</strong> ${d.empires.map(esc).join(' · ')}</div>` : ''}
-            ${d.dates.length ? `<ul>${d.dates.map(dt => `<li><strong style="color:var(--accent);font-family:'JetBrains Mono',monospace">${esc(dt.y)}</strong> — ${esc(dt.e)}</li>`).join('')}</ul>` : ''}
-            ${d.figures.length ? `<div style="font-size:.84rem;color:var(--muted2);margin-top:6px"><strong style="color:var(--text)">Key figures:</strong> ${d.figures.map(esc).join(' · ')}</div>` : ''}
-          </div>
-        `).join('') : `<div style="color:var(--muted);padding:12px 0">No records for this era in ${esc(reg.name)}.</div>`}
-      </div>
-    `;
-
-    body.querySelectorAll('path[data-region]').forEach(p => {
-      p.addEventListener('click', () => {
-        state.region = p.dataset.region;
-        renderPanel(body);
-      });
+  function loadCss(href){
+    return new Promise((resolve) => {
+      if (document.querySelector(`link[href="${href}"]`)) return resolve();
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = href;
+      l.onload = () => resolve();
+      l.onerror = () => resolve();
+      document.head.appendChild(l);
     });
-    body.querySelectorAll('[data-era]').forEach(b => {
-      b.addEventListener('click', () => {
-        const v = b.dataset.era;
-        state.era = v || null;
-        renderPanel(body);
-      });
+  }
+  function loadScript(src){
+    return new Promise((resolve, reject) => {
+      if (window.L) return resolve(window.L);
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = () => resolve(window.L);
+      s.onerror = () => reject(new Error('Could not load map library'));
+      document.body.appendChild(s);
     });
   }
 
+  function fixDefaultIcons(L){
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({ iconUrl: ICON_PNG, iconRetinaUrl: ICON2X, shadowUrl: SHADOW });
+  }
+
+  function eventsPath(){
+    try{
+      return new URL('public/data/flux-history-events.json', document.baseURI).href;
+    }catch(e){
+      return 'public/data/flux-history-events.json';
+    }
+  }
+
+  async function loadAllEvents(){
+    const merged = HIST_SEED.map(e => Object.assign({}, e));
+    try{
+      const r = await fetch(eventsPath(), { cache: 'no-store' });
+      if (r.ok){
+        const j = await r.json();
+        if (Array.isArray(j) && j.length){
+          for (const e of j){
+            if (e && typeof e.y === 'number' && e.t) merged.push(e);
+          }
+        }
+      }
+    }catch(e){ /* keep seed */ }
+    const seen = new Set();
+    const out = [];
+    for (const e of merged){
+      const k = e.y + '|' + e.t;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(e);
+    }
+    return out.sort((a, b) => a.y - b.y);
+  }
+
+  function matchesContinent(e, continent){
+    if (continent === 'all') return true;
+    if (e.c === continent) return true;
+    if (continent === 'europe' && (e.c === 'middle_east')) return false;
+    return false;
+  }
+
+  function yearInRange(e, y0, y1){
+    return e.y >= y0 && e.y <= y1;
+  }
+
+  function filterList(events, continent, y0, y1){
+    return events.filter(e => matchesContinent(e, continent) && yearInRange(e, y0, y1));
+  }
+
+  function fitMap(L, map, continent){
+    if (continent === 'all' || !BOUNDS[continent]){
+      map.setView([20, 0], 2);
+      return;
+    }
+    const b = BOUNDS[continent];
+    map.fitBounds(L.latLngBounds(b.sw, b.ne), { padding: [18, 18], maxZoom: 5 });
+  }
+
+  function extractJsonObject(text){
+    if (!text) return null;
+    const t = text.replace(/```json|```/gi, '').trim();
+    const a = t.indexOf('{');
+    const b = t.lastIndexOf('}');
+    if (a === -1 || b <= a) return null;
+    try{ return JSON.parse(t.slice(a, b + 1)); }catch(e){ return null; }
+  }
+
+  async function geocodePlace(name, countryHint){
+    if (!name || !name.trim()) return null;
+    const q = [name, countryHint].filter(Boolean).join(', ');
+    const u = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&' +
+      new URLSearchParams({ q, 'accept-language': 'en' });
+    const r = await fetch(u, { method: 'GET', mode: 'cors', headers: { Accept: 'application/json' } });
+    if (!r.ok) return null;
+    const arr = await r.json();
+    if (!arr[0]) return null;
+    return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon) };
+  }
+
+  const AI_SYS = 'You are a world history tool for a student app. The student asks for a person, battle, or event. Reply with ONLY a single valid JSON object and no other text, matching this exact schema: {"title":"string","summary":"2-4 educational sentences","year": number (signed: negative = BCE, e.g. -480; positive = CE), "placeName":"string (city, site, or region to put on a map; be specific if possible)","countryHint":"optional string for disambiguation","lat": null or a number, "lon": null or a number, "regionTag": one of "europe","middle_east","africa","asia","north_america","south_america","oceania","world"}. If you do not know coordinates, set lat and lon to null. Never output markdown.';
+
+  async function runFluxQuery(query, state){
+    if (typeof window.fluxAiSimple !== 'function') throw new Error('AI is not available. Open Flux while signed in.');
+    const text = await window.fluxAiSimple(AI_SYS, 'Student question: ' + query);
+    const obj = extractJsonObject(text);
+    if (!obj || !obj.title) throw new Error('Could not read AI response. Try a shorter question.');
+    let lat = typeof obj.lat === 'number' && isFinite(obj.lat) ? obj.lat : null;
+    let lon = typeof obj.lon === 'number' && isFinite(obj.lon) ? obj.lon : null;
+    if (lat == null || lon == null){
+      const g = await geocodePlace(String(obj.placeName || ''), String(obj.countryHint || ''));
+      if (g){ lat = g.lat; lon = g.lon; }
+    }
+    if (lat == null || lon == null) throw new Error('Could not place this on the map. Try adding a more specific place name in your question.');
+    const y = typeof obj.year === 'number' ? obj.year : 0;
+    const tag = (obj.regionTag && COL[obj.regionTag]) ? obj.regionTag : 'world';
+    state.aiEvent = { y, t: String(obj.title), s: String(obj.summary || ''), lat, lon, c: tag, ai: true, place: String(obj.placeName || ''), _id: -1 };
+    if (typeof state._render === 'function') state._render();
+    if (state.map && state.aiEvent){
+      const z = Math.max(5, state.map.getZoom() < 4 ? 5 : state.map.getZoom());
+      state.map.flyTo([state.aiEvent.lat, state.aiEvent.lon], z, { duration: 0.45, easeLinearity: 0.25 });
+      setTimeout(() => { try{ state.aiMarker && state.aiMarker.openPopup && state.aiMarker.openPopup(); }catch(e){} }, 500);
+    }
+  }
+
+  function renderHistoryMap(body, events, state, refreshList){
+    const continent = state.continent;
+    const y0 = state.y0;
+    const y1 = state.y1;
+    const list = filterList(events, continent, y0, y1);
+    if (refreshList && state.listHost){
+      const n = list.length;
+      state.listCountEl.textContent = n + (n === 0 ? ' — widen the year range or pick All regions' : ' in range');
+      state.listHost.innerHTML = list.slice().reverse().map((e) => {
+        const id = e._id;
+        return `<button type="button" class="hist-card${id === state.selId ? ' hist-card--on' : ''}" data-hid="${id}">
+  <div class="hist-card-y">${esc(yLabel(e.y))} · ${esc(e.c || '')}</div>
+  <div class="hist-card-t">${esc(e.t)}</div>
+  <div class="hist-card-s">${esc(e.s || '')}</div>
+</button>`;
+      }).join('') || '<div class="hist-ai-err">No events in this year window for this region. Adjust sliders or type a place in Ask Flux.</div>';
+      state.listHost.querySelectorAll('.hist-card').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const hid = +btn.dataset.hid;
+          const ev = list.find(x => x._id === hid);
+          if (!ev || (ev.lat === 0 && ev.lon === 0)) return;
+          state.selId = hid;
+          if (state.map) state.map.flyTo([ev.lat, ev.lon], state.map.getZoom() < 5 ? 5 : state.map.getZoom(), { duration: 0.45 });
+          state.listHost.querySelectorAll('.hist-card').forEach(c => c.classList.toggle('hist-card--on', +c.dataset.hid === state.selId));
+        });
+      });
+    }
+    if (!state.L || !state.group || !state.map) return;
+    state.group.clearLayers();
+    for (const e of list){
+      if (e.lat === 0 && e.lon === 0) continue;
+      const L = state.L;
+      const col = COL[e.c] || '#888';
+      const cm = L.circleMarker([e.lat, e.lon], { radius: 7, color: col, weight: 2, fillColor: col, fillOpacity: 0.45 });
+      const html = `<div class="hist-pin-ai"><strong>${esc(e.t)}</strong><br><span style="color:var(--accent)">${esc(yLabel(e.y))}</span><p style="margin:6px 0 0;font-size:12px;color:var(--muted2)">${esc(e.s)}</p></div>`;
+      cm.bindPopup(html);
+      cm.addTo(state.group);
+    }
+    if (state.aiEvent){
+      const e = state.aiEvent;
+      const m = state.L.marker([e.lat, e.lon], { zIndexOffset: 800 });
+      m.bindPopup(`<div class="hist-pin-ai"><strong>${esc(e.t)} (Flux)</strong><br><span class="hist-card-y">${esc(yLabel(e.y))}</span><p style="margin:6px 0 0;font-size:12px">${esc(e.s)}</p></div>`);
+      m.addTo(state.group);
+      state.aiMarker = m;
+    } else {
+      state.aiMarker = null;
+    }
+  }
+
+  function setup(body){
+    const state = {
+      L: null, map: null, group: null, aiMarker: null, aiEvent: null,
+      continent: 'all', y0: -3000, y1: 2026, allEvents: [], listHost: null, listCountEl: null, selId: -1, mapEl: null,
+    };
+
+    body.innerHTML = `
+<div class="hist-wrap">
+  <p style="margin:0;font-size:.8rem;color:var(--muted2);line-height:1.4">Pan, zoom, and pick a region. Filter by <strong>year</strong> with the inputs and slider, then use <strong>Ask Flux</strong> to place a person or event the dataset might not include.</p>
+  <div class="hist-topbar">
+    <div class="hist-continent-btns" id="histContBtns" role="group" aria-label="Region"></div>
+  </div>
+  <div class="hist-year-block">
+    <div class="hist-year-row">
+      <label>From (year) <input type="number" id="histY0" step="1" min="${EPOCH_MIN}" max="${EPOCH_MAX}" value="${state.y0}"/> <span class="hist-hint">negative = BCE</span></label>
+      <label>To (year) <input type="number" id="histY1" step="1" min="${EPOCH_MIN}" max="${EPOCH_MAX}" value="${state.y1}"/></label>
+    </div>
+    <div class="hist-range-row">
+      <span>Scrub start year (fast, BCE = negative)</span>
+      <input type="range" class="hist-year-range" id="histRangeStart" min="${EPOCH_MIN}" max="${EPOCH_MAX}" value="${state.y0}"/>
+    </div>
+    <div class="hist-range-row">
+      <span>Scrub end year (fast)</span>
+      <input type="range" class="hist-year-range" id="histRangeEnd" min="${EPOCH_MIN}" max="${EPOCH_MAX}" value="${state.y1}"/>
+    </div>
+  </div>
+  <div class="hist-layout">
+    <div class="hist-map-wrap">
+      <div class="hist-map" id="histMapEl" aria-label="Map"></div>
+      <div class="hist-map--loading" id="histMapLoad">Loading map…</div>
+      <div class="hist-map-attr" aria-hidden="true">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
+    </div>
+    <div class="hist-side">
+      <div class="hist-list-head" id="histListCount">0 events</div>
+      <div class="hist-list" id="histList"></div>
+      <div class="hist-ai">
+        <h4>Ask Flux about an event or person</h4>
+        <p style="margin:0;font-size:.75rem;color:var(--muted2)">Places a pin and explains. Example: "Battle of Cannae" or "life of Hatshepsut".</p>
+        <div class="hist-ai-row">
+          <input type="text" id="histAiQ" placeholder="e.g. Treaty of Tordesillas" autocomplete="off"/>
+          <button type="button" id="histAiBtn">Ask Flux</button>
+        </div>
+        <div class="hist-ai-out" id="histAiOut" hidden></div>
+        <div class="hist-ai-err" id="histAiErr" hidden></div>
+      </div>
+    </div>
+  </div>
+</div>`;
+
+    state.mapEl = body.querySelector('#histMapEl');
+    const loadEl = body.querySelector('#histMapLoad');
+    state.listHost = body.querySelector('#histList');
+    state.listCountEl = body.querySelector('#histListCount');
+    const contHost = body.querySelector('#histContBtns');
+    contHost.innerHTML = CONTINENTS.map(c => `<button type="button" data-c="${c.id}" class="${c.id === state.continent ? 'hist--on' : ''}">${esc(c.name)}</button>`).join('');
+
+    const y0i = body.querySelector('#histY0');
+    const y1i = body.querySelector('#histY1');
+    const rStart = body.querySelector('#histRangeStart');
+    const rEnd = body.querySelector('#histRangeEnd');
+    const aiQ = body.querySelector('#histAiQ');
+    const aiBtn = body.querySelector('#histAiBtn');
+    const aiOut = body.querySelector('#histAiOut');
+    const aiErr = body.querySelector('#histAiErr');
+
+    function readYears(){
+      let a = parseInt(y0i.value, 10);
+      let b = parseInt(y1i.value, 10);
+      if (!Number.isFinite(a)) a = EPOCH_MIN;
+      if (!Number.isFinite(b)) b = EPOCH_MAX;
+      if (a > b) [a, b] = [b, a];
+      state.y0 = Math.max(EPOCH_MIN, Math.min(EPOCH_MAX, a));
+      state.y1 = Math.max(EPOCH_MIN, Math.min(EPOCH_MAX, b));
+      y0i.value = state.y0;
+      y1i.value = state.y1;
+      rStart.value = String(state.y0);
+      rEnd.value = String(state.y1);
+    }
+    state._render = () => renderHistoryMap(body, state.allEvents, state, true);
+    rStart.addEventListener('input', () => {
+      y0i.value = rStart.value;
+      readYears();
+      state._render();
+    });
+    rEnd.addEventListener('input', () => {
+      y1i.value = rEnd.value;
+      readYears();
+      state._render();
+    });
+    y0i.addEventListener('change', () => { readYears(); state._render(); });
+    y1i.addEventListener('change', () => { readYears(); state._render(); });
+
+    contHost.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-c]');
+      if (!b) return;
+      state.continent = b.dataset.c;
+      contHost.querySelectorAll('button').forEach(x => x.classList.toggle('hist--on', x.dataset.c === state.continent));
+      state._render();
+      if (state.L && state.map) fitMap(state.L, state.map, state.continent);
+    });
+
+    async function onAi(){
+      aiErr.hidden = true;
+      aiOut.hidden = true;
+      const q = (aiQ.value || '').trim();
+      if (!q) return;
+      aiBtn.disabled = true;
+      try{
+        await runFluxQuery(q, state);
+        aiOut.innerHTML = `<p><strong>${esc(state.aiEvent.t)}</strong> (${esc(yLabel(state.aiEvent.y))})</p><p>${esc(state.aiEvent.s)}</p>${state.aiEvent.place ? `<p style="color:var(--muted2)">Place: ${esc(state.aiEvent.place)}</p>` : ''}`;
+        aiOut.hidden = false;
+      }catch(err){
+        aiErr.textContent = err.message || String(err);
+        aiErr.hidden = false;
+      }finally{
+        aiBtn.disabled = false;
+      }
+    }
+    aiBtn.addEventListener('click', onAi);
+    aiQ.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); onAi(); } });
+
+    (async() => {
+      try{
+        const ev = await loadAllEvents();
+        ev.forEach((e, i) => { e._id = i; });
+        state.allEvents = ev;
+        state._render();
+        await loadCss(LEAFLET_CSS);
+        const L = await loadScript(LEAFLET_JS);
+        fixDefaultIcons(L);
+        if (!body.isConnected) return;
+        state.L = L;
+        loadEl.style.display = 'none';
+        const map = L.map(state.mapEl, { worldCopyJump: true, scrollWheelZoom: true, zoomControl: true });
+        state.map = map;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap',
+        }).addTo(map);
+        map.setView([20, 0], 2);
+        state.group = L.layerGroup().addTo(map);
+        state._render();
+        setTimeout(() => { map.invalidateSize(); }, 220);
+        window._histResize = () => map.invalidateSize();
+        window.addEventListener('resize', window._histResize);
+      }catch(err){
+        if (loadEl) loadEl.textContent = 'Could not load the map. Check your network and reload.';
+        console.error(err);
+      }
+    })();
+
+    window.fluxHistoryMapCleanup = function(){
+      try{
+        if (window._histResize) window.removeEventListener('resize', window._histResize);
+        window._histResize = null;
+      }catch(e){}
+      try{ if (state.map) state.map.remove(); }catch(e){}
+      state.map = null;
+      state.L = null;
+      state.group = null;
+    };
+  }
+
   function openHistoryMap(){
-    if(typeof window.fluxOpenToolModal !== 'function') return;
+    if (typeof window.fluxOpenToolModal !== 'function') return;
     window.fluxOpenToolModal({
       id: 'history-map',
       emoji: '🗺️',
-      title: 'History Map',
-      renderBody: renderPanel,
+      title: 'World history map',
+      wide: true,
+      renderBody: (body) => { setup(body); },
+    });
+  }
+
+  function renderWorldHistoryMap(tbBody){
+    if (typeof window.openHistoryMap === 'function') requestAnimationFrame(() => window.openHistoryMap());
+    tbBody.innerHTML = `
+      <div class="tb-card tb-hist-stub">
+        <div class="tb-card-h"><h3>World history map</h3></div>
+        <p class="tb-muted">A full-screen map with real geography, a year filter, regional shortcuts, a large event set, and <strong>Ask Flux</strong> to find and place any person or event.</p>
+        <p style="margin:12px 0 0"><button type="button" class="tb-seg" style="padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);font-weight:700;cursor:pointer" id="tbHistOpen">Open world history map</button></p>
+      </div>`;
+    document.getElementById('tbHistOpen')?.addEventListener('click', () => {
+      if (window.openHistoryMap) window.openHistoryMap();
     });
   }
 
   try{ window.openHistoryMap = openHistoryMap; }catch(e){}
+  try{ window.renderWorldHistoryMap = renderWorldHistoryMap; }catch(e){}
 })();

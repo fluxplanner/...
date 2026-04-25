@@ -1,0 +1,217 @@
+/* World history map — wide modal, Leaflet host, year + region controls, AI panel */
+.ref-overlay--wide{
+  padding: max(8px, env(safe-area-inset-top, 0)) max(8px, env(safe-area-inset-right, 0)) max(8px, env(safe-area-inset-bottom, 0)) max(8px, env(safe-area-inset-left, 0));
+  align-items: flex-start;
+  overflow-y: auto;
+}
+.ref-tool-modal--wide{
+  max-width: min(100vw, 1400px);
+  width: 100%;
+  max-height: min(96vh, 1200px);
+}
+.ref-tool-modal--wide .ref-tool-body{
+  padding: 12px 14px 18px;
+}
+
+.hist-wrap{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.hist-topbar{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.hist-continent-btns{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.hist-continent-btns button{
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  color: var(--muted2);
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.hist-continent-btns button:hover{ color: var(--text); background: rgba(255,255,255,.07); }
+.hist-continent-btns button.hist--on{
+  background: rgba(var(--accent-rgb,0,191,255),.18);
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb,0,191,255),.35);
+}
+[data-theme="light"] .hist-continent-btns button{
+  border-color: rgba(0,0,0,.1);
+  background: rgba(0,0,0,.03);
+}
+
+.hist-year-block{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+}
+[data-theme="light"] .hist-year-block{ background: rgba(0,0,0,.03); border-color: rgba(0,0,0,.06); }
+.hist-year-row{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-size: .78rem;
+  color: var(--muted2);
+}
+.hist-year-row label{ display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.hist-year-row input[type="number"]{
+  width: 6.5rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: var(--input-bg, rgba(0,0,0,.2));
+  color: var(--text);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: .8rem;
+}
+.hist-year-row .hist-hint{ font-size: .7rem; color: var(--muted); }
+.hist-range-row{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hist-range-row span{ font-size: .7rem; color: var(--muted); }
+.hist-year-range{
+  width: 100%;
+  accent-color: var(--accent, #00bfff);
+}
+.hist-layout{
+  display: grid;
+  grid-template-columns: 1fr min(360px, 100%);
+  gap: 12px;
+  min-height: 360px;
+  align-items: stretch;
+}
+.hist-map-wrap{
+  position: relative;
+  min-height: 360px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,20,40,.4);
+}
+[data-theme="light"] .hist-map-wrap{ border-color: rgba(0,0,0,.1); }
+.hist-map{
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  font: inherit; /* let Leaflet controls inherit theme where possible */
+}
+.hist-map--loading, .hist-map--err{
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--muted2); font-size: .86rem; text-align: center; padding: 20px; z-index: 2; pointer-events: none;
+  background: rgba(0,0,0,.18);
+}
+.hist-map-attr{
+  position: absolute; bottom: 0; right: 0; left: 0; z-index: 500;
+  padding: 4px 8px; font-size: 10px; line-height: 1.2; color: var(--muted2);
+  background: linear-gradient(transparent, rgba(0,0,0,.35));
+  pointer-events: none; text-align: right;
+}
+.hist-map-attr a{ color: var(--accent); }
+
+.hist-side{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
+.hist-list-head{
+  font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted2);
+}
+.hist-list{
+  flex: 1;
+  min-height: 0;
+  max-height: 38vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hist-card{
+  text-align: left;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  cursor: pointer;
+  color: var(--text);
+  transition: background .1s, border-color .1s;
+}
+.hist-card:hover, .hist-card.hist-card--on{
+  background: rgba(var(--accent-rgb,0,191,255),.1);
+  border-color: rgba(var(--accent-rgb,0,191,255),.25);
+}
+.hist-card-y{ font-family: "JetBrains Mono", monospace; font-size: .7rem; color: var(--accent); }
+.hist-card-t{ font-size: .84rem; font-weight: 700; margin: 2px 0; }
+.hist-card-s{ font-size: .75rem; color: var(--muted2); line-height: 1.35; }
+.hist-card-c{ font-size: .65rem; color: var(--muted); margin-top: 4px; }
+
+.hist-ai{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.2);
+}
+[data-theme="light"] .hist-ai{ background: rgba(0,0,0,.04); }
+.hist-ai h4{ margin: 0; font-size: .82rem; }
+.hist-ai-row{ display: flex; gap: 8px; flex-wrap: wrap; }
+.hist-ai input[type="text"]{
+  flex: 1; min-width: 140px;
+  padding: 8px 10px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: var(--input-bg, rgba(0,0,0,.2));
+  color: var(--text);
+  font-size: .86rem;
+}
+.hist-ai button{
+  padding: 8px 14px; border-radius: 10px;
+  border: none; background: var(--accent, #0cf); color: #0a0f1a; font-weight: 800; font-size: .78rem;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.hist-ai button:disabled{ opacity: .5; cursor: not-allowed; }
+.hist-ai-out{
+  font-size: .8rem; line-height: 1.45; color: var(--text);
+  max-height: 32vh; overflow-y: auto;
+}
+.hist-ai-out p{ margin: 0 0 8px; }
+.hist-ai-err{ color: var(--red, #f66); font-size: .78rem; }
+
+/* Leaflet marker highlight from AI */
+.hist-pin-ai .leaflet-popup-content{ margin: 8px 10px; font-size: .78rem; max-width: 220px; }
+
+@media (max-width: 900px){
+  .hist-layout{ grid-template-columns: 1fr; }
+  .hist-list{ max-height: 28vh; }
+  .hist-map-wrap{ min-height: 45vh; }
+}
+
+/* Toolbox stub */
+.tb-hist-stub{ max-width: 480px; }
+.tb-hist-stub p{ color: var(--muted2); line-height: 1.5; }

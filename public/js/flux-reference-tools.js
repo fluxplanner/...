@@ -14,11 +14,12 @@
   // ─────────────────────────────────────────────────────────────────
   // Shared modal
   // ─────────────────────────────────────────────────────────────────
-  function openToolModal({ id, emoji, title, tabs, renderBody, onTabChange }){
+  function openToolModal({ id, emoji, title, tabs, renderBody, onTabChange, wide }){
     closeToolModal();
     const overlay = document.createElement('div');
     overlay.className = 'ref-tool-overlay';
     overlay.id = 'refToolOverlay';
+    if(wide) overlay.classList.add('ref-overlay--wide');
 
     const savedTab = localStorage.getItem(LS_TAB(id));
     const initialTab = (tabs && tabs.find(t => t.id === savedTab)) ? savedTab : (tabs && tabs[0] ? tabs[0].id : null);
@@ -37,6 +38,7 @@
       </div>
     `;
     document.body.appendChild(overlay);
+    if(wide) overlay.querySelector('.ref-tool-modal')?.classList.add('ref-tool-modal--wide');
 
     const body = overlay.querySelector('#refToolBody');
 
@@ -69,6 +71,10 @@
   }
 
   function closeToolModal(){
+    if(typeof window.fluxHistoryMapCleanup==='function'){
+      try{ window.fluxHistoryMapCleanup(); }catch(e){}
+      window.fluxHistoryMapCleanup=null;
+    }
     const ov = document.getElementById('refToolOverlay');
     if(ov){ ov.remove(); }
     document.removeEventListener('keydown', keyHandler, true);

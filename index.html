@@ -99,6 +99,7 @@
 <link rel="stylesheet" href="public/css/flux-ai-claude.css">
 <link rel="stylesheet" href="public/css/flux-periodic.css">
 <link rel="stylesheet" href="public/css/flux-toolbox.css">
+<link rel="stylesheet" href="public/css/flux-reftool-history.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -1382,13 +1383,13 @@
 
       <div id="ptCats" class="pt-cats" role="toolbar" aria-label="Filter by category"></div>
 
-      <div class="pt-wrap">
-        <div id="ptGrid" class="pt-grid" role="grid" aria-label="Periodic table grid"></div>
-      </div>
+      <div class="pt-main">
+        <div class="pt-main__left">
+          <div class="pt-wrap">
+            <div id="ptGrid" class="pt-grid" role="grid" aria-label="Periodic table grid"></div>
+          </div>
 
-      <aside id="ptDetail" class="pt-detail" role="dialog" aria-modal="false" aria-hidden="true" aria-label="Element details"></aside>
-
-      <div class="pt-legend" aria-hidden="true">
+          <div class="pt-legend" aria-hidden="true">
         <span><span class="pt-chip-dot" data-cat="alkali"></span>Alkali</span>
         <span><span class="pt-chip-dot" data-cat="alkaline"></span>Alkaline earth</span>
         <span><span class="pt-chip-dot" data-cat="transition"></span>Transition</span>
@@ -1400,6 +1401,10 @@
         <span><span class="pt-chip-dot" data-cat="lanthanide"></span>Lanthanide</span>
         <span><span class="pt-chip-dot" data-cat="actinide"></span>Actinide</span>
         <span><span class="pt-chip-dot" data-cat="unknown"></span>Unknown</span>
+          </div>
+        </div>
+
+        <aside id="ptDetail" class="pt-detail" role="dialog" aria-modal="false" aria-hidden="true" aria-label="Element details"></aside>
       </div>
     </div>
 

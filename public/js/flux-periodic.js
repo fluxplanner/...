@@ -387,15 +387,12 @@ function openDetail(n){
         <div class="pt-detail-fact-label">Did you know?</div>
         <div class="pt-detail-fact-text">${esc(el.fact)}</div>
       </div>
-
-      <div class="pt-detail-actions">
-        <button type="button" class="pt-detail-btn" onclick="window.fluxPeriodic.prev()">← Previous</button>
-        <button type="button" class="pt-detail-btn" onclick="window.fluxPeriodic.next()">Next →</button>
-      </div>
     </div>
   `;
   host.classList.add('open');
   host.setAttribute('aria-hidden', 'false');
+  const periodic = document.getElementById('periodic');
+  if (periodic) periodic.classList.add('pt-detail-open');
 }
 
 function statRow(label, value){
@@ -413,6 +410,8 @@ function closeDetail(){
   host.classList.remove('open');
   host.setAttribute('aria-hidden', 'true');
   state.selectedId = null;
+  const periodic = document.getElementById('periodic');
+  if (periodic) periodic.classList.remove('pt-detail-open');
 }
 
 function step(delta){

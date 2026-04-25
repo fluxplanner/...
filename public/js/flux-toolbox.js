@@ -1682,9 +1682,15 @@ function renderMapRef(body){
   draw();
 }
 
+function renderWorldHistoryMapTool(body){
+  if (typeof window.renderWorldHistoryMap === 'function') window.renderWorldHistoryMap(body);
+  else body.innerHTML = '<p class="tb-empty">World history map could not load. Refresh the app.</p>';
+}
+
 SUBJECTS.push({
   id:'history', label:'History', icon:'🏛',
   tools:[
+    { id:'world-hist', label:'World history map', icon:'🌍', render: renderWorldHistoryMapTool },
     { id:'timeline',  label:'Timeline builder', icon:'🕰', render: renderTimelineBuilder },
     { id:'map-quiz',  label:'Map & capitals',   icon:'🗺', render: renderMapRef },
   ],
