@@ -5847,6 +5847,12 @@ function syncPanelScrollLayout(){
       ai.style.overflow='hidden';
       ai.style.minWidth='0';
     }
+    // #region agent log
+    try{
+      const act=mainContent.querySelector(':scope > .panel.active');
+      fetch('http://127.0.0.1:7650/ingest/92050576-10c4-4824-9c8e-cbeb99e15440',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7bd113'},body:JSON.stringify({sessionId:'7bd113',runId:'post-fix',location:'app.js:syncPanelScrollLayout',hypothesisId:'H2-H4',message:'sync end (split branch)',data:{splitBranch:true,activeId:act?act.id:null,cvFlex:document.getElementById('canvas')?.style?.flex||'',cvOy:document.getElementById('canvas')?.style?.overflowY||'',aiDisp:document.getElementById('ai')?.style?.display||''},timestamp:Date.now()})}).catch(()=>{});
+    }catch(_){}
+    // #endregion
     return;
   }
   mainContent.querySelectorAll(':scope > .panel').forEach(panel=>{
@@ -5867,6 +5873,12 @@ function syncPanelScrollLayout(){
     aiPanel.style.overflow='hidden';
     aiPanel.style.flex='1 1 0%';
   }
+  // #region agent log
+  try{
+    const act=mainContent.querySelector(':scope > .panel.active');
+    fetch('http://127.0.0.1:7650/ingest/92050576-10c4-4824-9c8e-cbeb99e15440',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7bd113'},body:JSON.stringify({sessionId:'7bd113',runId:'post-fix',location:'app.js:syncPanelScrollLayout',hypothesisId:'H2-H4',message:'sync end (normal branch)',data:{splitBranch:false,activeId:act?act.id:null,cvFlex:document.getElementById('canvas')?.style?.flex||'',cvOy:document.getElementById('canvas')?.style?.overflowY||'',aiDisp:document.getElementById('ai')?.style?.display||''},timestamp:Date.now()})}).catch(()=>{});
+  }catch(_){}
+  // #endregion
 }
 
 function initScrollLayout(){

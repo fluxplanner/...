@@ -3392,8 +3392,16 @@ html.flux-reduce-motion *,html.flux-reduce-motion *::before,html.flux-reduce-mot
 }
 
 /* ══ Canvas LMS panel (API mini-browser) ══ */
-#canvas.panel.flux-page{padding:0;max-width:none;margin:0;width:100%}
-.canvas-panel-wrap{display:flex;flex-direction:column;min-height:min(70vh,calc(100vh - 120px));height:100%}
+/* Flex column + min-height:0 so #canvas stays inside .main-content (desktop .panel uses height:0 + flex).
+   A large min-height on inner wrap was forcing the panel to overflow the main column after connect. */
+#canvas.panel.flux-page{
+  padding:0;max-width:none;margin:0;width:100%;
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+}
+#canvas.panel.flux-page #canvasHubStack.flux-stack{
+  flex:1;min-height:0;display:flex;flex-direction:column;gap:0;
+}
+.canvas-panel-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .canvas-topbar{position:sticky;top:0;z-index:10;height:44px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(var(--accent-rgb),.12),rgba(14,18,32,.85));backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass)}
 .canvas-topbar-row{display:flex;align-items:center;gap:6px;width:100%;min-width:0}
 .canvas-breadcrumb{flex:1;min-width:0;display:flex;align-items:center;gap:6px;overflow:hidden;font-size:.78rem;white-space:nowrap;text-overflow:ellipsis}
