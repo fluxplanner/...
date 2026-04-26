@@ -264,8 +264,10 @@
   aspect-ratio: 1 / 1;
   height: auto;
   margin: 0;
-  padding: 2px;
+  padding: 3px;
   background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.015));
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 3px;
   color: var(--text);
@@ -320,15 +322,16 @@
 .pt-el[data-cat="unknown"]        { color: var(--pt-unknown); }
 
 .pt-el-n{
-  font-size: clamp(5px, 11cqw, 0.58rem);
+  /* Min uses rem so it grows/shrinks with page zoom; cqw keeps proportion inside the tile */
+  font-size: clamp(0.54rem, 15cqw, 0.8rem);
   color: var(--muted, #8895a7);
-  line-height: 1;
+  line-height: 1.05;
   letter-spacing: .02em;
   font-weight: 700;
   flex-shrink: 0;
 }
 .pt-el-s{
-  font-size: clamp(9px, 28cqw, 1.02rem);
+  font-size: clamp(0.68rem, 34cqw, 1.22rem);
   font-weight: 800;
   color: var(--text);
   line-height: 1;
@@ -339,10 +342,10 @@
 }
 .pt-el-name{
   /* Scale with tile; wrap so full names stay visible at any zoom / narrow viewport */
-  font-size: clamp(6.5px, 16cqw, 0.55rem);
+  font-size: clamp(0.54rem, 22cqw, 0.8rem);
   color: var(--text2, var(--text));
   opacity: .88;
-  line-height: 1.12;
+  line-height: 1.18;
   margin-top: 2px;
   white-space: normal;
   word-break: break-word;
@@ -356,23 +359,23 @@
   flex: 1 1 auto;
 }
 .pt-el-m{
-  font-size: clamp(5px, 10cqw, 0.5rem);
+  font-size: clamp(0.52rem, 13cqw, 0.74rem);
   color: var(--muted, #8895a7);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: 1.05;
   margin-top: auto;
   font-weight: 600;
   flex-shrink: 0;
 }
 @supports not (container-type: inline-size){
-  .pt-el-n{ font-size: 0.58rem; }
-  .pt-el-s{ font-size: 1.02rem; }
+  .pt-el-n{ font-size: 0.78rem; }
+  .pt-el-s{ font-size: 1.16rem; }
   .pt-el-name{
-    font-size: 0.52rem;
+    font-size: 0.72rem;
     -webkit-line-clamp: 5;
     line-clamp: 5;
   }
-  .pt-el-m{ font-size: 0.5rem; }
+  .pt-el-m{ font-size: 0.68rem; }
 }
 
 /* Filter dim-state */
@@ -412,7 +415,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-right: 6px;
-  font-size: .56rem;
+  font-size: clamp(0.65rem, 1.6vw, 0.8rem);
   color: var(--muted, #8895a7);
   font-weight: 600;
   letter-spacing: .02em;
@@ -680,7 +683,7 @@
     aspect-ratio: 951 / 486;
     min-width: 951px;
   }
-  .pt-el{ padding: 2px; border-radius: 3px; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
+  .pt-el{ padding: 3px; border-radius: 3px; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
 }
 @media (max-width: 640px){
   .pt-grid{
@@ -690,7 +693,7 @@
     aspect-ratio: auto;
     min-width: calc(18 * 46px + 17 * 2px);
   }
-  .pt-el{ padding: 2px; border-radius: 3px; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
+  .pt-el{ padding: 3px; border-radius: 3px; aspect-ratio: 1 / 1; -webkit-appearance: none; appearance: none; }
   #periodic{ padding: 12px; }
   #ptDetail.open{ width: 100%; max-width: 100%; }
   .pt-detail-symbol{ font-size: 3.8rem; }
@@ -701,7 +704,7 @@
     grid-template-rows: repeat(7, 40px) 10px 40px 40px;
     min-width: calc(18 * 40px + 17 * 2px);
   }
-  .pt-el{ border-radius: 3px; aspect-ratio: 1 / 1; padding: 2px; -webkit-appearance: none; appearance: none; }
+  .pt-el{ border-radius: 3px; aspect-ratio: 1 / 1; padding: 3px; -webkit-appearance: none; appearance: none; }
   /* Names stay visible (browser zoom triggers small CSS width — do not hide) */
   .pt-el-name{ -webkit-line-clamp: 5; line-clamp: 5; }
 }

@@ -1380,7 +1380,16 @@ async function fluxAuthHeaders(){
 
 /** One-shot call to the same Supabase AI proxy as chat (for reference tools, JSON extraction, etc.). */
 async function fluxAiSimple(system, userMessage){
-  const res=await fetch(API.ai,{ method:'POST', headers:await fluxAuthHeaders(), body:JSON.stringify({ system, messages:[{ role:'user', content:userMessage }] }) });
+  let res;
+  try{
+    res=await fetch(API.ai,{ method:'POST', headers:await fluxAuthHeaders(), body:JSON.stringify({ system, messages:[{ role:'user', content:userMessage }] }) });
+  }catch(e){
+    const msg=String(e&&e.message||e);
+    if(/failed to fetch|networkerror|load failed/i.test(msg)){
+      throw new Error('Network blocked the AI request. If you use GitHub Pages, ensure the latest CORS config is deployed on Supabase, or try another network.');
+    }
+    throw e;
+  }
   if(!res.ok){
     const err=await res.json().catch(()=>({ error:'HTTP '+res.status }));
     throw new Error(err.error||'AI request failed');

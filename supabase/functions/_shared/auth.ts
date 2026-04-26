@@ -41,14 +41,36 @@ export function serviceClient() {
   );
 }
 
-export function corsHeaders(origin: string) {
-  const allowed = [
+/** Origins allowed to call Edge Functions from the browser (must echo exact Origin for credentialed fetches). */
+function resolveCorsOrigin(origin: string): string {
+  const trimmed = (origin || "").trim();
+  const exact = new Set([
     "https://azfermohammed.github.io",
+    "https://fluxplanner.github.io",
     "http://localhost:3000",
     "http://localhost:5500",
+    "http://127.0.0.1:3000",
     "http://127.0.0.1:5500",
-  ];
-  const o = allowed.includes(origin) ? origin : allowed[0];
+  ]);
+  if (exact.has(trimmed)) return trimmed;
+  // Any user/org GitHub Pages site (https://<name>.github.io)
+  try {
+    const u = new URL(trimmed);
+    if (
+      u.protocol === "https:" && !u.port &&
+      /\.github\.io$/i.test(u.hostname) &&
+      u.hostname.length > ".github.io".length
+    ) {
+      return trimmed;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "https://azfermohammed.github.io";
+}
+
+export function corsHeaders(origin: string) {
+  const o = resolveCorsOrigin(origin);
   return {
     "Access-Control-Allow-Origin": o,
     "Access-Control-Allow-Headers":

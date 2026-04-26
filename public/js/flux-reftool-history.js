@@ -154,6 +154,13 @@
     map.fitBounds(L.latLngBounds(b.sw, b.ne), { padding: [18, 18], maxZoom: 5 });
   }
 
+  /** Approximate map pin when AI has no coords and browser geocode fails (Nominatim CORS, etc.). */
+  function centroidForRegionTag(tag){
+    const b = BOUNDS[tag];
+    if (!b) return null;
+    return { lat: (b.sw[0] + b.ne[0]) / 2, lon: (b.sw[1] + b.ne[1]) / 2 };
+  }
+
   function extractJsonObject(text){
     if (!text) return null;
     const t = text.replace(/```json|```/gi, '').trim();
@@ -168,11 +175,20 @@
     const q = [name, countryHint].filter(Boolean).join(', ');
     const u = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&' +
       new URLSearchParams({ q, 'accept-language': 'en' });
-    const r = await fetch(u, { method: 'GET', mode: 'cors', headers: { Accept: 'application/json' } });
-    if (!r.ok) return null;
-    const arr = await r.json();
-    if (!arr[0]) return null;
-    return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon) };
+    try{
+      // Nominatim often blocks browser CORS; failures are non-fatal (AI may still return lat/lon).
+      const r = await fetch(u, {
+        method: 'GET',
+        mode: 'cors',
+        headers: { Accept: 'application/json' },
+      });
+      if (!r.ok) return null;
+      const arr = await r.json();
+      if (!arr[0]) return null;
+      return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon) };
+    }catch(e){
+      return null;
+    }
   }
 
   const AI_SYS = 'You are a world history tool for a student app. The student asks for a person, battle, or event. Reply with ONLY a single valid JSON object and no other text, matching this exact schema: {"title":"string","summary":"2-4 educational sentences","year": number (signed: negative = BCE, e.g. -480; positive = CE), "placeName":"string (city, site, or region to put on a map; be specific if possible)","countryHint":"optional string for disambiguation","lat": null or a number, "lon": null or a number, "regionTag": one of "europe","middle_east","africa","asia","north_america","south_america","oceania","world"}. If you do not know coordinates, set lat and lon to null. Never output markdown.';
@@ -184,13 +200,17 @@
     if (!obj || !obj.title) throw new Error('Could not read AI response. Try a shorter question.');
     let lat = typeof obj.lat === 'number' && isFinite(obj.lat) ? obj.lat : null;
     let lon = typeof obj.lon === 'number' && isFinite(obj.lon) ? obj.lon : null;
+    const y = typeof obj.year === 'number' ? obj.year : 0;
+    const tag = (obj.regionTag && COL[obj.regionTag]) ? obj.regionTag : 'world';
     if (lat == null || lon == null){
       const g = await geocodePlace(String(obj.placeName || ''), String(obj.countryHint || ''));
       if (g){ lat = g.lat; lon = g.lon; }
     }
+    if (lat == null || lon == null){
+      const c = centroidForRegionTag(tag);
+      if (c){ lat = c.lat; lon = c.lon; }
+    }
     if (lat == null || lon == null) throw new Error('Could not place this on the map. Try adding a more specific place name in your question.');
-    const y = typeof obj.year === 'number' ? obj.year : 0;
-    const tag = (obj.regionTag && COL[obj.regionTag]) ? obj.regionTag : 'world';
     state.aiEvent = { y, t: String(obj.title), s: String(obj.summary || ''), lat, lon, c: tag, ai: true, place: String(obj.placeName || ''), _id: -1 };
     if (typeof state._render === 'function') state._render();
     if (state.map && state.aiEvent){
