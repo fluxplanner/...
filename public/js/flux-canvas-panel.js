@@ -1044,6 +1044,7 @@
             mainH: main ? main.offsetHeight : 0,
             canvasH: c ? c.offsetHeight : 0,
             canvasScrollH: c ? c.scrollHeight : 0,
+            cvOverflowYComputed: c ? getComputedStyle(c).overflowY : "",
             wrap: (() => {
               const w = document.getElementById("fluxCanvasPanelWrap");
               return w ? { h: w.offsetHeight, minH: getComputedStyle(w).minHeight } : null;
