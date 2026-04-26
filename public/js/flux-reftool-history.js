@@ -161,13 +161,53 @@
     return { lat: (b.sw[0] + b.ne[0]) / 2, lon: (b.sw[1] + b.ne[1]) / 2 };
   }
 
+  /** First balanced `{ ... }` in s, respecting strings (so `}` inside summary does not truncate). */
+  function sliceFirstJsonObject(s){
+    const start = s.indexOf('{');
+    if (start === -1) return null;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    for (let i = start; i < s.length; i++){
+      const ch = s[i];
+      if (inStr){
+        if (esc){ esc = false; continue; }
+        if (ch === '\\'){ esc = true; continue; }
+        if (ch === '"') inStr = false;
+        continue;
+      }
+      if (ch === '"'){ inStr = true; continue; }
+      if (ch === '{') depth++;
+      else if (ch === '}'){
+        depth--;
+        if (depth === 0) return s.slice(start, i + 1);
+      }
+    }
+    return null;
+  }
+
   function extractJsonObject(text){
     if (!text) return null;
-    const t = text.replace(/```json|```/gi, '').trim();
-    const a = t.indexOf('{');
-    const b = t.lastIndexOf('}');
-    if (a === -1 || b <= a) return null;
-    try{ return JSON.parse(t.slice(a, b + 1)); }catch(e){ return null; }
+    const t = String(text).replace(/\uFEFF/g, '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+    if (!t) return null;
+    if (t.startsWith('{')){
+      try{ return JSON.parse(t); }catch(e){ /* try slice */ }
+    }
+    const slice = sliceFirstJsonObject(t);
+    if (!slice) return null;
+    try{ return JSON.parse(slice); }catch(e){ return null; }
+  }
+
+  function normalizeHistoryAiObj(raw){
+    if (!raw || typeof raw !== 'object') return null;
+    const title = raw.title != null ? raw.title : raw.Title;
+    if (title == null || String(title).trim() === '') return null;
+    const o = Object.assign({}, raw);
+    o.title = String(title).trim();
+    if (typeof o.year === 'string' && /^-?\d+$/.test(o.year)) o.year = parseInt(o.year, 10);
+    if (typeof o.lat === 'string' && o.lat.trim() !== '' && !Number.isNaN(+o.lat)) o.lat = +o.lat;
+    if (typeof o.lon === 'string' && o.lon.trim() !== '' && !Number.isNaN(+o.lon)) o.lon = +o.lon;
+    return o;
   }
 
   async function geocodePlace(name, countryHint){
@@ -191,13 +231,13 @@
     }
   }
 
-  const AI_SYS = 'You are a world history tool for a student app. The student asks for a person, battle, or event. Reply with ONLY a single valid JSON object and no other text, matching this exact schema: {"title":"string","summary":"2-4 educational sentences","year": number (signed: negative = BCE, e.g. -480; positive = CE), "placeName":"string (city, site, or region to put on a map; be specific if possible)","countryHint":"optional string for disambiguation","lat": null or a number, "lon": null or a number, "regionTag": one of "europe","middle_east","africa","asia","north_america","south_america","oceania","world"}. If you do not know coordinates, set lat and lon to null. Never output markdown.';
+  const AI_SYS = 'You are a world history assistant. The user asks about a person, battle, treaty, empire, or event. Respond with one JSON object only (no markdown, no prose before or after). Keys: "title" (short), "summary" (2–4 clear sentences; use only straight double quotes inside strings or avoid inner quotes), "year" (integer; negative = BCE), "placeName" (specific place for a map pin), "countryHint" (optional string), "lat" (number or null), "lon" (number or null), "regionTag" (one of: europe, middle_east, africa, asia, north_america, south_america, oceania, world). If unsure of coordinates use null for lat and lon. The word json appears here because the API requires it.';
 
   async function runFluxQuery(query, state){
     if (typeof window.fluxAiSimple !== 'function') throw new Error('AI is not available. Open Flux while signed in.');
-    const text = await window.fluxAiSimple(AI_SYS, 'Student question: ' + query);
-    const obj = extractJsonObject(text);
-    if (!obj || !obj.title) throw new Error('Could not read AI response. Try a shorter question.');
+    const text = await window.fluxAiSimple(AI_SYS, 'Student question: ' + query, { responseFormat: 'json_object' });
+    const obj = normalizeHistoryAiObj(extractJsonObject(text));
+    if (!obj) throw new Error('Could not read AI response. Try rephrasing, or ask for one specific event or person.');
     let lat = typeof obj.lat === 'number' && isFinite(obj.lat) ? obj.lat : null;
     let lon = typeof obj.lon === 'number' && isFinite(obj.lon) ? obj.lon : null;
     const y = typeof obj.year === 'number' ? obj.year : 0;

@@ -1379,10 +1379,15 @@ async function fluxAuthHeaders(){
 }
 
 /** One-shot call to the same Supabase AI proxy as chat (for reference tools, JSON extraction, etc.). */
-async function fluxAiSimple(system, userMessage){
+async function fluxAiSimple(system, userMessage, opts){
+  const messages=[];
+  if(system)messages.push({ role:'system', content:system });
+  messages.push({ role:'user', content:userMessage });
+  const body={ messages };
+  if(opts&&opts.responseFormat==='json_object')body.responseFormat='json_object';
   let res;
   try{
-    res=await fetch(API.ai,{ method:'POST', headers:await fluxAuthHeaders(), body:JSON.stringify({ system, messages:[{ role:'user', content:userMessage }] }) });
+    res=await fetch(API.ai,{ method:'POST', headers:await fluxAuthHeaders(), body:JSON.stringify(body) });
   }catch(e){
     const msg=String(e&&e.message||e);
     if(/failed to fetch|networkerror|load failed/i.test(msg)){

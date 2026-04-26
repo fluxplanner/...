@@ -32,6 +32,8 @@ Deno.serve(async (req) => {
     model?: string;
     system?: string;
     systemPrompt?: string;
+    /** When set, Groq returns a single JSON object (requires "json" in messages per API rules). */
+    responseFormat?: "json_object";
   };
   try {
     body = await req.json();
@@ -110,15 +112,28 @@ async function callGroq(body: {
   model?: string;
   system?: string;
   systemPrompt?: string;
+  responseFormat?: "json_object";
 }): Promise<string> {
   const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
   if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not set");
 
   const system = body.system ?? body.systemPrompt;
-  const messages = body.messages ?? [
-    ...(system ? [{ role: "system", content: system }] : []),
-    { role: "user", content: body.message ?? "" },
-  ];
+  let messages = Array.isArray(body.messages) ? [...body.messages] : [];
+  if (system && !messages.some((m) => m.role === "system")) {
+    messages = [{ role: "system", content: system }, ...messages];
+  }
+  if (messages.length === 0) {
+    messages = [{ role: "user", content: body.message ?? "" }];
+  }
+
+  const jsonMode = body.responseFormat === "json_object";
+  const payload: Record<string, unknown> = {
+    model: body.model ?? "llama-3.3-70b-versatile",
+    messages,
+    max_tokens: jsonMode ? 1024 : 2048,
+    temperature: jsonMode ? 0.2 : 0.7,
+  };
+  if (jsonMode) payload.response_format = { type: "json_object" };
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -126,12 +141,7 @@ async function callGroq(body: {
       "Authorization": `Bearer ${GROQ_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: body.model ?? "llama-3.3-70b-versatile",
-      messages,
-      max_tokens: 2048,
-      temperature: 0.7,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
