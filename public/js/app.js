@@ -2162,22 +2162,7 @@ function fluxRenderDashMob(){
   }
 }
 
-// Toggles the mobile "See all" full task list below the compact Today list
-function fluxToggleDashSeeAll(){
-  const showing=document.body.classList.toggle('dash-mob-show-all');
-  const btn=document.getElementById('dashMobSeeAll');
-  if(btn){
-    btn.setAttribute('aria-expanded',showing?'true':'false');
-    btn.textContent=showing?'Hide all':'See all';
-  }
-  if(showing){
-    setTimeout(()=>{
-      const el=document.getElementById('taskList');
-      if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'start'});
-    },60);
-  }
-}
-try{ window.fluxRenderDashMob=fluxRenderDashMob; window.fluxToggleDashSeeAll=fluxToggleDashSeeAll; }catch(e){}
+try{ window.fluxRenderDashMob=fluxRenderDashMob; }catch(e){}
 
 function renderStats(){
   renderDashWeekStrip();

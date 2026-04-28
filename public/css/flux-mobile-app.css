@@ -410,8 +410,8 @@
 /* ════════════════════════════════════════════════════════════════
    MOBILE DASHBOARD LAYOUT (≤768px) — rebuilt per spec:
    greeting + date + A/B pill, 4 stat chips, Do This Now card,
-   Today's tasks list (up to 5), workload chart, panic banner.
-   All new elements are mobile-only; desktop layout is untouched.
+   compact "Up next" list (up to 5),
+   workload chart, panic banner, and the full Tasks workspace (same as desktop).
    ════════════════════════════════════════════════════════════════ */
 .dash-mob-date-row,
 .dash-mob-stack{ display: none; }
@@ -434,17 +434,12 @@
   .dash-subject-health,
   .subject-health-gauges{ display: none !important; }
 
-  /* Hide desktop task toolbar + filter chips + full task list by default;
-     "See all" toggles them back on via body class (see below). */
-  #dashboard .dash-v2-work-head,
-  #dashboard .dash-filters,
-  #dashboard #taskList,
-  #dashboard #savedViewsSection{ display: none !important; }
-  body.dash-mob-show-all #dashboard .dash-v2-work-head,
-  body.dash-mob-show-all #dashboard .dash-filters,
-  body.dash-mob-show-all #dashboard #taskList{ display: block !important; }
-  body.dash-mob-show-all #dashboard .dash-filters{ display: flex !important; flex-wrap: wrap; gap: 6px; }
-  body.dash-mob-show-all #dashboard .dash-v2-work-head{ display: flex !important; }
+  /* Full task workspace (toolbar, #taskList) stays visible on mobile.
+     Hide the filter chip row on small screens (filters still follow the
+     last-used taskFilter from wider layouts / defaults). */
+  #dashboard .dash-filters-row{
+    display: none !important;
+  }
 
   /* Date + A/B pill strip below greeting */
   .dash-mob-date{
@@ -608,7 +603,7 @@
 
   .dash-mob-today{ margin-top: 2px; }
   .dash-mob-today-head{
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; justify-content: flex-start;
     margin-bottom: 8px; padding: 0 2px;
   }
   .dash-mob-today-title{
@@ -625,20 +620,6 @@
     background: rgba(255,255,255,.05);
     border-radius: 999px;
   }
-  .dash-mob-see-all{
-    padding: 4px 10px;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,.08);
-    color: var(--accent);
-    font-size: .76rem;
-    font-weight: 700;
-    border-radius: 999px;
-    cursor: pointer;
-    min-height: 34px;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform .14s ease, background .14s ease;
-  }
-  .dash-mob-see-all:active{ transform: scale(.94); background: rgba(var(--accent-rgb),.08); }
   .dash-mob-today-list{
     display: flex; flex-direction: column; gap: 6px;
     background: var(--card);
@@ -955,6 +936,14 @@
 }
 #taskList{
   contain: layout style;
+}
+@media (max-width: 768px){
+  /* Avoid Safari/contain quirks where the list paints as empty below toolbars */
+  #dashboard #taskList{
+    contain: none;
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1737,40 +1726,16 @@ body.flux-panic .task-card.flux-task-urgent{
 .task-action-btn--gcal:active{ transform: scale(.92); }
 
 /* ════════════════════════════════════════════════════════════════
-   BULK SELECT MODE on task list — "Select" button + bottom action bar
+   BULK SELECT MODE on task list — bottom action bar (enter via app logic)
    ════════════════════════════════════════════════════════════════ */
 .dash-filters-row{
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
   flex-wrap: wrap;
 }
 .dash-filters-row .dash-filters{ flex: 1; min-width: 0; }
-.dash-select-btn{
-  flex-shrink: 0;
-  padding: 6px 14px;
-  min-height: 36px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.03);
-  color: var(--muted2);
-  font-size: .76rem;
-  font-weight: 700;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background .14s ease, color .14s ease, transform .14s ease;
-}
-.dash-select-btn:hover{ background: rgba(255,255,255,.06); color: var(--text); }
-.dash-select-btn.on{
-  background: rgba(var(--accent-rgb),.14);
-  border-color: rgba(var(--accent-rgb),.3);
-  color: var(--accent);
-}
-[data-theme="light"] .dash-select-btn{
-  background: rgba(0,0,0,.03);
-  border-color: rgba(0,0,0,.08);
-}
 
 /* Bulk action bar: sticky at bottom of dashboard */
 .task-bulk-bar{

@@ -3358,20 +3358,24 @@ html.flux-reduce-motion *,html.flux-reduce-motion *::before,html.flux-reduce-mot
   .topbar-new-task-icon{font-size:1.2rem!important}
 }
 
-/* Task card actions — on phone viewports, flow them below the title/chips
-   instead of absolutely positioning them on top of the content. This
-   prevents overlap between the ⏱ ✎ ✦ ✕ buttons and the task text. */
-@media(max-width:640px){
-  .task-item{
+/* Task card actions — on phone/tablet widths, flow actions below the title/chips
+   instead of absolutely positioning them on top of the content (641–768px was
+   still absolute+opaque, blocking taps on the checkbox and task text).
+   Use descendants so rows wrapped by .task-swipe-inner (mobile swipe) still match. */
+@media(max-width:768px){
+  .task-item,
+  .task-item .task-swipe-inner{
     flex-wrap:wrap;
     row-gap:6px;
+  }
+  .task-item{
     padding:12px 12px 10px!important;
   }
-  .task-item > .task-body{
+  .task-item .task-body{
     flex:1 1 calc(100% - 40px);
     min-width:0;
   }
-  .task-item > .task-actions{
+  .task-item .task-actions{
     position:static!important;
     top:auto!important;right:auto!important;
     opacity:1!important;
@@ -3386,16 +3390,15 @@ html.flux-reduce-motion *,html.flux-reduce-motion *::before,html.flux-reduce-mot
     margin-top:2px;
     border-top:1px dashed rgba(255,255,255,.06);
   }
-  .task-item > .task-actions .task-action-btn{
+  .task-item .task-actions .task-action-btn{
     width:38px;height:38px;min-height:38px!important;
     border-radius:10px;font-size:.95rem;
   }
-  .task-item > .task-actions .scope-pill.mini{
+  .task-item .task-actions .scope-pill.mini{
     padding:0 12px;font-size:.72rem;min-height:38px;
     display:inline-flex;align-items:center;line-height:1;
   }
-  /* Light theme parity for the dashed separator */
-  [data-theme="light"] .task-item > .task-actions{border-top-color:rgba(0,0,0,.08)}
+  [data-theme="light"] .task-item .task-actions{border-top-color:rgba(0,0,0,.08)}
 }
 
 /* ══ Canvas LMS panel (API mini-browser) ══ */
