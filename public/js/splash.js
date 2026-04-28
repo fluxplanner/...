@@ -14,31 +14,82 @@ function isLikelyLowEndDevice(){
   return false;
 }
 
+function fluxSplashAccentHex(){
+  try{
+    const h=(localStorage.getItem('flux_accent')||'').trim();
+    if(h&&/^#[0-9A-Fa-f]{6}$/.test(h))return h;
+  }catch(_){}
+  return '#00bfff';
+}
+function fluxSplashHexToRgb(hex){
+  const x=String(hex||'').replace('#','');
+  if(x.length!==6)return{r:0,g:191,b:255};
+  const r=parseInt(x.slice(0,2),16),g=parseInt(x.slice(2,4),16),b=parseInt(x.slice(4,6),16);
+  if([r,g,b].some(n=>Number.isNaN(n)))return{r:0,g:191,b:255};
+  return{r,g,b};
+}
+/** Splash-only hue shift (matches app `shiftHueHex` intent; splash runs before app.js). */
+function fluxShiftHueHex(hex,deg){
+  if(!hex||hex[0]!=='#'||hex.length<7)return hex||'#00bfff';
+  const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+  if([r,g,b].some(Number.isNaN))return hex;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
+  let h=0;
+  if(d>1e-6){
+    if(max===r)h=60*((((g-b)/d)%6+6)%6);
+    else if(max===g)h=60*((((b-r)/d)+2)%6);
+    else h=60*((((r-g)/d)+4)%6);
+  }
+  const l=(max+min)/2;
+  const s=d<1e-6?0:d/(1-Math.abs(2*l-1)||1);
+  const nh=(h+(deg||0)+360)%360;
+  const c=(1-Math.abs(2*l-1))*s;
+  const seg=c*(1-Math.abs((nh/60)%2-1));
+  const m=l-c/2;
+  let rp=0,gp=0,bp=0;
+  if(nh<60){rp=c;gp=seg;}
+  else if(nh<120){rp=seg;gp=c;}
+  else if(nh<180){gp=c;bp=seg;}
+  else if(nh<240){gp=seg;bp=c;}
+  else if(nh<300){rp=seg;bp=c;}
+  else{rp=c;bp=seg;}
+  const R=Math.round((rp+m)*255),G=Math.round((gp+m)*255),B=Math.round((bp+m)*255);
+  const to=n=>('0'+Math.max(0,Math.min(255,n)).toString(16)).slice(-2);
+  return '#'+to(R)+to(G)+to(B);
+}
+
 /** Returning visits: wordmark + laser beam (grows left → right from under “F”) */
 function runShortSplash(callback){
   const splash=document.getElementById('splash');
   if(!splash){callback();return;}
   const reduce=prefersReducedMotion();
-  splash.style.cssText='position:fixed;inset:0;background:#0B0E14;z-index:9999;display:flex;flex-direction:column;align-items:stretch;justify-content:center;width:100%;height:100%;min-height:100dvh;overflow:hidden';
   const laserAnim=reduce?'none':'fluxLaserGrow 1.35s cubic-bezier(.22,1,.36,1) forwards';
+  const acc=fluxSplashAccentHex();
+  const acc2=fluxShiftHueHex(acc,-22);
+  const rgb=fluxSplashHexToRgb(acc);
+  const rgbStr=`${rgb.r},${rgb.g},${rgb.b}`;
+  const glow=`rgba(${rgbStr},.14)`;
+  const glow2=`rgba(${rgbStr},.95)`;
+  const glow3=`rgba(${rgbStr},.55)`;
+  splash.style.cssText='position:fixed;inset:0;background:#0B0E14;z-index:9999;display:flex;flex-direction:column;align-items:stretch;justify-content:center;width:100%;height:100%;min-height:100dvh;overflow:hidden';
   splash.innerHTML=`
-    <div style="position:absolute;inset:0;pointer-events:none;opacity:.35;background:radial-gradient(ellipse 85% 60% at 50% 42%,rgba(74,144,226,.14),transparent 58%)"></div>
+    <div style="position:absolute;inset:0;pointer-events:none;opacity:.35;background:radial-gradient(ellipse 85% 60% at 50% 42%,${glow},transparent 58%)"></div>
     <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;box-sizing:border-box;padding:max(12px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))">
       <div style="width:100%;max-width:272px;display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:-24px;animation:splashFadeIn .55s cubic-bezier(.22,1,.36,1) both">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 32" preserveAspectRatio="xMinYMin meet" style="width:100%;max-width:300px;height:auto;display:block;flex-shrink:0;filter:drop-shadow(0 6px 24px rgba(74,144,226,.14))" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 32" preserveAspectRatio="xMinYMin meet" style="width:100%;max-width:300px;height:auto;display:block;flex-shrink:0;filter:drop-shadow(0 6px 24px ${glow})" aria-hidden="true">
           <defs>
             <linearGradient id="fluxWGSplash" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stop-color="#E8F4FC"/>
-              <stop offset="55%" stop-color="#00d4ff"/>
-              <stop offset="100%" stop-color="#4A90E2"/>
+              <stop offset="55%" stop-color="${acc}"/>
+              <stop offset="100%" stop-color="${acc2}"/>
             </linearGradient>
           </defs>
           <text x="0" y="26" font-family="'Plus Jakarta Sans',system-ui,sans-serif" font-size="31" font-weight="800" letter-spacing="-0.04em" fill="url(#fluxWGSplash)">Flux</text>
         </svg>
         <div style="display:flex;align-items:center;width:100%;gap:6px;margin-top:2px">
-          <div aria-hidden="true" style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#8ec5f2);box-shadow:0 0 14px rgba(74,144,226,.95),0 0 5px rgba(255,255,255,.75)"></div>
+          <div aria-hidden="true" style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,${acc});box-shadow:0 0 14px ${glow2},0 0 5px rgba(255,255,255,.75)"></div>
           <div style="flex:1;min-width:0;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;position:relative">
-            <div class="flux-splash-laser-fill" style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:3px;width:${reduce?'100%':'0'};border-radius:2px;background:linear-gradient(90deg,#A0D8EF,#4A90E2);box-shadow:0 0 12px rgba(74,144,226,.55);animation:${laserAnim}"></div>
+            <div class="flux-splash-laser-fill" style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:3px;width:${reduce?'100%':'0'};border-radius:2px;background:linear-gradient(90deg,${acc2},${acc});box-shadow:0 0 12px ${glow3};animation:${laserAnim}"></div>
           </div>
         </div>
         <div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:.78rem;letter-spacing:.28em;text-transform:uppercase;color:rgba(195,210,230,.92);text-align:left;line-height:1.35">PLANNER</div>
@@ -74,6 +125,13 @@ function runCinematicSplash(callback){
   if(metaTheme)metaTheme.setAttribute('content','#0B0F1A');
 
   const T_HYPER=800,T_RINGS=1800,T_LOGO=2500,T_END=3000;
+  const acc=fluxSplashAccentHex();
+  const acc2=fluxShiftHueHex(acc,-20);
+  const rgb=fluxSplashHexToRgb(acc);
+  const rgbStr=`${rgb.r},${rgb.g},${rgb.b}`;
+  const cinGlow=`rgba(${rgbStr},.45)`;
+  const cinGlowLaser=`rgba(${rgbStr},.6)`;
+  const cinNode=`rgba(${rgbStr},.9)`;
   splash.style.cssText='position:fixed;inset:0;z-index:9999;overflow:hidden;display:block;background:#070512';
 
   splash.innerHTML=`
@@ -82,14 +140,14 @@ function runCinematicSplash(callback){
     <div id="fluxCinLogo" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;pointer-events:none;opacity:0">
       <div style="display:flex;flex-direction:column;align-items:flex-start;width:min(88vw,320px);padding:0 12px;box-sizing:border-box">
         <div id="fluxCinWord" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:clamp(2.75rem,12vw,3.85rem);font-weight:800;letter-spacing:-0.04em;text-align:left;
-          background:linear-gradient(90deg,#E8F4FC 0%,#00C2FF 52%,#4A90E2 100%);
+          background:linear-gradient(90deg,#E8F4FC 0%,${acc} 52%,${acc2} 100%);
           -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-          filter:drop-shadow(0 0 26px rgba(74,144,226,.45));transform:scale(.88)">Flux</div>
+          filter:drop-shadow(0 0 26px ${cinGlow});transform:scale(.88)">Flux</div>
         <div id="fluxCinSweep" style="width:100%;margin-top:12px;opacity:0">
           <div style="display:flex;align-items:center;width:100%;gap:6px">
-            <div aria-hidden="true" style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#8ec5f2);box-shadow:0 0 14px rgba(74,144,226,.9)"></div>
+            <div aria-hidden="true" style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,${acc});box-shadow:0 0 14px ${cinNode}"></div>
             <div style="flex:1;min-width:0;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;position:relative">
-              <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:3px;width:0;border-radius:2px;background:linear-gradient(90deg,#A0D8EF,#4A90E2);box-shadow:0 0 12px rgba(74,144,226,.6);animation:fluxCinLaser 1.05s cubic-bezier(.22,1,.36,1) 2.05s forwards"></div>
+              <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:3px;width:0;border-radius:2px;background:linear-gradient(90deg,${acc2},${acc});box-shadow:0 0 12px ${cinGlowLaser};animation:fluxCinLaser 1.05s cubic-bezier(.22,1,.36,1) 2.05s forwards"></div>
             </div>
           </div>
         </div>
@@ -125,11 +183,11 @@ function runCinematicSplash(callback){
   }
 
   const RINGS=[
-    {rx:.42,ry:.13,tilt:12,phase:0,spd:.65,alpha:.22,co:[0,194,255]},
+    {rx:.42,ry:.13,tilt:12,phase:0,spd:.65,alpha:.22,co:[rgb.r,rgb.g,rgb.b]},
     {rx:.34,ry:.18,tilt:58,phase:1.1,spd:-.52,alpha:.16,co:[124,92,255]},
     {rx:.48,ry:.11,tilt:-28,phase:2.3,spd:.42,alpha:.14,co:[34,255,136]},
-    {rx:.26,ry:.2,tilt:82,phase:3.5,spd:-.58,alpha:.12,co:[100,180,255]},
-    {rx:.52,ry:.09,tilt:5,spd:.38,alpha:.1,co:[0,194,255]},
+    {rx:.26,ry:.2,tilt:82,phase:3.5,spd:-.58,alpha:.12,co:[Math.min(255,rgb.r+40),Math.min(255,rgb.g+30),Math.min(255,rgb.b+20)]},
+    {rx:.52,ry:.09,tilt:5,spd:.38,alpha:.1,co:[rgb.r,rgb.g,rgb.b]},
   ];
   let sparks=[];
 
@@ -317,7 +375,7 @@ function runCinematicSplash(callback){
       ctx.fillRect(0,0,W,H);
       logoEl.style.opacity='1';
       wordEl.style.transform='scale(1)';
-      wordEl.style.filter=`drop-shadow(0 0 ${24+seg*20}px rgba(0,194,255,${0.45+seg*0.25}))`;
+      wordEl.style.filter=`drop-shadow(0 0 ${24+seg*20}px rgba(${rgbStr},${0.45+seg*0.25}))`;
       sweepEl.style.opacity=String((1-seg)*0.9);
     }
 

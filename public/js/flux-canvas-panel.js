@@ -1,7 +1,7 @@
 /**
  * Flux Canvas LMS panel — API-driven mini browser (loaded after app.js).
  * Expects globals: load, save, esc, showToast, getSB, SB_URL, SB_ANON, tasks, classes,
- * canvasToken, canvasUrl, nav, openFluxAgent, calcGPA, grades, calcUrgency, syncKey,
+ * canvasToken, canvasUrl, nav, openFluxAgent, calcUrgency, syncKey,
  * renderStats, renderTasks, renderCalendar, renderCountdown, cleanClassName,
  * FLUX_FLAGS, requiresPro, showUpgradePrompt, canvasProxyPostForm, refreshCanvasHubFullFetch
  */
@@ -170,15 +170,6 @@
         params: { "include[]": ["items", "content_details"], per_page: 50 },
       });
     },
-    getAllGrades() {
-      return this.fetch("/api/v1/users/self/enrollments", {
-        params: {
-          "state[]": ["active"],
-          "include[]": ["grades", "course"],
-          per_page: 50,
-        },
-      });
-    },
     getCalendarEvents(startDate, endDate) {
       return this.fetch("/api/v1/calendar_events", {
         params: {
@@ -342,6 +333,7 @@
   const CanvasViews = {
     async navigate(view, params, options) {
       options = options || {};
+      if (view === "grades") view = "dashboard";
       if (!options.noHistory) {
         CanvasState.history = CanvasState.history.slice(0, CanvasState.historyIndex + 1);
         CanvasState.history.push({ view, params, title: "" });
@@ -501,7 +493,8 @@
     },
     async course(params) {
       const courseId = params.courseId;
-      const tab = params.tab || "overview";
+      let tab = params.tab || "overview";
+      if (tab === "grades") tab = "overview";
       const c = CanvasState.courses.find((x) => String(x.id) === String(courseId)) || {};
       const [future, overdue, modules, ann] = await Promise.all([
         CanvasAPI.getAssignments(courseId, { bucket: "future" }).catch(() => []),
@@ -526,7 +519,6 @@
         ["assignments", "Assignments"],
         ["modules", "Modules"],
         ["announcements", "Announcements"],
-        ["grades", "Grades"],
       ];
       const tabBar = tabs.map(([id, lab]) => `
         <button type="button" class="canvas-tab ${tab === id ? "active" : ""}" onclick="CanvasViews.navigate('course',Object.assign({}, CanvasState.currentParams, {tab:'${id}'}))">${lab}</button>`).join("");
@@ -595,27 +587,6 @@
               </div>`;
           }).join("")
           : `<div class="canvas-card muted">No announcements.</div>`;
-      } else if (tab === "grades") {
-        let rows = "";
-        try {
-          const ens = await CanvasAPI.fetch(`/api/v1/courses/${courseId}/enrollments`, {
-            params: { user_id: "self", "include[]": ["grades"], per_page: 20 },
-          });
-          const en = Array.isArray(ens) ? ens.find((e) => String(e.type || "").includes("Student")) : null;
-          const scores = (fu.concat(ov)).filter((x) => x.submission && (x.submission.entered_grade != null || x.submission.grade != null));
-          rows = scores.map((a) => {
-            const g = a.submission.entered_grade != null ? a.submission.entered_grade : a.submission.grade;
-            return `<tr><td>${esc(a.name)}</td><td>${esc(String(g))}</td><td>${a.points_possible != null ? esc(String(a.points_possible)) : "—"}</td></tr>`;
-          }).join("");
-          const summary = en && en.grades
-            ? `<div class="canvas-card" style="margin-bottom:12px">Course grade: <strong>${esc(String(en.grades.current_grade || en.grades.final_grade || "—"))}</strong></div>`
-            : "";
-          inner = summary + (rows
-            ? `<table class="canvas-grade-table"><thead><tr><th>Assignment</th><th>Score</th><th>Out of</th></tr></thead><tbody>${rows}</tbody></table>`
-            : `<div class="canvas-card muted">No graded assignments in this view.</div>`);
-        } catch (_) {
-          inner = `<div class="canvas-card muted">Grades could not be loaded.</div>`;
-        }
       }
       content.innerHTML = `<div class="canvas-tab-bar">${tabBar}</div>${inner}`;
       CanvasState.pageContext = {
@@ -725,40 +696,6 @@
         courseName: course.name || course.course_code,
         postedAt: an.posted_at,
         fullText: stripHtml(an.message || "").slice(0, 3000),
-      };
-      updateAICanvasContextBadge();
-    },
-    async grades() {
-      const enrollments = await CanvasAPI.getAllGrades();
-      const list = Array.isArray(enrollments) ? enrollments : [];
-      CanvasState.currentTitle = "All grades";
-      if (CanvasState.history[CanvasState.historyIndex]) {
-        CanvasState.history[CanvasState.historyIndex].title = "Grades";
-      }
-      const nums = list.map((e) => parseFloat(e.grades && e.grades.current_score)).filter((n) => !isNaN(n));
-      const est = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length / 25).toFixed(2) : null;
-      const cards = list.filter((e) => e.course_id).map((e) => {
-        const cn = e.course && (e.course.name || e.course.course_code);
-        const col = courseColor(e.course || {});
-        return `<div class="canvas-card" style="border-left:3px solid ${esc(col)}">
-          <div style="font-weight:700">${esc(cn || "Course")}</div>
-          <div style="font-size:.85rem;margin-top:6px">Current: ${esc(String((e.grades && (e.grades.current_grade || e.grades.current_score)) || "—"))}</div>
-          <button type="button" class="canvas-linkish" onclick="CanvasViews.navigate('course',{courseId:${e.course_id}, tab:'grades'})">View course grades</button>
-        </div>`;
-      });
-      document.getElementById("canvasContent").innerHTML = `
-        <div class="canvas-card" style="margin-bottom:12px">
-          <strong>GPA estimate:</strong> ${est ? "~" + est + " (4.0 scale, unweighted average of Canvas scores — informational only)" : "Not enough numeric scores"}
-        </div>
-        ${cards.join("") || `<div class="canvas-card muted">No enrollments.</div>`}`;
-      CanvasState.pageContext = {
-        view: "grades",
-        courses: list.map((e) => ({
-          courseName: e.course && e.course.name,
-          currentGrade: e.grades && e.grades.current_grade,
-          currentScore: e.grades && e.grades.current_score,
-          finalGrade: e.grades && e.grades.final_grade,
-        })),
       };
       updateAICanvasContextBadge();
     },
@@ -950,7 +887,6 @@
             <button type="button" class="canvas-course-chip" onclick="CanvasViews.navigate('dashboard',{})">Dashboard</button>
             <button type="button" class="canvas-course-chip" onclick="CanvasViews.calendar({})">Calendar</button>
             <button type="button" class="canvas-course-chip" onclick="CanvasViews.inbox({})">Inbox</button>
-            <button type="button" class="canvas-course-chip" onclick="CanvasViews.grades({})">Grades</button>
           </aside>
           <div class="canvas-sidebar-backdrop" id="canvasSidebarBackdrop" onclick="fluxCanvasCloseMobileSidebar()"></div>
           <main class="canvas-content" id="canvasContent"></main>
@@ -1161,7 +1097,7 @@
           <svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true"><text x="50%" y="54%" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="system-ui">C</text></svg>
         </div>
         <h2 style="margin-bottom:8px">Connect Canvas LMS</h2>
-        <p style="font-size:.85rem;color:var(--muted2);margin-bottom:20px;line-height:1.5">See assignments, announcements, and grades from Canvas inside Flux.</p>
+        <p style="font-size:.85rem;color:var(--muted2);margin-bottom:20px;line-height:1.5">See assignments, announcements, and course updates from Canvas inside Flux.</p>
         <label style="text-align:left;font-size:.72rem;color:var(--muted)">Canvas host</label>
         <input type="text" id="fluxCanvasConnectHost" placeholder="yourschool.instructure.com" style="width:100%;margin-bottom:12px">
         <label style="text-align:left;font-size:.72rem;color:var(--muted)">Access token</label>

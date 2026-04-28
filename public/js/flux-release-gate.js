@@ -170,7 +170,7 @@
     const notes=gate&&gate.notes?`<div style="font-size:.74rem;color:var(--muted2,#8a93a7);margin-top:14px;line-height:1.55;max-width:420px;margin-left:auto;margin-right:auto;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;text-align:left"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted,#5b6473);margin-bottom:6px">Release notes</div>${esc(gate.notes)}</div>`:'';
     const div=document.createElement('div');
     div.id='fluxReleaseOverlay';
-    div.style.cssText='position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 30% 20%,rgba(var(--accent-rgb,0,191,255),.18),transparent 60%),rgba(4,7,14,.96);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);color:var(--text,#e6edf6);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+    div.style.cssText='position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 30% 20%,rgba(var(--accent-rgb),.18),transparent 60%),rgba(4,7,14,.96);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);color:var(--text,#e6edf6);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
     div.innerHTML=`
       <div style="max-width:460px;width:100%;text-align:center">
         <div style="font-size:2.6rem;margin-bottom:14px">🛠</div>
@@ -178,7 +178,7 @@
         <div style="font-size:.85rem;color:var(--muted2,#8a93a7);line-height:1.55">Flux just shipped a new build. The Flux team is reviewing it before rolling out to everyone. Check back in a few minutes — this screen will clear automatically once it's live.</div>
         ${notes}
         <div style="margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button type="button" id="fluxReleaseRetryBtn" style="padding:10px 18px;font-size:.82rem;font-weight:700;border-radius:10px;background:rgba(var(--accent-rgb,0,191,255),.16);border:1px solid rgba(var(--accent-rgb,0,191,255),.35);color:var(--accent,#00bfff);cursor:pointer">↻ Check again</button>
+          <button type="button" id="fluxReleaseRetryBtn" style="padding:10px 18px;font-size:.82rem;font-weight:700;border-radius:10px;background:rgba(var(--accent-rgb),.16);border:1px solid rgba(var(--accent-rgb),.35);color:var(--accent,#00bfff);cursor:pointer">↻ Check again</button>
           <button type="button" id="fluxReleaseSignOutBtn" style="padding:10px 18px;font-size:.82rem;font-weight:700;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--muted2,#8a93a7);cursor:pointer">Sign out</button>
         </div>
         <div style="font-size:.62rem;color:var(--muted,#5b6473);font-family:JetBrains Mono,monospace;margin-top:18px;opacity:.7">BUILD · ${esc(buildLabel(FLUX_BUILD_ID))} · awaiting release</div>

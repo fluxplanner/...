@@ -1,7 +1,7 @@
 /**
  * Flux Planner — Enhancements Pack v100 (modular, additive).
  * Covers features 1–100: intelligence heuristics, UX shell, productivity, personalization, OS-level UI.
- * Depends on globals from app.js (deferred after app.js): tasks, moodHistory, sessionLog, grades, notes, classes,
+ * Depends on globals from app.js (deferred after app.js): tasks, moodHistory, sessionLog, notes, classes,
  * todayStr, load, save, nav, showToast, calcUrgency, renderTasks, openEdit, toggleTask, snoozeTask, startTimerFromTask,
  * openGlobalSearch, closeGlobalSearch, openCommandPalette, closeCommandPalette, forceSyncNow, switchView, openQuickAdd, startDeepWork.
  */
@@ -69,7 +69,6 @@
   function ctxTasks(){return typeof tasks!=='undefined'&&Array.isArray(tasks)?tasks:[];}
   function ctxMood(){return typeof moodHistory!=='undefined'&&Array.isArray(moodHistory)?moodHistory:[];}
   function ctxSessions(){return safeLoad('flux_session_log',[]);}
-  function ctxGrades(){return typeof grades!=='undefined'&&grades?grades:{};}
 
   /* ══════════ Intelligence features 1–25 ══════════ */
   function intel01(){ /* predict overdue before */ 
@@ -188,14 +187,19 @@
     return due.length?'SRS: '+due.length+' task(s) flagged for spaced review.':'Enable SRS on tasks for auto review scheduling.';
   }
   function intel19(){
-    const g=ctxGrades();const nums=Object.values(g).map(x=>parseFloat(x)).filter(x=>!isNaN(x));
-    if(nums.length<2)return null;
-    const avg=nums.reduce((a,b)=>a+b,0)/nums.length;
-    return 'GPA trajectory (local grades only): avg ~'+avg.toFixed(1)+'% — keep pacing steady.';
+    const now=new Date();now.setHours(0,0,0,0);
+    const subj=new Map();
+    ctxTasks().filter(t=>!t.done&&t.subject&&t.date).forEach(t=>{
+      try{
+        if(new Date(t.date+'T00:00:00')<now)subj.set(t.subject,(subj.get(t.subject)||0)+1);
+      }catch(_){}
+    });
+    const top=[...subj.entries()].sort((a,b)=>b[1]-a[1])[0];
+    return top?'Most overdue by subject: '+top[0]+' ('+top[1]+' tasks) — clear oldest first.':null;
   }
   function intel20(){
-    const low=Object.entries(ctxGrades()).filter(([,v])=>parseFloat(v)<70);
-    return low.length?'Recovery: prioritize '+low[0][0]+' with short daily reviews.':null;
+    const r=ctxTasks().filter(t=>!t.done&&(t.rescheduled||0)>=4);
+    return r.length?'Heavy reschedules: '+r[0].name+' — pick a smaller next step or a fixed time.':null;
   }
   function intel21(){
     const last=localStorage.getItem('flux_task_streak_last');
@@ -460,7 +464,7 @@
 
   function altPanelShortcuts(e){
     if(!e.altKey||e.metaKey||e.ctrlKey)return;
-    const map={'1':'dashboard','2':'calendar','3':'ai','4':'school','5':'grades','6':'notes','7':'timer','8':'mood','9':'settings'};
+    const map={'1':'dashboard','2':'calendar','3':'ai','4':'school','5':'toolbox','6':'notes','7':'timer','8':'mood','9':'settings'};
     const id=map[e.key];
     if(id){e.preventDefault();const btn=document.querySelector('.nav-item[data-tab="'+id+'"]');if(typeof nav==='function')nav(id,btn);} 
   }

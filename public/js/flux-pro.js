@@ -88,7 +88,7 @@ const ACHIEVEMENTS = [
   {id:'focus_60',    icon:'⏱', kicker:'DEEP FOCUS',  title:'60 minutes of focus',     desc:'A full Pomodoro session done.', test:s=>s.totalFocusMin>=60},
   {id:'focus_300',   icon:'⌛', kicker:'MASTER',      title:'5 hours of focus',        desc:'Cumulative deep work milestone.',test:s=>s.totalFocusMin>=300},
   {id:'ai_friend',   icon:'✦', kicker:'AI USER',     title:'AI conversation',         desc:'You chatted with Flux AI.',     test:s=>s.aiMessages>=5},
-  {id:'grade_track', icon:'📊', kicker:'TRACKER',     title:'Grade tracker',           desc:'You logged your first grade.',  test:s=>s.gradeCount>=1},
+  {id:'school_setup', icon:'🏫', kicker:'SCHEDULE', title:'Classes on file', desc:'You added 3+ classes.', test:s=>s.classCount>=3},
 ];
 
 function getAchievementStats(){
@@ -105,7 +105,7 @@ function getAchievementStats(){
     streak:       parseInt(localStorage.getItem('flux_task_streak_n')||'0',10) || 0,
     totalFocusMin:parseInt(localStorage.getItem('t_minutes')||'0',10) || 0,
     aiMessages:   parseInt(localStorage.getItem('flux_ai_msg_count')||'0',10) || 0,
-    gradeCount:   Object.keys((window.grades)||{}).length,
+    classCount:   (window.classes||[]).filter(c=>c&&c.name).length,
     lateNight:    localStorage.getItem('flux_milestone_late_night')==='1',
     earlyBird:    localStorage.getItem('flux_milestone_early_bird')==='1',
   };

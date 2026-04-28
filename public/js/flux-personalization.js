@@ -97,11 +97,11 @@
   }
 
   function applyPerfSnappy(){
-    let on=true;
+    let on=false;
     try{
       const raw=localStorage.getItem(KEY_PERF_SNAPPY);
       if(raw!==null)on=JSON.parse(raw)===true;
-    }catch(e){on=true;}
+    }catch(e){on=false;}
     document.documentElement.setAttribute('data-flux-perf',on?'on':'off');
   }
   function setPerfSnappyEnabled(on){
@@ -356,11 +356,11 @@
     }
     const perf=document.getElementById('fluxPerfSnappyToggle');
     if(perf){
-      let cur=true;
+      let cur=false;
       try{
         const raw=localStorage.getItem(KEY_PERF_SNAPPY);
-        cur=raw===null?true:JSON.parse(raw)===true;
-      }catch(e){cur=true;}
+        cur=raw===null?false:JSON.parse(raw)===true;
+      }catch(e){cur=false;}
       perf.classList.toggle('on',!!cur);
       perf.setAttribute('aria-pressed',cur?'true':'false');
       perf.onclick=()=>{

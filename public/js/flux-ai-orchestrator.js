@@ -1,7 +1,7 @@
 /**
  * Flux AI Orchestrator — Claude-style agent layer on top of Flux (additive).
  *
- * Depends on globals from app.js + flux-ai-mega.js: load, save, tasks, grades, moodHistory,
+ * Depends on globals from app.js + flux-ai-mega.js: load, save, tasks, moodHistory,
  * todayStr, calcUrgency, syncKey, renderCalendar, renderTasks, renderStats, showToast, nav,
  * API, API_HEADERS, buildFullPlannerContextForAI (optional), FluxMega, FluxBus, FluxIntel,
  * appendMsg, fmtAI, esc (optional; we inline esc), openFluxAgent, sendAI (for scratch insert).
@@ -70,34 +70,46 @@
     saveMem(m);
   }
 
-  /** Numeric parse for grade values */
-  function gradeNum(v){
-    const n=parseFloat(String(v??'').replace(/[^\d.-]/g,''));
-    return isNaN(n)?null:n;
-  }
-
+  /** Rank subjects by workload signals (overdue, reschedules) — no gradebook data. */
   function analyzeWeakSubjects(){
-    const rows=[];
-    if(typeof grades!=='undefined'&&grades&&typeof grades==='object'){
-      Object.entries(grades).forEach(([sub,val])=>{
-        const n=gradeNum(val);
-        if(n==null)return;
-        rows.push({subject:sub,score:n,raw:String(val)});
+    const now=new Date();now.setHours(0,0,0,0);
+    const byKey={};
+    const bump=(key,field,n=1)=>{
+      if(!key)return;
+      if(!byKey[key])byKey[key]={subject:key,overdue:0,reschedules:0,pending:0};
+      byKey[key][field]+=n;
+    };
+    if(typeof tasks!=='undefined'&&Array.isArray(tasks)){
+      tasks.filter(t=>!t.done).forEach(t=>{
+        const k=t.subject||'(untagged)';
+        bump(k,'pending',1);
+        if(t.date){
+          try{
+            if(new Date(t.date+'T00:00:00')<now)bump(k,'overdue',1);
+          }catch(_){}
+        }
+        const rs=t.rescheduled||0;
+        if(rs>=2)bump(k,'reschedules',rs);
       });
     }
-    rows.sort((a,b)=>a.score-b.score);
+    const rows=Object.values(byKey).map(r=>({
+      subject:r.subject,
+      strain:r.overdue*5+r.reschedules+r.pending,
+      overdue:r.overdue,
+      reschedules:r.reschedules,
+      pending:r.pending,
+    })).filter(r=>r.strain>0).sort((a,b)=>b.strain-a.strain);
     const weakest=rows.slice(0,5);
-    const strongest=rows.slice().sort((a,b)=>b.score-a.score).slice(0,3);
     let proc=[];
     if(window.FluxMega&&typeof FluxMega.procrastinationSubjects==='function')
       proc=FluxMega.procrastinationSubjects().slice(0,4);
     return{
       weakest,
-      strongest,
+      strongest:rows.slice().sort((a,b)=>a.strain-b.strain).slice(0,3),
       procrastinationHints:proc,
       narrative:weakest.length
-        ?`Weakest by entered grades: ${weakest.map(w=>`${w.subject} (${w.raw})`).join('; ')}.`
-        :'No numeric grades on file — infer subjects from tasks and notes.',
+        ?`Highest strain (overdue / reschedules / open): ${weakest.map(w=>`${w.subject} (score ${w.strain})`).join('; ')}.`
+        :'No strained subjects detected from tasks — add due dates and subjects for clearer signals.',
     };
   }
 
@@ -209,7 +221,7 @@
   const TOOL_DEFS=[
     {name:'createScheduleBlock',description:'Create a calendar event or school task with date (and optional time).',params:'{title,date,time?,kind?:"event"|"task",subject?,priority?,notes?,scope?}'},
     {name:'predictStudyTime',description:'Predict minutes for a task using Flux learn + estimates.',params:'{taskId?|subject?}'},
-    {name:'analyzeWeakSubjects',description:'Rank weak/strong subjects from grades + procrastination hints.',params:'{}'},
+    {name:'analyzeWeakSubjects',description:'Rank strained subjects from task overload + procrastination hints.',params:'{}'},
     {name:'optimizeDayPlan',description:'Return study order + capacity; set apply:true to run schedule relief (same as Fix my schedule).',params:'{apply?:boolean,limit?}'},
     {name:'adjustForEnergyLevel',description:'Re-rank tasks for energy 1–5; set persist:true to save energy slider.',params:'{level?:1-5,persist?:boolean}'},
   ];
@@ -237,7 +249,7 @@
     const suggestedTools=[];
     if(/fix|reschedule|overload|schedule/i.test(ut))suggestedTools.push('optimizeDayPlan');
     if(/energy|tired|exhaust|burn/i.test(ut))suggestedTools.push('adjustForEnergyLevel');
-    if(/weak|grade|gpa|subject/i.test(ut))suggestedTools.push('analyzeWeakSubjects');
+    if(/weak|overload|behind|gpa|subject/i.test(ut))suggestedTools.push('analyzeWeakSubjects');
     if(/block|calendar|event|plan afternoon/i.test(ut))suggestedTools.push('createScheduleBlock');
     if(/how long|estimate|minutes/i.test(ut))suggestedTools.push('predictStudyTime');
     if(!suggestedTools.length){
@@ -295,8 +307,8 @@ Rules: Never invent task IDs — copy from TASKS in the snapshot. Prefer dryRun 
 ### Decision snapshot (computed client-side)
 ${JSON.stringify(dec)}
 
-### Weak / strong subjects (grades + habits)
-${JSON.stringify({weakest:weak.weakest.slice(0,4),strongest:weak.strongest.slice(0,3),hints:weak.procrastinationHints})}
+### Subject strain (tasks + habits)
+${JSON.stringify({weakest:weak.weakest.slice(0,4),leastStrained:weak.strongest.slice(0,3),hints:weak.procrastinationHints})}
 
 ### Personalization memory (learned in Flux; advisory only)
 ${JSON.stringify(mem)}

@@ -238,18 +238,18 @@
   function gateSVG(name){
     // Stylized gate shapes
     const shapes = {
-      AND: `<path d="M30,15 L30,75 L70,75 Q110,75 110,45 Q110,15 70,15 Z" fill="rgba(var(--accent-rgb,0,191,255),.1)" stroke="currentColor" stroke-width="1.8"/>`,
-      OR: `<path d="M20,15 Q40,45 20,75 Q60,75 115,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb,0,191,255),.1)" stroke="currentColor" stroke-width="1.8"/>`,
-      NOT:`<path d="M30,15 L30,75 L110,45 Z" fill="rgba(var(--accent-rgb,0,191,255),.1)" stroke="currentColor" stroke-width="1.8"/>
+      AND: `<path d="M30,15 L30,75 L70,75 Q110,75 110,45 Q110,15 70,15 Z" fill="rgba(var(--accent-rgb),.1)" stroke="currentColor" stroke-width="1.8"/>`,
+      OR: `<path d="M20,15 Q40,45 20,75 Q60,75 115,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb),.1)" stroke="currentColor" stroke-width="1.8"/>`,
+      NOT:`<path d="M30,15 L30,75 L110,45 Z" fill="rgba(var(--accent-rgb),.1)" stroke="currentColor" stroke-width="1.8"/>
            <circle cx="118" cy="45" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>`,
-      NAND:`<path d="M30,15 L30,75 L70,75 Q105,75 105,45 Q105,15 70,15 Z" fill="rgba(var(--accent-rgb,0,191,255),.1)" stroke="currentColor" stroke-width="1.8"/>
+      NAND:`<path d="M30,15 L30,75 L70,75 Q105,75 105,45 Q105,15 70,15 Z" fill="rgba(var(--accent-rgb),.1)" stroke="currentColor" stroke-width="1.8"/>
             <circle cx="113" cy="45" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>`,
-      NOR: `<path d="M20,15 Q40,45 20,75 Q60,75 110,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb,0,191,255),.1)" stroke="currentColor" stroke-width="1.8"/>
+      NOR: `<path d="M20,15 Q40,45 20,75 Q60,75 110,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb),.1)" stroke="currentColor" stroke-width="1.8"/>
             <circle cx="118" cy="45" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>`,
       XOR: `<path d="M10,15 Q30,45 10,75" fill="none" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M20,15 Q40,45 20,75 Q60,75 115,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb,0,191,255),.1)" stroke="currentColor" stroke-width="1.8"/>`,
+            <path d="M20,15 Q40,45 20,75 Q60,75 115,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb),.1)" stroke="currentColor" stroke-width="1.8"/>`,
       XNOR:`<path d="M10,15 Q30,45 10,75" fill="none" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M20,15 Q40,45 20,75 Q60,75 110,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb,0,191,255),.1)" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M20,15 Q40,45 20,75 Q60,75 110,45 Q60,15 20,15 Z" fill="rgba(var(--accent-rgb),.1)" stroke="currentColor" stroke-width="1.8"/>
             <circle cx="118" cy="45" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>`,
     };
     return `<svg viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg" style="color:var(--accent)">

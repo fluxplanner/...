@@ -46,9 +46,9 @@
 }
 .hist-continent-btns button:hover{ color: var(--text); background: rgba(255,255,255,.07); }
 .hist-continent-btns button.hist--on{
-  background: rgba(var(--accent-rgb,0,191,255),.18);
+  background: rgba(var(--accent-rgb),.18);
   color: var(--accent);
-  border-color: rgba(var(--accent-rgb,0,191,255),.35);
+  border-color: rgba(var(--accent-rgb),.35);
 }
 [data-theme="light"] .hist-continent-btns button{
   border-color: rgba(0,0,0,.1);
@@ -162,8 +162,8 @@
   transition: background .1s, border-color .1s;
 }
 .hist-card:hover, .hist-card.hist-card--on{
-  background: rgba(var(--accent-rgb,0,191,255),.1);
-  border-color: rgba(var(--accent-rgb,0,191,255),.25);
+  background: rgba(var(--accent-rgb),.1);
+  border-color: rgba(var(--accent-rgb),.25);
 }
 .hist-card-y{ font-family: "JetBrains Mono", monospace; font-size: .7rem; color: var(--accent); }
 .hist-card-t{ font-size: .84rem; font-weight: 700; margin: 2px 0; }

@@ -596,8 +596,6 @@
       try{
         const d=JSON.parse(r.result);
         if(d.tasks){tasks=d.tasks;save('tasks',tasks);}
-        if(d.grades){grades=d.grades;save('flux_grades',grades);}
-        if(d.gpaPrior&&typeof d.gpaPrior==='object'){gpaPrior={prevGpa:d.gpaPrior.prevGpa??'',prevCredits:d.gpaPrior.prevCredits??''};save('flux_gpa_prior',gpaPrior);}
         if(d.notes){notes=d.notes;save('flux_notes',notes);}
         if(d.habits){habits=d.habits;save('flux_habits',habits);}
         if(d.goals){goals=d.goals;save('flux_goals',goals);}

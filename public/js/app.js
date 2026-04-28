@@ -5,7 +5,7 @@ const load=(k,def)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.warn('Storage full',e);}};
 
 // ══ DATA VERSION — bump this to force-wipe all local data on all devices ══
-const DATA_VERSION=3;
+const DATA_VERSION=5;
 (function checkDataVersion(){
   const stored=parseInt(localStorage.getItem('flux_data_version')||'0');
   if(stored<DATA_VERSION){
@@ -326,7 +326,7 @@ function showPricingPage(){
           ['Can I cancel anytime?','Yes. Cancel from Settings → Account → Manage Subscription at any time. You keep Pro access until the end of your billing period.'],
           ['What happens when my trial ends?','You automatically move to the Free plan. No charges, no surprises. Your data is never deleted.'],
           ['Is $2.99 the student price?','Yes — this is already the student price. No discount code needed.'],
-          ['What happens to my data if I downgrade?','All your tasks, grades, and notes stay intact forever. You just hit Free plan limits for new additions.'],
+          ['What happens to my data if I downgrade?','All your tasks and notes stay intact forever. You just hit Free plan limits for new additions.'],
           ['Which AI model does Flux use?','Flux AI uses **Groq** (Llama): Pro gets 70B, free gets 8B. Image analysis uses **Google Gemini** on the server.'],
         ].map(([q,a])=>`
           <div style="padding:14px 0;border-bottom:1px solid var(--border)">
@@ -720,34 +720,6 @@ function checkTimePoverty(){
   }
 }
 
-// ══ GRADE BUFFER ══
-function renderGradeBuffer(){
-  const el=document.getElementById('gradeBufferCard');if(!el)return;
-  const gradeEntries=Object.entries(grades);
-  if(!gradeEntries.length){el.innerHTML='';el.style.display='none';return;}
-  el.style.display='block';
-  const thresholds=[{grade:'A',min:90},{grade:'B',min:80},{grade:'C',min:70},{grade:'D',min:60}];
-  const cards=gradeEntries.map(([subject,val])=>{
-    const pct=parseFloat(val);if(isNaN(pct))return'';
-    const currentThresh=thresholds.find(t=>pct>=t.min)||{grade:'F',min:0};
-    const nextDown=thresholds[thresholds.indexOf(currentThresh)+1];
-    const buffer=nextDown?Number((pct-nextDown.min).toFixed(4)):Number((pct-0).toFixed(4));
-    const cls=buffer>10?'safe':buffer>5?'warning':'danger';
-    const barW=Math.min(100,buffer/20*100);
-    return`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="font-size:.85rem;font-weight:600">${esc(subject)}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:.8rem">
-          <span style="color:var(--${cls==='safe'?'green':cls==='warning'?'gold':'red'})">${currentThresh.grade} (${pct.toFixed(4)}%)</span>
-          ${nextDown?`<span style="color:var(--muted);font-size:.7rem"> · ${buffer.toFixed(4)}pts buffer</span>`:''}
-        </div>
-      </div>
-      <div class="grade-buffer-bar"><div class="grade-buffer-fill ${cls}" style="width:${barW}%"></div></div>
-    </div>`;
-  }).join('');
-  el.innerHTML='<div class="card"><h3>🎓 Grade Buffer</h3>'+( cards||'<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No grades yet</div></div>')+'</div>';
-}
-
 // ══ BREAK IT DOWN (AI-powered task splitter) ══
 async function breakItDown(taskId){
   const task=tasks.find(t=>t.id===taskId);if(!task)return;
@@ -981,7 +953,7 @@ async function exportEncryptedBackup(){
   if(!window.crypto?.subtle){showToast('Encrypted export needs a secure (HTTPS) context','error');return;}
   const pw=prompt('Choose a passphrase (min 8 characters). You will need it to decrypt.');
   if(!pw||pw.length<8){showToast('Passphrase too short','warning');return;}
-  const data={tasks,grades,gpaPrior,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),flux_rest_days_v1:loadRestDaysList(),exportDate:new Date().toISOString(),encrypted:true};
+  const data={tasks,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),flux_rest_days_v1:loadRestDaysList(),exportDate:new Date().toISOString(),encrypted:true};
   const raw=JSON.stringify(data);
   try{
     const enc=await fluxEncryptPayload(raw,pw);
@@ -1018,14 +990,13 @@ async function importEncryptedBackup(file){
   let enc;try{enc=JSON.parse(text);}catch(e){showToast('Invalid JSON file','error');return;}
   let raw;try{raw=await fluxDecryptPayload(enc,pw);}catch(e){showToast('Wrong passphrase or corrupt file','error');return;}
   let d;try{d=JSON.parse(raw);}catch(e){showToast('Decrypted data invalid','error');return;}
-  if(!confirm('Merge tasks, grades, and notes from this backup into your planner? (Existing IDs are skipped.)'))return;
+  if(!confirm('Merge tasks and notes from this backup into your planner? (Existing IDs are skipped.)'))return;
   applyImportedPayloadMerge(d);
 }
 function applyImportedPayloadMerge(d){
   const seen=new Set(tasks.map(t=>t.id));
   (d.tasks||[]).forEach(t=>{if(t&&typeof t.id!=='undefined'&&!seen.has(t.id)){tasks.push(t);seen.add(t.id);}});
-  if(d.grades&&typeof d.grades==='object')Object.keys(d.grades).forEach(k=>{if(!grades[k])grades[k]=d.grades[k];});
-  save('tasks',tasks);save('flux_grades',grades);
+  save('tasks',tasks);
   if(Array.isArray(d.notes))d.notes.forEach(n=>{if(n&&n.id&&!notes.find(x=>x.id===n.id))notes.push(n);});
   save('flux_notes',notes);
   if(d.schoolInfo&&typeof d.schoolInfo==='object')schoolInfo={...schoolInfo,...d.schoolInfo};
@@ -1034,20 +1005,8 @@ function applyImportedPayloadMerge(d){
   save('flux_classes',classes);
   if(Array.isArray(d.flux_rest_days_v1)&&d.flux_rest_days_v1.length)saveRestDaysList(d.flux_rest_days_v1.filter(x=>x&&x.date));
   showToast('Merged backup data','success');
-  renderStats();renderTasks();renderCalendar();renderCountdown();renderGradeInputs();renderGradeOverview();populateSubjectSelects();
+  renderStats();renderTasks();renderCalendar();renderCountdown();populateSubjectSelects();
   if(currentUser)syncToCloud();
-}
-function exportGradesCSV(){
-  if(FLUX_FLAGS.PAYMENTS_ENABLED&&FLUX_FLAGS.ENFORCE_EXPORT_GATE&&requiresPro('exportCsv')){
-    showUpgradePrompt('exportCsv','Export grades to CSV with Flux Pro');
-    return;
-  }
-  const rows=[['Subject','Grade %']];
-  Object.entries(grades).forEach(([k,v])=>rows.push([k,String(v)]));
-  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-grades.csv';a.click();URL.revokeObjectURL(url);
-  showToast('Grades CSV exported','success');
 }
 function setTimerPresetMins(mins){
   const el=document.getElementById('customWork');if(!el)return;
@@ -1178,7 +1137,7 @@ function flushTasksOffRestDays(){
   }
   return n;
 }
-const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',grades:'Grades',notes:'Notes',timer:'Focus Timer',canvas:'Canvas',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Study Tools',references:'Study Tools',settings:'Settings'};
+const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',notes:'Notes',timer:'Focus Timer',canvas:'Canvas',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Study Tools',references:'Study Tools',settings:'Settings'};
 
 function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
@@ -1278,9 +1237,6 @@ function weeklyVirtualEventsForDate(dateStr){
 
 // ══ STATE ══
 let tasks=load('tasks',[]);
-let grades=load('flux_grades',{});
-let gpaPrior=load('flux_gpa_prior',{prevGpa:'',prevCredits:''});
-let weightedRows=load('flux_weighted',[]);
 let notes=load('flux_notes',[]);
 let habits=load('flux_habits',[]);
 let goals=load('flux_goals',[]);
@@ -1323,7 +1279,6 @@ const DEFAULT_TABS=[
   {id:'ai',icon:'✦',label:'Flux AI',visible:true},
   {id:'school',icon:'🏫',label:'School Info',visible:true},
   {id:'canvas',icon:'🎓',label:'Canvas',visible:true},
-  {id:'grades',icon:'📊',label:'Grades',visible:true},
   {id:'notes',icon:'📝',label:'Notes',visible:true},
   {id:'timer',icon:'⏱',label:'Focus Timer',visible:true},
   {id:'profile',icon:'👤',label:'Profile',visible:true},
@@ -1333,7 +1288,7 @@ const DEFAULT_TABS=[
   {id:'settings',icon:'⚙',label:'Settings',visible:true},
 ];
 let tabConfig=load('flux_tabs',DEFAULT_TABS);
-tabConfig=tabConfig.filter(t=>t.id!=='gmail'&&t.id!=='periodic'&&t.id!=='references');
+tabConfig=tabConfig.filter(t=>t.id!=='gmail'&&t.id!=='periodic'&&t.id!=='references'&&t.id!=='grades');
 // Ensure new tabs get added if missing
 DEFAULT_TABS.forEach(dt=>{if(!tabConfig.find(t=>t.id===dt.id))tabConfig.push({...dt});});
 // Legacy tab label (older builds / stored flux_tabs)
@@ -1342,9 +1297,8 @@ tabConfig.forEach(t=>{if(t.id==='canvas'&&/gmail/i.test(String(t.label||'')))t.l
 (function migrateCanvasTabOrder(){
   const si=tabConfig.findIndex(t=>t.id==='school');
   const ci=tabConfig.findIndex(t=>t.id==='canvas');
-  const gi=tabConfig.findIndex(t=>t.id==='grades');
-  if(si<0||ci<0||gi<0)return;
-  if(ci<si||ci>gi){
+  if(si<0||ci<0)return;
+  if(ci!==si+1){
     const [row]=tabConfig.splice(ci,1);
     const nsi=tabConfig.findIndex(t=>t.id==='school');
     tabConfig.splice(nsi+1,0,row);
@@ -1535,7 +1489,7 @@ function nav(id,btn,navOpt){
   updateNavAriaCurrent(id);
   syncPanelScrollLayout();
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderGradeBuffer();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),grades:()=>{renderGradeInputs();renderGradeOverview();renderWeightedRows();calcWeighted();},notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel(),toolbox:()=>{if(typeof window.renderToolbox==='function')window.renderToolbox();}};
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel(),toolbox:()=>{if(typeof window.renderToolbox==='function')window.renderToolbox();}};
   fns[id]?.();
   if(typeof fluxApplyCanvasSplitLayout==='function')fluxApplyCanvasSplitLayout();
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
@@ -1621,7 +1575,6 @@ const NAV_TAB_SVGS={
   dashboard:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"/></svg>`,
   calendar:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
   ai:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>`,
-  grades:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>`,
   /* Horizontal “more” — not a 3×3 grid (avoid clash with app tiles / periodic) */
   more:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>`,
   school:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v9"/><path d="M20 10v9"/><path d="M2 20h20"/><path d="m4 10 8-3 8 3"/><path d="M9 20v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg>`,
@@ -1640,12 +1593,12 @@ const NAV_TAB_SVGS={
   periodic:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
   gmail:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z"/><path d="m22 6-10 7L2 6"/></svg>`,
 };
-// Bottom bar primary five (Home, Calendar, AI, Grades, More) — alias for existing code paths.
+// Bottom bar primary five (Home, Calendar, AI, Study tools, More) — alias for existing code paths.
 const BNAV_ICONS={
   dashboard:NAV_TAB_SVGS.dashboard,
   calendar:NAV_TAB_SVGS.calendar,
   ai:NAV_TAB_SVGS.ai,
-  grades:NAV_TAB_SVGS.grades,
+  study:NAV_TAB_SVGS.toolbox,
   more:NAV_TAB_SVGS.more,
 };
 
@@ -1671,7 +1624,7 @@ function syncMoreSheetNavIcons(){
 function renderSidebars(){
   const groups=[
     {label:'Main',ids:['dashboard','calendar','ai']},
-    {label:'School',ids:['school','canvas','grades','notes','timer','toolbox']},
+    {label:'School',ids:['school','canvas','notes','timer','toolbox']},
     {label:'Me',ids:['profile','goals','mood','settings']},
   ];
   const visibleIds=new Set(tabConfig.filter(t=>t.visible).map(t=>t.id));
@@ -1693,7 +1646,7 @@ function renderSidebars(){
   if(drawerNav)drawerNav.innerHTML=buildNav('navMob');
 
   // Mobile bottom nav is always the same 5 spec tabs:
-  // Home · Calendar · AI · Grades · More (opens bottom sheet, not drawer).
+  // Home · Calendar · AI · Study · More (opens bottom sheet, not drawer).
   // Keep the More button wired to openMobileSheet so it matches the spec.
   const bnav=document.querySelector('.bottom-nav');
   if(bnav){
@@ -1701,7 +1654,7 @@ function renderSidebars(){
       {id:'dashboard',label:'Home',icon:BNAV_ICONS.dashboard,extra:'<span class="bnav-dot" aria-hidden="true"></span>'},
       {id:'calendar',label:'Calendar',icon:BNAV_ICONS.calendar},
       {id:'ai',label:'Flux AI',icon:BNAV_ICONS.ai},
-      {id:'grades',label:'Grades',icon:BNAV_ICONS.grades},
+      {id:'toolbox',label:'Study',icon:BNAV_ICONS.study},
     ];
     bnav.innerHTML=tabs.map(t=>{
       const lab=esc(t.label);
@@ -1931,14 +1884,14 @@ function renderAboutStats(){
   const totalMins=sessionLog.reduce((s,l)=>s+l.mins,0);
   const noteCount=notes.length;
   const habitCount=habits.length;
-  const gradeCount=Object.keys(grades).length;
+  const classCount=classes.filter(c=>c&&c.name).length;
   el.innerHTML=[
     ['📝',totalTasks,'Total Tasks'],
     ['✅',doneTasks,'Completed'],
     ['⏱',Math.round(totalMins/60)+'h','Focus Time'],
     ['📓',noteCount,'Notes'],
     ['🔥',habitCount,'Habits'],
-    ['📊',gradeCount,'Subjects'],
+    ['🏫',classCount,'Classes'],
   ].map(([icon,val,label])=>`
     <div style="padding:12px;background:var(--card2);border-radius:10px;border:1px solid var(--border);text-align:center">
       <div style="font-size:1.2rem;margin-bottom:4px">${icon}</div>
@@ -2944,75 +2897,6 @@ function saveEditClass(){
   if(typeof renderDynamicFocus==='function')renderDynamicFocus();
 }
 
-// ══ GRADES ══
-const GPA_LETTER_MAP={'A+':4.3,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D+':1.3,'D':1.0,'F':0};
-function gradePointValues(g){
-  return Object.values(g).map(v=>{
-    const p=parseFloat(v);
-    if(!isNaN(p)){
-      if(p>=97)return 4.3;if(p>=93)return 4.0;if(p>=90)return 3.7;if(p>=87)return 3.3;if(p>=83)return 3.0;if(p>=80)return 2.7;if(p>=77)return 2.3;if(p>=73)return 2.0;if(p>=70)return 1.7;if(p>=67)return 1.3;if(p>=60)return 1.0;return 0;
-    }
-    return GPA_LETTER_MAP[(v||'').trim().toUpperCase()]??null;
-  }).filter(v=>v!==null);
-}
-function calcGPA(g){const vals=gradePointValues(g);if(!vals.length)return null;return parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(4));}
-function calcCumulativeGpa(termGpa,nThisTerm,prevGpa,prevCredits){
-  const pg=parseFloat(prevGpa);const pc=parseFloat(prevCredits);
-  if(isNaN(pg)||isNaN(pc)||pc<=0)return null;
-  if(nThisTerm<=0||termGpa===null)return parseFloat(pg.toFixed(4));
-  return parseFloat(((pg*pc+termGpa*nThisTerm)/(pc+nThisTerm)).toFixed(4));
-}
-function addGradeRow(){const s=document.getElementById('newSubject').value.trim(),v=document.getElementById('newGrade').value.trim();if(!s||!v)return;grades[s]=v;save('flux_grades',grades);document.getElementById('newSubject').value='';document.getElementById('newGrade').value='';renderGradeInputs();renderGradeOverview();}
-function removeGrade(k){delete grades[k];save('flux_grades',grades);renderGradeInputs();renderGradeOverview();}
-function populateGpaPriorInputs(){
-  const a=document.getElementById('prevCumGpaIn');const b=document.getElementById('prevCumCreditsIn');
-  if(a)a.value=gpaPrior.prevGpa!==undefined&&gpaPrior.prevGpa!==null&&gpaPrior.prevGpa!==''?String(gpaPrior.prevGpa):'';
-  if(b)b.value=gpaPrior.prevCredits!==undefined&&gpaPrior.prevCredits!==null&&gpaPrior.prevCredits!==''?String(gpaPrior.prevCredits):'';
-}
-function updateGPADisplay(){
-  const term=calcGPA(grades);
-  const gEl=document.getElementById('gpaDisplay');
-  if(gEl)gEl.textContent=term!==null?precise(term):'—';
-  const a=document.getElementById('prevCumGpaIn');
-  const b=document.getElementById('prevCumCreditsIn');
-  const pgStr=a?a.value.trim():String(gpaPrior.prevGpa||'').trim();
-  const pcStr=b?b.value.trim():String(gpaPrior.prevCredits||'').trim();
-  const n=gradePointValues(grades).length;
-  const cum=calcCumulativeGpa(term,n,pgStr,pcStr);
-  const wrap=document.getElementById('cumGpaWrap');
-  const cEl=document.getElementById('cumGpaDisplay');
-  if(wrap&&cEl){
-    if(cum!==null&&(pgStr!==''&&pcStr!=='')){
-      cEl.textContent=precise(cum);
-      wrap.style.display='block';
-    }else{
-      wrap.style.display='none';
-    }
-  }
-}
-function renderGradeInputs(){populateGpaPriorInputs();const el=document.getElementById('gradeInputs');if(!el)return;if(!Object.keys(grades).length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem;margin-bottom:8px">No grades yet.</div>';updateGPADisplay();return;}el.innerHTML=Object.entries(grades).map(([k,v])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="flex:1;font-size:.85rem;font-weight:500">${esc(k)}</div><input type="text" id="g_${k.replace(/\s/g,'_')}" value="${esc(v)}" style="width:90px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.82rem;margin:0;padding:6px 8px" oninput="updateGPADisplay()"><button onclick="removeGrade('${k}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px">✕</button></div>`).join('');updateGPADisplay();}
-function renderGradeOverview(){
-  const el=document.getElementById('gradeOverview');if(!el)return;
-  if(!Object.keys(grades).length){el.innerHTML='<div style="color:var(--muted);font-size:.82rem">No grades yet.</div>';return;}
-  const hist=load('flux_grade_history',[]);
-  const sparkSvg=(k)=>{
-    const vals=hist.filter(h=>h.grades&&h.grades[k]!=null).map(h=>parseFloat(h.grades[k])).filter(x=>!isNaN(x)).slice(-6);
-    if(vals.length<2)return'';
-    const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
-    const pts=vals.map((v,i)=>`${(i/(vals.length-1)*38).toFixed(1)},${(10-(v-mn)/range*9).toFixed(1)}`).join(' ');
-    const trend=vals[vals.length-1]-vals[0];
-    const sc=trend>0?'var(--green)':trend<0?'var(--red)':'var(--muted2)';
-    return`<svg width="42" height="14" viewBox="0 0 40 12" style="flex-shrink:0;margin-left:6px;opacity:.8" title="Grade trend"><polyline points="${pts}" fill="none" stroke="${sc}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  };
-  el.innerHTML=Object.entries(grades).map(([k,g])=>{const pct=parseFloat(g);const c=!isNaN(pct)?(pct>=90?'var(--green)':pct>=80?'var(--accent)':pct>=70?'var(--gold)':'var(--red)'):'var(--accent)';const w=!isNaN(pct)?Math.min(pct,100):75;return`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><div style="flex:1;font-size:.85rem;font-weight:500">${esc(k)}</div>${sparkSvg(k)}<span style="font-size:.82rem;font-weight:700;color:${c};font-family:'JetBrains Mono',monospace">${esc(g)}</span></div>${!isNaN(pct)?`<div class="gpa-bar"><div class="gpa-fill" style="width:${w}%;background:${c}"></div></div>`:''}</div>`;}).join('');
-}
-function saveGrades(){Object.keys(grades).forEach(k=>{const inp=document.getElementById('g_'+k.replace(/\s/g,'_'));if(inp)grades[k]=inp.value.trim();});save('flux_grades',grades);const pa=document.getElementById('prevCumGpaIn');const pb=document.getElementById('prevCumCreditsIn');if(pa||pb){gpaPrior={prevGpa:(pa?.value||'').trim(),prevCredits:(pb?.value||'').trim()};save('flux_gpa_prior',gpaPrior);syncKey('gpaPrior',gpaPrior);}updateGPADisplay();renderGradeOverview();syncKey('grades',grades);recordGradeHistory();const b=event?.target;if(b){b.textContent='✓ Saved!';setTimeout(()=>b.textContent='Save Grades',1500);}}
-function addWeightRow(){const c=document.getElementById('wCat').value.trim(),w=document.getElementById('wWeight').value,s=document.getElementById('wScore').value;if(!c||!w)return;weightedRows.push({cat:c,weight:parseFloat(w),score:parseFloat(s)||0});save('flux_weighted',weightedRows);document.getElementById('wCat').value='';document.getElementById('wWeight').value='';document.getElementById('wScore').value='';renderWeightedRows();calcWeighted();}
-function removeWeightRow(i){weightedRows.splice(i,1);save('flux_weighted',weightedRows);renderWeightedRows();calcWeighted();}
-function renderWeightedRows(){const el=document.getElementById('weightRows');if(!el)return;if(!weightedRows.length){el.innerHTML='<div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Add categories below.</div>';return;}el.innerHTML=weightedRows.map((r,i)=>`<div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px"><span style="font-size:.82rem;font-weight:500">${esc(r.cat)}</span><span style="font-size:.82rem;font-family:'JetBrains Mono',monospace;color:var(--muted2)">${r.weight}%</span><span style="font-size:.82rem;font-family:'JetBrains Mono',monospace;color:var(--accent)">${r.score}%</span><button onclick="removeWeightRow(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0">✕</button></div>`).join('');}
-function calcWeighted(){const el=document.getElementById('weightedResult');if(!el||!weightedRows.length){if(el)el.textContent='—';return;}const total=weightedRows.reduce((s,r)=>s+r.weight,0);if(!total){el.textContent='—';return;}el.textContent=weightedRows.reduce((s,r)=>s+(r.score*r.weight/total),0).toFixed(2)+'%';}
-function calcFinal(){const cur=parseFloat(document.getElementById('finalCurrent').value),fw=parseFloat(document.getElementById('finalWeight').value),tar=parseFloat(document.getElementById('finalTarget').value);const el=document.getElementById('finalResult');if(isNaN(cur)||isNaN(fw)||isNaN(tar)){el.style.display='none';return;}el.style.display='block';const needed=(tar-(cur*(100-fw)/100))/(fw/100);if(needed>100){el.textContent=`You need ${needed.toFixed(1)}% on the final — very challenging!`;el.style.color='var(--red)';}else if(needed<0){el.textContent=`Any score keeps you above ${tar}%. You're set!`;el.style.color='var(--green)';}else{el.textContent=`You need ${needed.toFixed(1)}% on the final.`;el.style.color=needed>85?'var(--gold)':'var(--text)';}}
-
 // ══ NOTES ══
 function setNoteFilter(f,el){noteFilter=f;document.querySelectorAll('#notes .tmode-btn').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');renderNotesList();}
 
@@ -3386,15 +3270,18 @@ let tMode='pomodoro',tRunning=false,tInterval=null,tSecs=25*60,tTotal=25*60;
 let tDone=load('t_sessions',0),tMins=load('t_minutes',0),tStreak=load('t_streak',0),tLastDate=load('t_date','');
 const CIRC=2*Math.PI*88;
 function updateTLengths(){if(tRunning)return;TM.pomodoro.mins=parseInt(document.getElementById('customWork').value)||25;TM.short.mins=parseInt(document.getElementById('customShort').value)||5;if(tMode==='pomodoro'||tMode==='short'){tSecs=TM[tMode].mins*60;tTotal=tSecs;updateTDisplay();}}
-function setTMode(mode,el){if(tRunning)return;tMode=mode;tSecs=TM[mode].mins*60;tTotal=tSecs;document.querySelectorAll('#timer .tmode-btn').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');updateTDisplay();document.getElementById('tLbl').textContent=TM[mode].label;}
+function setTMode(mode,el){if(tRunning)return;tMode=mode;tSecs=TM[mode].mins*60;tTotal=tSecs;document.querySelectorAll('#timer .tmode-btn').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');updateTDisplay();document.getElementById('tLbl').textContent=TM[mode].label;syncFluxPomoPill();}
 function toggleTimer(){tRunning?pauseTimer():startTimer();}
-function startTimer(){tRunning=true;document.getElementById('timerBtn').textContent='⏸ Pause';tInterval=setInterval(()=>{tSecs--;updateTDisplay();if(tSecs<=0)timerDone();},1000);}
-function pauseTimer(){tRunning=false;clearInterval(tInterval);document.getElementById('timerBtn').textContent='▶ Resume';}
-function resetTimer(){tRunning=false;clearInterval(tInterval);tSecs=TM[tMode].mins*60;tTotal=tSecs;document.getElementById('timerBtn').textContent='▶ Start';updateTDisplay();}
-function timerDone(){tRunning=false;clearInterval(tInterval);document.getElementById('timerBtn').textContent='▶ Start';if(tMode==='pomodoro'){tDone++;tMins+=TM.pomodoro.mins;const ts=todayStr();if(tLastDate!==ts){const y=new Date(TODAY);y.setDate(TODAY.getDate()-1);tStreak=tLastDate===y.toISOString().slice(0,10)?tStreak+1:1;tLastDate=ts;save('t_date',tLastDate);}const sub=document.getElementById('timerSubject')?.value||'';sessionLog.push({date:ts,mins:TM.pomodoro.mins,subject:sub,hour:new Date().getHours()});save('flux_session_log',sessionLog);if(typeof FluxBus!=='undefined')FluxBus.emit('session_ended',{mins:TM.pomodoro.mins,subject:sub,date:ts,hour:new Date().getHours()});if(sub){subjectBudgets[sub]=(subjectBudgets[sub]||0)+(TM.pomodoro.mins/60);save('flux_budgets',subjectBudgets);}save('t_sessions',tDone);save('t_minutes',tMins);save('t_streak',tStreak);updateTStats();renderTDots();renderSubjectBudget();renderFocusHeatmap();
+function startTimer(){tRunning=true;document.getElementById('timerBtn').textContent='⏸ Pause';syncFluxPomoPill();tInterval=setInterval(()=>{tSecs--;updateTDisplay();if(tSecs<=0)timerDone();},1000);}
+function pauseTimer(){tRunning=false;clearInterval(tInterval);document.getElementById('timerBtn').textContent='▶ Resume';syncFluxPomoPill();}
+function resetTimer(){tRunning=false;clearInterval(tInterval);tSecs=TM[tMode].mins*60;tTotal=tSecs;document.getElementById('timerBtn').textContent='▶ Start';updateTDisplay();syncFluxPomoPill();}
+function timerDone(){tRunning=false;clearInterval(tInterval);document.getElementById('timerBtn').textContent='▶ Start';syncFluxPomoPill();if(tMode==='pomodoro'){tDone++;tMins+=TM.pomodoro.mins;const ts=todayStr();if(tLastDate!==ts){const y=new Date(TODAY);y.setDate(TODAY.getDate()-1);tStreak=tLastDate===y.toISOString().slice(0,10)?tStreak+1:1;tLastDate=ts;save('t_date',tLastDate);}const sub=document.getElementById('timerSubject')?.value||'';sessionLog.push({date:ts,mins:TM.pomodoro.mins,subject:sub,hour:new Date().getHours()});save('flux_session_log',sessionLog);if(typeof FluxBus!=='undefined')FluxBus.emit('session_ended',{mins:TM.pomodoro.mins,subject:sub,date:ts,hour:new Date().getHours()});if(sub){subjectBudgets[sub]=(subjectBudgets[sub]||0)+(TM.pomodoro.mins/60);save('flux_budgets',subjectBudgets);}save('t_sessions',tDone);save('t_minutes',tMins);save('t_streak',tStreak);updateTStats();renderTDots();renderSubjectBudget();renderFocusHeatmap();
 showSessionRecap(sub,TM.pomodoro.mins);
 setTimeout(()=>{const mode=tDone%4===0?'long':'short';const btns=document.querySelectorAll('#timer .tmode-btn');setTMode(mode,btns[mode==='long'?2:1]);},400);}else{setTimeout(()=>{setTMode('pomodoro',document.querySelectorAll('#timer .tmode-btn')[0]);},400);}}
-function updateTDisplay(){const m=Math.floor(tSecs/60),s=tSecs%60;document.getElementById('tDisplay').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');const offset=CIRC*(1-tSecs/tTotal);const ring=document.getElementById('timerRing');if(ring){ring.style.strokeDasharray=CIRC;ring.style.strokeDashoffset=offset;}}
+function updateTDisplay(){const m=Math.floor(tSecs/60),s=tSecs%60;const txt=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');const td=document.getElementById('tDisplay');if(td)td.textContent=txt;const pillT=document.getElementById('fluxPomoPillTime');if(pillT)pillT.textContent=txt;const offset=CIRC*(1-tSecs/tTotal);const ring=document.getElementById('timerRing');if(ring){ring.style.strokeDasharray=CIRC;ring.style.strokeDashoffset=offset;}syncFluxPomoPill();}
+function syncFluxPomoPill(){const pill=document.getElementById('fluxPomoPill');if(!pill)return;const show=!!(tRunning&&tMode==='pomodoro');pill.hidden=!show;pill.style.display=show?'':'none';pill.setAttribute('aria-hidden',show?'false':'true');}
+function fluxFocusPomoPill(){try{if(typeof matchMedia!=='undefined'&&matchMedia('(max-width:768px)').matches){if(typeof navMob==='function'){navMob('timer');return;}}const tab=document.querySelector('[data-tab="timer"]');if(typeof nav==='function')nav('timer',tab);}catch(e){if(typeof nav==='function')nav('timer');}}
+try{window.fluxFocusPomoPill=fluxFocusPomoPill;}catch(e){}
 function renderTDots(){const el=document.getElementById('timerDots');if(!el)return;const c=Math.min((tDone%4)||(tDone>0?4:0),4);el.innerHTML=[0,1,2,3].map(i=>`<div class="t-dot ${i<c?'done':''}"></div>`).join('');const lbl=document.getElementById('tSessionLbl');if(lbl)lbl.textContent=`Session ${(tDone%4)+1} of 4`;}
 function updateTStats(){const a=document.getElementById('tSessions'),b=document.getElementById('tMinutes'),c=document.getElementById('tStreak');if(a)a.textContent=tDone;if(b)b.textContent=tMins;if(c)c.textContent=tStreak;}
 function renderSubjectBudget(){
@@ -3482,10 +3369,9 @@ function renderProfile(){
   if(av)av.innerHTML=(pic?`<img src="${pic}" loading="lazy" decoding="async" alt="">`:name.charAt(0).toUpperCase())+`<input type="file" id="picUpload" accept="image/*" style="display:none" onchange="handlePicUpload(event)">`;
   if(window.FluxPersonal&&FluxPersonal.styleProfileAvatar)FluxPersonal.styleProfileAvatar();
 
-  const gpa=calcGPA(grades);
   const done=tasks.filter(t=>t.done).length;
   const badges=[];
-  if(gpa!==null&&gpa>=3.7)badges.push({t:'🏆 Honor Roll',c:'badge-gold'});
+  if(done>=40)badges.push({t:'🏆 On a roll',c:'badge-gold'});
   if(done>=20)badges.push({t:'✓ Task Master',c:'badge-green'});
   if(tStreak>=7)badges.push({t:'🔥 Study Streak',c:'badge-red'});
   if(programs.includes('IB DP'))badges.push({t:'📚 IB DP',c:'badge-blue'});
@@ -3495,7 +3381,8 @@ function renderProfile(){
   if(badgeEl)badgeEl.innerHTML=badges.length?badges.map(b=>`<span class="badge ${b.c}">${b.t}</span>`).join(''):'<span style="font-size:.75rem;color:var(--muted)">Complete tasks to earn badges!</span>';
 
   const ps=document.getElementById('profileStats');
-  if(ps)ps.innerHTML=[[gpa!==null?precise(gpa):'—','GPA (4dp)','var(--accent)'],[done,'Done','var(--green)'],[tasks.filter(t=>!t.done).length,'Active','var(--gold)'],[notes.length,'Notes','var(--purple)']].map(([n,l,c])=>`<div style="background:var(--card2);border-radius:10px;padding:12px"><div style="font-size:1.4rem;font-weight:800;color:${c}">${n}</div><div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-top:2px">${l}</div></div>`).join('');
+  const focusHrs=Math.round((load('t_minutes',0)||0)/60);
+  if(ps)ps.innerHTML=[[focusHrs+'h','Focus','var(--accent)'],[done,'Done','var(--green)'],[tasks.filter(t=>!t.done).length,'Active','var(--gold)'],[notes.length,'Notes','var(--purple)']].map(([n,l,c])=>`<div style="background:var(--card2);border-radius:10px;padding:12px"><div style="font-size:1.4rem;font-weight:800;color:${c}">${n}</div><div style="font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-top:2px">${l}</div></div>`).join('');
 
   // Confidence sliders — now use dynamic subjects from user's classes
   const confEl=document.getElementById('confidenceSliders');
@@ -3660,8 +3547,8 @@ function updateLogoColor(hex){
     :root{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
     html{--accent:${hex}!important;--accent-rgb:${rgb}!important;--accent2:${a2}!important;--accent-glow:rgba(${rgb},.34)!important}
     .sidebar-logo svg circle[stroke],.sidebar-logo svg path[stroke]{stroke:${hex}!important}
-    #fluxWG stop:nth-child(2),#fluxWG2 stop:nth-child(2),#fluxWG3 stop:nth-child(2),#fluxCG stop:nth-child(2),#fluxCG2 stop:nth-child(2),#fluxCG3 stop:nth-child(2){stop-color:${hex}!important}
-    #fluxWG stop:nth-child(3),#fluxWG2 stop:nth-child(3),#fluxWG3 stop:nth-child(3){stop-color:${hex}aa!important}
+    #fluxWG stop:nth-child(2),#fluxWG2 stop:nth-child(2),#fluxWG3 stop:nth-child(2),#fluxWGAbout stop:nth-child(2),#fluxCG stop:nth-child(2),#fluxCG2 stop:nth-child(2),#fluxCG3 stop:nth-child(2),#fluxCGAbout stop:nth-child(2){stop-color:${hex}!important}
+    #fluxWG stop:nth-child(3),#fluxWG2 stop:nth-child(3),#fluxWG3 stop:nth-child(3),#fluxWGAbout stop:nth-child(3){stop-color:${hex}aa!important}
     #fabBtn{background:${hex}!important;box-shadow:0 6px 24px rgba(${rgb},.45)!important}
     .bottom-nav .bnav-item.active{color:${hex}!important}
     .nav-item.active{color:${hex}!important;background:rgba(${rgb},.12)!important}
@@ -3684,6 +3571,36 @@ function hexToRgb(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return isNaN(r)?'0,191,255':`${r},${g},${b}`;
 }
+/** Rotate a #RRGGBB accent on the hue wheel (degrees). Used by splash + theme tooling. */
+function shiftHueHex(hex,deg){
+  if(!hex||hex[0]!=='#'||hex.length<7)return hex||'#00bfff';
+  const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+  if([r,g,b].some(Number.isNaN))return hex;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
+  let h=0;
+  if(d>1e-6){
+    if(max===r)h=60*((((g-b)/d)%6+6)%6);
+    else if(max===g)h=60*((((b-r)/d)+2)%6);
+    else h=60*((((r-g)/d)+4)%6);
+  }
+  const l=(max+min)/2;
+  const s=d<1e-6?0:d/(1-Math.abs(2*l-1)||1);
+  const nh=(h+(deg||0)+360)%360;
+  const c=(1-Math.abs(2*l-1))*s;
+  const seg=c*(1-Math.abs((nh/60)%2-1));
+  const m=l-c/2;
+  let rp=0,gp=0,bp=0;
+  if(nh<60){rp=c;gp=seg;}
+  else if(nh<120){rp=seg;gp=c;}
+  else if(nh<180){gp=c;bp=seg;}
+  else if(nh<240){gp=seg;bp=c;}
+  else if(nh<300){rp=seg;bp=c;}
+  else{rp=c;bp=seg;}
+  const R=Math.round((rp+m)*255),G=Math.round((gp+m)*255),B=Math.round((bp+m)*255);
+  const toHex=n=>('0'+Math.max(0,Math.min(255,n)).toString(16)).slice(-2);
+  return '#'+toHex(R)+toHex(G)+toHex(B);
+}
+try{window.shiftHueHex=shiftHueHex;}catch(e){}
 function clearSvgLogoGradientStyles(){
   document.querySelectorAll('.sidebar-logo,.mob-drawer-logo,.login-logo,.login-logo-wrap').forEach(el=>{
     if(!el||!el.querySelector('svg'))return;
@@ -3893,7 +3810,7 @@ function resetTabs(){
   renderSidebars();
   const b=event?.target;if(b){b.textContent='✓ Reset!';setTimeout(()=>b.textContent='↺ Reset to defaults',1500);}
 }
-function exportData(){const data={tasks,grades,gpaPrior,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
+function exportData(){const data={tasks,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
 function exportToICal(){
   if(FLUX_FLAGS.PAYMENTS_ENABLED&&FLUX_FLAGS.ENFORCE_EXPORT_GATE&&requiresPro('exportIcal')){
     showUpgradePrompt('exportIcal','Export your tasks to iCal with Flux Pro');
@@ -3920,7 +3837,7 @@ function clearCache(){
     'flux_nav_counts_v1','flux_layout_dashboard_v1','flux_layout_calendar_v1',
   ];
   Object.keys(localStorage).forEach(k=>{if(!keep.includes(k))localStorage.removeItem(k);});
-  tasks=[];grades={};gpaPrior={prevGpa:'',prevCredits:''};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];extras=[];ecSchools=[];ecGoals=[];
+  tasks=[];notes=[];habits=[];goals=[];colleges=[];moodHistory=[];extras=[];ecSchools=[];ecGoals=[];
   renderStats();renderTasks();
   showToast('All planner data cleared.','info');
 }
@@ -4051,7 +3968,7 @@ function openModPanel(){
 
       ${(isOwner()||myPerms.includes('feature_flags'))?`
       <div style="margin-top:14px;margin-bottom:6px;font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace">Feature Flags</div>
-      ${['ai','canvas','calendar','grades','goals','mood','timer','notes'].map(f=>{
+      ${['ai','canvas','calendar','goals','mood','timer','notes'].map(f=>{
         const enabled=load('flux_feat_'+f,true);
         return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
           <span style="font-size:.85rem;font-weight:500">${f.charAt(0).toUpperCase()+f.slice(1)}</span>
@@ -4146,12 +4063,12 @@ function toggleFeatureFlag(feature,btn){
 
 function clearMyPlannerData(){
   if(!confirm('Clear ALL your planner data? This cannot be undone.'))return;
-  tasks=[];grades={};gpaPrior={prevGpa:'',prevCredits:''};notes=[];habits=[];goals=[];colleges=[];moodHistory=[];weightedRows=[];extras=[];ecSchools=[];ecGoals=[];
-  save('tasks',tasks);save('flux_grades',grades);save('flux_gpa_prior',gpaPrior);save('flux_notes',notes);
+  tasks=[];notes=[];habits=[];goals=[];colleges=[];moodHistory=[];extras=[];ecSchools=[];ecGoals=[];
+  save('tasks',tasks);save('flux_notes',notes);
   save('flux_habits',habits);save('flux_goals',goals);save('flux_colleges',colleges);
-  save('flux_mood',moodHistory);save('flux_weighted',weightedRows);
+  save('flux_mood',moodHistory);
   save('flux_extras',extras);save('flux_ec_schools',ecSchools);save('flux_ec_goals',ecGoals);
-  renderStats();renderTasks();renderGradeInputs();renderNotesList();
+  renderStats();renderTasks();renderNotesList();
   renderExtrasList();renderSchoolsList();renderECGoals();renderMoodHistory();
   if(currentUser)syncToCloud();
   document.getElementById('modPanel')?.remove();
@@ -4321,6 +4238,37 @@ function clearAIChat(){
     if(chat){chat.messages=[];chat.title='New Chat';saveAIChats();renderAIChatTabs();}
   }
 }
+function filterAIResponse(text){
+  const startPhrases=[
+    /^certainly[!,.]?\s*/i,
+    /^of course[!,.]?\s*/i,
+    /^great question[!,.]?\s*/i,
+    /^absolutely[!,.]?\s*/i,
+    /^sure[!,.]?\s*/i,
+    /^happy to help[!,.]?\s*/i,
+    /^i'd be happy to\s*/i,
+    /^i'm happy to\s*/i,
+    /^glad you asked[!,.]?\s*/i,
+    /^excellent question[!,.]?\s*/i,
+    /^that's a great question[!,.]?\s*/i,
+    /^what a great question[!,.]?\s*/i,
+    /^good question[!,.]?\s*/i,
+  ];
+  const endPhrases=[
+    /\s*is there anything else i can help (you with|with)[?.]?\s*$/i,
+    /\s*let me know if you have any (other )?questions[.!]?\s*$/i,
+    /\s*feel free to ask if you need anything else[.!]?\s*$/i,
+    /\s*hope (that |this )?helps[.!]?\s*$/i,
+    /\s*i hope this (was helpful|helps)[.!]?\s*$/i,
+    /\s*let me know if you'd like me to (elaborate|explain further|go deeper)[.!]?\s*$/i,
+    /\s*don't hesitate to ask[.!]?\s*$/i,
+  ];
+  let result=String(text||'').trim();
+  for(const pattern of startPhrases)result=result.replace(pattern,'');
+  for(const pattern of endPhrases)result=result.replace(pattern,'');
+  if(result.length>0)result=result.charAt(0).toUpperCase()+result.slice(1);
+  return result.trim();
+}
 function fmtAI(raw){
   let t=String(raw);
 
@@ -4380,7 +4328,7 @@ function fmtAI(raw){
 
   return t;
 }
-function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const f=isBot?fmtAI(content):esc(content);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
+function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const botText=isBot?filterAIResponse(String(content||'')):String(content||'');const f=isBot?fmtAI(botText):esc(botText);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
 function setFluxAIMode(mode,btn){
   const ok=['default','research','deep','overtime'];
@@ -4396,7 +4344,7 @@ function syncFluxAIModeButtons(){
 function getFluxAIModeInstructions(){
   const mode=localStorage.getItem('flux_ai_mode')||'default';
   if(mode==='research')return`\n<mode_research>\nResearch mode: lead with the most credible, specific sources first — official .gov/.edu pages, Google Scholar, PubMed, major digital libraries. Format links as [title](url). Wikipedia is a starting point, not a citation. Always tell the student to verify before citing. Don't substitute a list of links for actual thinking — links support their work, they don't replace it.\n</mode_research>`;
-  if(mode==='deep')return`\n<mode_deep_think>\nDeep Think mode: slow down, prioritize accuracy. Cross-check claims against the planner snapshot. Separate what you know from what you're inferring. For anything that touches dates, grades, or school policy — tell the student exactly what to verify and where. When uncertain, hedge explicitly rather than projecting false confidence.\n</mode_deep_think>`;
+  if(mode==='deep')return`\n<mode_deep_think>\nDeep Think mode: slow down, prioritize accuracy. Cross-check claims against the planner snapshot. Separate what you know from what you're inferring. For anything that touches dates or school policy — tell the student exactly what to verify and where. When uncertain, hedge explicitly rather than projecting false confidence.\n</mode_deep_think>`;
   if(mode==='overtime')return`\n<mode_overtime>\nOvertime mode: the student needs to move now. Lead with the single most important action, then tight concrete bullets with time-boxes. Cut theory unless it directly unlocks a decision. Keep replies short and scannable. Academic integrity rules still apply.\n</mode_overtime>`;
   return'';
 }
@@ -4433,7 +4381,6 @@ function buildAIPrompt(){
   const grade=p.grade||'';
   const program=formatProgramsDisplay(p.program);
   const now=new Date();now.setHours(0,0,0,0);
-  const gpa=calcGPA(grades);
   const mood=moodHistory.slice(-1)[0];
   const subjs=getSubjects();
   const fmt=t=>{const due=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'no date';const over=t.date&&new Date(t.date+'T00:00:00')<now?' OVERDUE':'';const np=t.date&&isBreak(t.date)?` [REST ${restDayKind(t.date)==='sick'?'SICK':'LAZY'}]`:'';const s=subjs[t.subject];return`- [${(t.priority||'med').toUpperCase()}|${s?s.short:t.subject||'—'}|${t.type||'hw'}|Due ${due}${over}${np}]: ${t.name}`;};
@@ -4449,18 +4396,38 @@ function buildAIPrompt(){
   const activeTaskLines=tasks.filter(t=>!t.done).slice(0,20).map(fmt).join('\n')||'None';
   const upcomingLines=ctx.upcoming.length?ctx.upcoming.map(fmt).join('\n'):'None';
   const recentNames=ctx.recent.length?ctx.recent.map(t=>t.name).join(', '):'None';
-  const gradesLine=Object.keys(grades).length?`\nGrades: ${Object.entries(grades).map(([k,v])=>k+': '+v).join(' | ')} \u00b7 GPA: ${gpa!==null?precise(gpa):'\u2014'}`:'';
 
-  return`You are Flux \u2014 an AI built into Flux Planner, the student\u2019s personal academic operating system.
+  return`<identity>
+You are Flux, an AI built into a student planner. You think carefully and respond with precision. Here is how you communicate:
 
-<identity>
-You think carefully before answering. You are intellectually curious, genuinely warm, and honest \u2014 including about the limits of what you know. You care about getting things right more than sounding confident. When something is uncertain, you say so clearly and tell the student how to verify it. You engage with ideas seriously and bring real insight, not generic advice.
+VOICE AND TONE:
+- Direct and honest. Say what you mean without softening it into meaninglessness.
+- Warm but not performatively enthusiastic. You are interested in the student's actual problem, not in appearing helpful.
+- Intellectually engaged. When something is genuinely interesting or has a non-obvious answer, explore it properly.
+- Calibrated confidence. Say "I'm not sure" when you are not sure. Say "this is likely" when it is likely. Do not state uncertain things as fact.
+- Appropriately concise. Short questions get short answers. Complex problems get thorough ones. Do not pad responses.
 
-You are not an assistant who flatters. You never open a response with "Great question!", "Absolutely!", "Of course!", "Certainly!", "Sure!", or similar hollow affirmations. You simply answer \u2014 directly, clearly, and with personality.
+WHAT YOU NEVER DO:
+- Never start a response with "Certainly!", "Of course!", "Great question!", "Absolutely!", "Sure!", "Happy to help!", "I'd be happy to", or any variation of these.
+- Never say "As an AI" or "As a language model" or refer to yourself as an AI assistant.
+- Never apologize for giving a direct answer.
+- Never add hollow affirmations like "That's a great point" or "You're absolutely right".
+- Never use filler phrases like "In summary", "To summarize", "In conclusion", "It's worth noting that", "It's important to remember".
+- Never repeat what the student just said back to them as an introduction to your response.
+- Never end with "Is there anything else I can help you with?" or "Let me know if you have any other questions" or similar.
+- Never be sycophantic.
 
-Response length matches the question. A quick factual question gets a tight answer. A complex problem gets full treatment with structure and visible reasoning. Use ## headers for multi-section answers. Use bullets for unordered lists of 3+. Use numbered lists for steps or ranked priorities. Put code, equations, and terminal commands in code blocks. Keep paragraphs short.
+WHAT YOU ALWAYS DO:
+- Get to the point in the first sentence.
+- Give concrete, specific answers — not vague suggestions.
+- When a student is stressed or overwhelmed, acknowledge it briefly and then focus on the most useful thing you can actually do: help them make a plan, prioritize, or break down the problem.
+- Use structure (numbered lists, headers) when it genuinely helps clarity. Do not use structure to make a simple answer look more impressive.
+- If a question has a straightforward answer, give it. Do not hedge a simple answer with unnecessary caveats.
+- When you disagree with what a student is about to do, say so clearly and explain why. Be honest, not just agreeable.
+- Treat the student as an intelligent person capable of handling honest information.
 
-You speak to ${name} like a knowledgeable friend who has read their entire planner. Use their name occasionally and naturally \u2014 not in every sentence, not at the end of every reply. You can be dry or a little witty when appropriate; you never force it.
+CONTEXT:
+You have access to the student's full planner — their tasks, classes, schedule, and goals. Use this context actively. When they ask "what should I do next", look at their actual tasks and give a specific recommendation based on urgency and their schedule. Do not give generic productivity advice when you have their real data.
 </identity>
 
 <student_context>
@@ -4478,7 +4445,7 @@ ${activeTaskLines}
 Upcoming (14d):
 ${upcomingLines}
 
-Recently completed (7d): ${recentNames}${gradesLine}
+Recently completed (7d): ${recentNames}
 </student_context>
 
 <full_planner_snapshot>
@@ -4486,7 +4453,7 @@ ${buildFullPlannerContextForAI({maxTotalChars:24000})}
 </full_planner_snapshot>
 
 <how_you_work>
-PLANNER DATA: The snapshot above includes tasks, grades, notes, mood, timer sessions, classes, extracurriculars, and settings. Answer questions about any part of the planner from this data. The Extracurriculars tab (internal id: "goals") holds activities, target schools, and EC goals. Google Calendar events load live in the Calendar tab and may not fully appear in this snapshot.
+PLANNER DATA: The snapshot above includes tasks, notes, mood, timer sessions, classes, extracurriculars, and settings. Answer questions about any part of the planner from this data. The Extracurriculars tab (internal id: "goals") holds activities, target schools, and EC goals. Google Calendar events load live in the Calendar tab and may not fully appear in this snapshot.
 
 CANVAS: If sections "Canvas — pinned in Flux" or "Canvas — synced assignments" appear, they are from the student's Canvas LMS (API + optional reader pin in the Canvas tab). Help them understand assignments, due dates, and instructions from that text. You cannot see their Canvas iframe if the school blocks embedding — rely on these sections.
 
@@ -4494,7 +4461,7 @@ REASONING: For complex questions \u2014 scheduling trade-offs, physics problems,
 
 HONESTY: Distinguish between what you can see in the planner data, what you can reason about, and what the student should verify elsewhere. Never fabricate. If unsure, say so.
 
-NUMBERS: GPA always to 4 decimal places. Physics: g = 10\u2009m/s\u00b2 unless explicitly stated otherwise.
+NUMBERS: Physics: g = 10\u2009m/s\u00b2 unless explicitly stated otherwise.
 ${getStudyDNAPrompt()}
 ACADEMIC INTEGRITY (absolute): Never write, complete, or provide copy-paste text for graded work \u2014 homework, quizzes, exams, lab reports, essays to be submitted. Teach by explaining concepts, showing strategy, giving parallel examples with different values, and asking self-check questions. If asked for a direct answer to graded work, decline briefly and offer to tutor instead. No exceptions.
 </how_you_work>
@@ -4611,8 +4578,8 @@ async function sendAI(){
     clean=clean.replace(/\[\s*\{[\s\S]*?"action"[\s\S]*?\}\s*\]/g,'');
     // Strip bare empty arrays at end of message
     clean=clean.replace(/\s*\[\s*\]\s*$/,'');
-    // Clean up extra whitespace
     clean=clean.replace(/\n{3,}/g,'\n\n').trim();
+    clean=filterAIResponse(clean);
     if(clean){appendMsg('bot',clean);}
     // Show action result as a separate small confirmation below, not inside the bubble
     if(ar){
@@ -4659,7 +4626,7 @@ function resetPlannerTour(){
 }
 
 // ══ SUPABASE SYNC ══
-const SYNC_KEYS=['tasks','grades','notes','habits','goals','colleges','moodHistory','schoolInfo','classes','teacherNotes','profile','flux_extras','flux_ec_schools','flux_ec_goals'];
+const SYNC_KEYS=['tasks','notes','habits','goals','colleges','moodHistory','schoolInfo','classes','teacherNotes','profile','flux_extras','flux_ec_schools','flux_ec_goals'];
 function setSyncStatus(status){
   const el=document.getElementById('syncIndicator');const sl=document.getElementById('syncStatus');const bh=document.getElementById('syncBadgeHolder');
   if(!el)return;
@@ -4732,11 +4699,6 @@ function buildFullPlannerContextForAI(opts){
   add('Tasks — all open',clip(tasks.filter(t=>!t.done).map(fmtT).join('\n')||'(none)',6500));
   add('Tasks — last 40 completed',clip(tasks.filter(t=>t.done).slice(-40).map(fmtT).join('\n')||'(none)',3200));
 
-  add('Grades map',clip(JSON.stringify(grades),2800));
-  add('Weighted rows',clip(JSON.stringify(weightedRows),2200));
-  const gpa=calcGPA(grades);
-  add('GPA (weighted calc, 4dp)',gpa!=null?precise(gpa):'n/a');
-
   const noteBlock=notes.slice(0,50).map(n=>{
     const dt=n.updatedAt?new Date(n.updatedAt).toISOString().slice(0,10):'—';
     return `• "${plain(n.title,100)}" subj:${n.subject||'—'} ${dt} ★${n.starred?'y':'n'} fc:${(n.flashcards||[]).length}\n  ${plain(n.body,500)}`;
@@ -4798,9 +4760,6 @@ function getCloudPayload(){
     accentRgb:localStorage.getItem('flux_accent_rgb')||'0,191,255',
     theme:localStorage.getItem('flux_theme')||'dark',
     tasks,
-    grades,
-    gpaPrior,
-    weightedRows,
     notes:notes.map(n=>({...n,body:n.body||''})),
     habits,
     goals,
@@ -4873,7 +4832,7 @@ async function forceSyncNow(){
   await syncFromCloud();
   // Re-render everything so pulled data appears immediately without refresh
   renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();
-  renderProfile();renderGradeInputs();renderGradeOverview();renderNotesList();
+  renderProfile();renderNotesList();
   renderExtrasList();renderSchoolsList();renderECGoals();renderMoodHistory();
   renderSchool();updateTStats();populateSubjectSelects();
   // Re-apply accent AFTER all renders (renderSidebars rebuilds SVG logo)
@@ -4896,9 +4855,6 @@ async function syncFromCloud(){
     }
     const d=data.data;
     if(d.tasks){tasks=d.tasks;save('tasks',tasks);migrateCompletedAtBackfill();}
-    if(d.grades){grades=d.grades;save('flux_grades',grades);}
-    if(d.gpaPrior&&typeof d.gpaPrior==='object'){gpaPrior={prevGpa:d.gpaPrior.prevGpa??'',prevCredits:d.gpaPrior.prevCredits??''};save('flux_gpa_prior',gpaPrior);}
-    if(d.weightedRows){weightedRows=d.weightedRows;save('flux_weighted',weightedRows);}
     if(d.notes){notes=d.notes;save('flux_notes',notes);}
     if(d.habits){habits=d.habits;save('flux_habits',habits);}
     if(d.goals){goals=d.goals;save('flux_goals',goals);}
@@ -4950,7 +4906,7 @@ async function syncFromCloud(){
     
     if(d.onboarded)save('flux_onboarded',true);
     else{
-      const legacyDone=tasks.length>0||notes.length>0||classes.length>0||Object.keys(grades).length>0;
+      const legacyDone=tasks.length>0||notes.length>0||classes.length>0;
       if(legacyDone)save('flux_onboarded',true);
     }
     // Load devAccounts — owner's list syncs to all dev accounts too
@@ -4985,7 +4941,7 @@ async function syncFromCloud(){
     setSyncStatus('synced');
     window._fluxSyncFailed=false;
     if(typeof updateConnectivityBanner==='function')updateConnectivityBanner();
-    renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();renderProfile();renderGradeInputs();renderGradeOverview();renderNotesList();renderExtrasList();renderSchoolsList();renderECGoals();renderMoodHistory();renderSchool();updateTStats();
+    renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();renderProfile();renderNotesList();renderExtrasList();renderSchoolsList();renderECGoals();renderMoodHistory();renderSchool();updateTStats();
     populateSubjectSelects();
     // Re-apply accent after renders in case sidebar was rebuilt
     updateLogoColor(localStorage.getItem('flux_accent')||'#00bfff');
@@ -5537,7 +5493,7 @@ function openFluxAgent(opts){
   opts=opts||{};
   const aiBtn=document.querySelector('.sidebar-nav [data-tab=ai]')||document.querySelector('[data-tab=ai]');
   nav('ai',aiBtn);
-  const placeholder=opts.placeholder||'Ask Flux AI anything — tasks, grades, calendar, notes, timer, school, ECs, Gmail, settings…';
+  const placeholder=opts.placeholder||'Ask Flux AI anything — tasks, calendar, notes, timer, school, ECs, Gmail, settings…';
   const delay=typeof opts.delay==='number'?opts.delay:140;
   setTimeout(()=>{
     const inp=document.getElementById('aiInput');
@@ -5583,11 +5539,6 @@ function fabAddTask(){
   const qa=document.getElementById('quickAddInput');
   if(qa){nav('dashboard');setTimeout(()=>{qa.focus();qa.scrollIntoView({behavior:'smooth',block:'center'});},120);}
 }
-function fabAddGrade(){
-  closeFAB();
-  nav('grades');
-  setTimeout(()=>{document.getElementById('newSubject')?.focus();},150);
-}
 function fabFocus(){
   closeFAB();
   nav('timer');
@@ -5627,7 +5578,7 @@ function initKeyboardShortcuts(){
         setTimeout(()=>document.getElementById('aiInput')?.focus(),150);
         break;
       case 'g': case 'G':
-        e.preventDefault();nav('grades');break;
+        e.preventDefault();nav('toolbox');break;
       case 'c': case 'C':
         e.preventDefault();nav('calendar');break;
       case 'k': case 'K':
@@ -5692,7 +5643,6 @@ function renderCmdResults(){
     {icon:'📅',label:'Calendar',action:()=>{nav('calendar');closeCommandPalette();}},
     {icon:'✦',label:'Flux AI',action:()=>{nav('ai');closeCommandPalette();}},
     {icon:'🏫',label:'School Info',action:()=>{nav('school');closeCommandPalette();}},
-    {icon:'📊',label:'Grades',action:()=>{nav('grades');closeCommandPalette();}},
     {icon:'📝',label:'Notes',action:()=>{nav('notes');closeCommandPalette();}},
     {icon:'⏱',label:'Focus Timer',action:()=>{nav('timer');closeCommandPalette();}},
     {icon:'🎯',label:'Goals',action:()=>{nav('goals');closeCommandPalette();}},
@@ -5738,7 +5688,6 @@ function renderCmdResults(){
     {icon:'🔄',label:'Force Sync',cat:'Actions',action:()=>{closeCommandPalette();forceSyncNow();}},
     {icon:'🎯',label:'Start Deep Work Mode',cat:'Actions',action:()=>{closeCommandPalette();startDeepWork();}},
     {icon:'📆',label:'Explain my week (Flux AI)',cat:'Actions',action:()=>{closeCommandPalette();explainMyWeek();}},
-    {icon:'📥',label:'Export grades as CSV',cat:'Actions',action:()=>{closeCommandPalette();if(typeof exportGradesCSV==='function')exportGradesCSV();}},
     {icon:'🖨',label:'Print / save as PDF',cat:'Actions',action:()=>{closeCommandPalette();window.print();}},
     {icon:'🔐',label:'Import encrypted backup',cat:'Actions',action:()=>{closeCommandPalette();document.getElementById('importEncryptedFile')?.click();}},
   ];
@@ -5795,25 +5744,6 @@ function showKeyHint(){
     hint.style.animation='slideUp .3s var(--ease-spring)';
     setTimeout(()=>{hint.style.opacity='0';hint.style.transition='opacity .3s';setTimeout(()=>hint.style.display='none',300);},4000);
   },2000);
-}
-
-// ══ GPA WHAT-IF CALCULATOR ══
-function calcGPAWhatIf(){
-  const subject=document.getElementById('whatIfSubject')?.value.trim();
-  const score=parseFloat(document.getElementById('whatIfScore')?.value);
-  const el=document.getElementById('whatIfResult');
-  if(!el)return;
-  if(!subject||isNaN(score)){el.textContent='Enter a subject and score.';el.style.color='var(--muted)';return;}
-  // Clone grades and add/overwrite with hypothetical
-  const hypothetical={...grades,[subject]:String(score)};
-  const newGPA=calcGPA(hypothetical);
-  const currentGPA=calcGPA(grades);
-  if(newGPA===null){el.textContent='Could not calculate.';return;}
-  const diff=newGPA-(currentGPA||0);
-  const sign=diff>=0?'+':'';
-  const color=diff>0?'var(--green)':diff<0?'var(--red)':'var(--muted2)';
-  el.innerHTML=`New GPA: <strong style="color:var(--accent);font-family:'JetBrains Mono',monospace">${newGPA.toFixed(4)}</strong>
-    <span style="color:${color};font-size:.8rem;margin-left:8px">${sign}${diff.toFixed(4)}</span>`;
 }
 
 // ══ PANIC GLOW (task-level) ══
@@ -6034,7 +5964,7 @@ function confirmGuestLogin(){
   if(splash)splash.style.display='block';
   const finishGuestEntry=()=>{
     const onboarded=load('flux_onboarded',false);
-    const hasData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
+    const hasData=tasks.length>0||notes.length>0||classes.length>0;
     if(!onboarded&&!hasData){
       showOnboarding();
     }else{
@@ -6147,7 +6077,7 @@ async function initAuth(){
 
 function showLoginOrApp(){
   const onboarded=load('flux_onboarded',false);
-  const hasData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
+  const hasData=tasks.length>0||notes.length>0||classes.length>0;
   const wasGuest=load('flux_was_guest',false);
   if(wasGuest&&(onboarded||hasData)){
     showApp();
@@ -6163,7 +6093,6 @@ const LOGIN_DEMO_LINES=[
   'Break down assignments into steps with Flux AI study plans.',
   'Snap a syllabus or schedule — Vision Import turns it into tasks.',
   'Sync Google Calendar and see tasks beside class blocks.',
-  'Track weighted GPA with honors/AP and semester what-ifs.',
   'Log extracurriculars and get school-fit suggestions.',
   'Capture notes with tags, then ask Flux AI to quiz you.',
   'Use the focus timer and streaks to build study habits.',
@@ -6215,7 +6144,7 @@ function showApp(){
   initModFeatures();
   initDashboardFeatures();
   renderStats();renderTasks();renderCalendar();renderCountdown();
-  renderSmartSug();renderProfile();renderGradeInputs();renderGradeOverview();
+  renderSmartSug();renderProfile();
   renderNotesList();renderExtrasList();renderSchoolsList();renderECGoals();renderMoodHistory();
   renderSchool();updateTStats();
   renderExamConflictBanner();
@@ -6282,9 +6211,9 @@ async function handleSignedIn(user,session){
     localStorage.clear();
     Object.entries(survived).forEach(([k,v])=>localStorage.setItem(k,v));
     // Reset all in-memory state
-    tasks=[];grades={};gpaPrior={prevGpa:'',prevCredits:''};notes=[];habits=[];goals=[];colleges=[];extras=[];ecSchools=[];ecGoals=[];
+    tasks=[];notes=[];habits=[];goals=[];colleges=[];extras=[];ecSchools=[];ecGoals=[];
     moodHistory=[];schoolInfo={};classes=[];teacherNotes=[];
-    sessionLog=[];studyDNA=[];confidences={};weightedRows=[];
+    sessionLog=[];studyDNA=[];confidences={};
     aiChats=[];aiHistory=[];
     console.log('🔄 Account switched — wiped previous user data');
   }
@@ -6319,7 +6248,7 @@ async function handleSignedIn(user,session){
   await syncFromCloud();
 
   const onboarded=load('flux_onboarded',false);
-  const hasLocalData=tasks.length>0||notes.length>0||Object.keys(grades).length>0||classes.length>0;
+  const hasLocalData=tasks.length>0||notes.length>0||classes.length>0;
   // Do not use profile.name here — step 1 saves name before flux_onboarded; excluding profile blocked resume
   const isFirstTime=!onboarded&&!hasLocalData;
 
@@ -6601,7 +6530,6 @@ function initDashboardFeatures(){
   initMobileNav();
   smartReorderDashboard();
   checkTimePoverty();
-  renderGradeBuffer();
   setInterval(()=>{checkTimePoverty();updateCognitiveLoadMeter();if(typeof updateNextClassPill==='function')updateNextClassPill();if(typeof renderDynamicFocus==='function')renderDynamicFocus();},60000);
   initIntelligenceEngine();
   // New systems
@@ -6688,7 +6616,7 @@ function handleCheckoutReturn(){
   const td=document.getElementById('taskDate');if(td)td.valueAsDate=TODAY;
   setEnergy(document.getElementById('energySlider')?.value||3);
   renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();
-  renderProfile();renderGradeInputs();renderGradeOverview();renderWeightedRows();
+  renderProfile();
   renderNotesList();renderExtrasList();renderSchoolsList();renderECGoals();
   renderMoodHistory();renderAffirmation();renderAISugs();syncFluxAIModeButtons();renderSchool();
   renderSubjectBudget();renderFocusHeatmap();
@@ -7222,10 +7150,10 @@ function startOnboardingTour(){
     {nav:'dashboard',sel:'[data-tab="dashboard"]',title:'Dashboard',body:'Your home base: tasks, energy, and quick stats. Use ＋ New task in the top bar, the FAB, or quick-add to capture work fast.'},
     {nav:'calendar',sel:'[data-tab="calendar"]',title:'Calendar',body:'Month view, A/B cycle days, and weekly activities. Link Google Calendar under Settings if you use it.'},
     {nav:'school',sel:'[data-tab="school"]',title:'School & schedule',body:'Classes, bell schedule, and Vision import — snap a timetable and let AI fill your periods.'},
-    {nav:'grades',sel:'[data-tab="grades"]',title:'Grades & GPA',body:'Weighted GPA, categories, and grade import from screenshots when you need it.'},
+    {nav:'canvas',sel:'[data-tab="canvas"]',title:'Canvas',body:'Pull assignments and announcements from Canvas, pin pages for Flux AI, and add work to your planner.'},
     {nav:'notes',sel:'[data-tab="notes"]',title:'Notes & flashcards',body:'Subject notes with flashcard mode for cram sessions before tests.'},
     {nav:'timer',sel:'[data-tab="timer"]',title:'Focus timer',body:'Pomodoro-style sessions, subject budgets, and a weekly focus heatmap.'},
-    {nav:'ai',sel:'[data-tab="ai"]',title:'Flux AI',body:'Ask anything about your planner — study help, scheduling, grades, and more. Full context from your snapshot.'},
+    {nav:'ai',sel:'[data-tab="ai"]',title:'Flux AI',body:'Ask anything about your planner — study help, scheduling, and workload. Full context from your snapshot.'},
     {nav:'dashboard',sel:'.view-btn[data-view="list"]',title:'Task views',body:'Switch List, Board, or Timeline on the dashboard to match how you like to work.'},
     {nav:'goals',sel:'[data-tab="goals"]',title:'Extracurriculars',body:'Activities, college list, and milestones — IB/AP progress lives here too when relevant.'},
     {nav:'profile',sel:'[data-tab="profile"]',title:'Profile',body:'Academic snapshot, study DNA, and habits — keep it updated for better AI hints.'},
@@ -7423,29 +7351,6 @@ async function callGemini(imageBase64,mimeType,prompt){
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'Gemini error '+res.status);}
   const data=await res.json();
   return data.text||'';
-}
-
-// Import grades from photo
-async function importGradesFromPhoto(event){
-  const file=event.target.files[0];if(!file)return;
-  const el=document.getElementById('gradesImportResult');
-  el.style.display='block';
-  el.innerHTML='<div style="color:var(--muted2);font-size:.82rem;font-family:JetBrains Mono,monospace">📷 Reading grades with Gemini AI...</div>';
-  try{
-    const base64=await fileToBase64(file);
-    const txt=await callGemini(base64,file.type,
-      'This is a student gradebook or report card. Extract every subject and its grade percentage or letter grade. Return ONLY a JSON object like {"Math":92,"English":"B+"}. Use the exact subject names shown. Return ONLY the JSON object, no markdown.');
-    const clean=txt.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(clean);
-    let imported=0;
-    Object.entries(parsed).forEach(([k,v])=>{if(k&&v!==undefined){grades[k]=String(v);imported++;}});
-    save('flux_grades',grades);
-    renderGradeInputs();renderGradeOverview();updateGPADisplay();
-    el.innerHTML=`<div style="color:var(--green);font-size:.82rem">✓ Imported ${imported} grades! Review and save below.</div>`;
-    syncKey('grades',grades);
-  }catch(e){
-    el.innerHTML=`<div style="color:var(--red);font-size:.82rem">Could not read grades: ${e.message}</div>`;
-  }
 }
 
 // Import note/assignment guide content from photo
@@ -7820,12 +7725,6 @@ function upsertClassFromCanvasCourse(c,primaryTeacher){
   });
 }
 
-function canvasUniqueGradeKeyForCourse(c,allCourses){
-  const base=cleanClassName(c.name||c.course_code||'Course');
-  const dup=(allCourses||[]).some(x=>x.id!==c.id&&cleanClassName(x.name||x.course_code||'')===base);
-  return dup&&c.course_code?`${base} (${c.course_code})`:base;
-}
-
 function upsertTeacherNoteFromCanvas(t,courseList){
   const name=(t.name||'').trim();
   if(!name)return false;
@@ -7920,7 +7819,7 @@ async function importEverythingFromCanvas(){
     return;
   }
   const d=fluxCanvasHubData;
-  let nClass=0,nTeach=0,nGrade=0,nTask=0,nNote=0,nCal=0;
+  let nClass=0,nTeach=0,nTask=0,nNote=0,nCal=0;
 
   const teacherFirstByCourse={};
   (d.teachers||[]).forEach(t=>{
@@ -7937,17 +7836,6 @@ async function importEverythingFromCanvas(){
 
   for(const t of d.teachers||[]){
     if(upsertTeacherNoteFromCanvas(t,d.courses))nTeach++;
-  }
-
-  for(const c of d.courses||[]){
-    const sc=d.courseScores&&d.courseScores[c.id];
-    if(!sc)continue;
-    const val=sc.final_grade!=null&&String(sc.final_grade).trim()!==''?String(sc.final_grade)
-      :(sc.current_grade!=null&&String(sc.current_grade).trim()!==''?String(sc.current_grade)
-        :(sc.final_score!=null?String(sc.final_score):(sc.current_score!=null?String(sc.current_score):'')));
-    if(!val)continue;
-    const key=canvasUniqueGradeKeyForCourse(c,d.courses);
-    if(grades[key]!==val){grades[key]=val;nGrade++;}
   }
 
   const assignIds=new Set((d.assignments||[]).map(a=>a.id));
@@ -7997,21 +7885,18 @@ async function importEverythingFromCanvas(){
 
   save('flux_classes',classes);
   save('flux_teacher_notes',teacherNotes);
-  save('flux_grades',grades);
   save('tasks',tasks);
   save('flux_notes',notes);
   syncKey('classes',classes);
   syncKey('teacherNotes',teacherNotes);
-  syncKey('grades',grades);
   syncKey('tasks',tasks);
   syncKey('notes',notes);
   populateSubjectSelects();
   renderSchool();
-  renderGradeInputs();renderGradeOverview();
   renderStats();renderTasks();renderCalendar();renderCountdown();
   if(st)st.textContent='Imported '+new Date().toLocaleTimeString();
   renderCanvasHubPanel();
-  showToast(`Imported into Flux: ${nClass} new classes · ${nTeach} teacher notes · ${nGrade} grade fields · ${nTask} tasks · ${nNote} notes · ${nCal} calendar items`,'success');
+  showToast(`Imported into Flux: ${nClass} new classes · ${nTeach} teacher notes · ${nTask} tasks · ${nNote} notes · ${nCal} calendar items`,'success');
 }
 
 function addCanvasAnnouncementToPlanner(announcementId){
@@ -8566,27 +8451,34 @@ function renderWorkloadForecast(){
     const label=i===0?'Today':i===1?'Tmrw':d.toLocaleDateString('en-US',{weekday:'short'});
     days.push({label,mins,count:dayTasks.length,date:ds,tasks:dayTasks});
   }
-  const maxMins=Math.max(...days.map(d=>d.mins),60);
+  const maxMins=Math.max(...days.map(d=>d.mins),0);
   const html=`
-    <div style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:8px">
+    <div class="workload-forecast-block">
+    <div class="workload-mins-row">
       ${days.map(d=>{
-        const h=Math.max(4,Math.round((d.mins/maxMins)*76));
+        const warn=d.mins>180?'<span style="color:var(--red)" title="Heavy day">⚠</span> ':'';
+        const txt=d.mins>0?`${d.mins}m`:'';
+        return`<div>${warn}${txt}</div>`;
+      }).join('')}
+    </div>
+    <div class="workload-chart" role="img" aria-label="Estimated minutes per day this week">
+      ${days.map(d=>{
+        const barPx=maxMins>0?Math.max(4,Math.min(95,Math.round((d.mins/maxMins)*95))):4;
         const color=d.mins>180?'var(--red)':d.mins>90?'var(--gold)':'var(--green)';
         const isToday=d.label==='Today';
-        return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
-          ${d.mins>180?'<span style="font-size:.55rem;color:var(--red)">⚠</span>':'<span style="font-size:.55rem;opacity:0">·</span>'}
-          <div title="${d.count} tasks · ${d.mins}min" style="width:100%;background:${color};border-radius:4px 4px 0 0;height:${h}px;opacity:${isToday?1:.7};transition:height .3s;cursor:pointer;position:relative" onclick="showDayTasksPopup('${d.date}')">
-            ${d.count?`<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:.55rem;color:var(--muted);white-space:nowrap">${d.count}</div>`:''}
+        return`<div class="workload-bar-wrap">
+          <div class="workload-bar-outer" style="height:${barPx}px" title="${d.count} tasks · ${d.mins} min" onclick="showDayTasksPopup('${d.date}')">
+            <div class="workload-bar-fill" style="background:${color};opacity:${isToday?1:.72}"></div>
           </div>
         </div>`;
       }).join('')}
     </div>
-    <div style="display:flex;gap:6px">
-      ${days.map(d=>`<div style="flex:1;text-align:center;font-size:.58rem;color:${d.label==='Today'?'var(--accent)':'var(--muted)'};font-family:'JetBrains Mono',monospace;font-weight:${d.label==='Today'?700:400}">${d.label}</div>`).join('')}
+    <div class="workload-labels-row">
+      ${days.map(d=>`<div class="${d.label==='Today'?'is-today':''}">${d.label}</div>`).join('')}
     </div>
     <div style="margin-top:10px;display:flex;gap:8px;font-size:.65rem;color:var(--muted)">
-      <span>🟢 <60min</span><span>🟡 60-3h</span><span>🔴 >3h</span>
-    </div>`;
+      <span>🟢 &lt;60min</span><span>🟡 60–3h</span><span>🔴 &gt;3h</span>
+    </div></div>`;
   el.innerHTML=html;
   
   // Burnout detection
@@ -8696,7 +8588,7 @@ function endDeepWork(completed){
 function renderSubjectHealth(){
   const el=document.getElementById('subjectHealth');if(!el)return;
   const subjs=getSubjects();
-  if(!Object.keys(subjs).length&&!Object.keys(grades).length){el.innerHTML='';return;}
+  if(!Object.keys(subjs).length){el.innerHTML='';return;}
   
   const now=new Date();now.setHours(0,0,0,0);
   const health=Object.entries(subjs).map(([k,s])=>{
@@ -8705,13 +8597,11 @@ function renderSubjectHealth(){
     const pending=subTasks.filter(t=>!t.done).length;
     const done=subTasks.filter(t=>t.done).length;
     const rate=done+pending>0?Math.round(done/(done+pending)*100):100;
-    const grade=grades[s.name]||grades[k];
-    const gradeN=grade?parseFloat(grade):null;
     let status='good';
-    if(overdue>=2||rate<40||(gradeN!==null&&gradeN<70))status='danger';
-    else if(overdue>=1||rate<60||(gradeN!==null&&gradeN<80))status='warning';
-    return{key:k,s,overdue,pending,done,rate,grade:gradeN,status};
-  }).filter(h=>h.pending+h.done>0||h.grade!==null).slice(0,6);
+    if(overdue>=2||rate<40)status='danger';
+    else if(overdue>=1||rate<60)status='warning';
+    return{key:k,s,overdue,pending,done,rate,status};
+  }).filter(h=>h.pending+h.done>0).slice(0,6);
   
   if(!health.length){el.innerHTML='';return;}
   
@@ -8724,7 +8614,7 @@ function renderSubjectHealth(){
           <div style="font-size:.72rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.s.short)}</div>
           <div style="margin-left:auto;width:6px;height:6px;border-radius:50%;background:${statusColor}"></div>
         </div>
-        ${h.grade!==null?`<div style="font-size:1.1rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:${statusColor}">${h.grade.toFixed(1)}%</div>`:''}
+        <div style="font-size:1.05rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:${statusColor}">${h.rate}%</div>
         <div style="font-size:.65rem;color:var(--muted);margin-top:4px">${h.pending} pending${h.overdue?` · <span style="color:var(--red)">${h.overdue} overdue</span>`:''}</div>
         <div style="margin-top:6px;height:3px;background:var(--border);border-radius:2px">
           <div style="height:100%;background:${statusColor};border-radius:2px;width:${h.rate}%;transition:width .5s"></div>
@@ -8852,7 +8742,7 @@ function startPresentMode(){
   
   const now=new Date();
   const name=localStorage.getItem('flux_user_name')||'Student';
-  const gpa=calcGPA(grades);
+  const focusHrs=Math.round((load('t_minutes',0)||0)/60);
   const totalTasks=tasks.filter(t=>!t.done).length;
   const doneTasks=tasks.filter(t=>t.done).length;
   const rate=totalTasks+doneTasks>0?Math.round(doneTasks/(totalTasks+doneTasks)*100):0;
@@ -8884,7 +8774,7 @@ function startPresentMode(){
       <!-- Stats row -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
         ${[
-          [gpa!==null?gpa.toFixed(4):'—','GPA','var(--accent)'],
+          [focusHrs+'h','Focus time','var(--accent)'],
           [rate+'%','Completion','var(--green)'],
           [totalTasks,'Pending','var(--gold)'],
           [overdue,'Overdue','var(--red)']
@@ -8939,22 +8829,22 @@ function startPresentMode(){
   const el=document.getElementById('presentSubjectHealth');
   if(el){
     const healthData=Object.entries(subjs).map(([k,s])=>{
-      const g=grades[s.name]||grades[k];
-      const gn=g?parseFloat(g):null;
       const pending=tasks.filter(t=>!t.done&&t.subject===k).length;
-      return{s,gn,pending,k};
-    }).filter(h=>h.gn!==null||h.pending>0).slice(0,6);
+      const done=tasks.filter(t=>t.done&&t.subject===k).length;
+      const rate=done+pending>0?Math.round(done/(done+pending)*100):null;
+      return{s,pending,done,rate,k};
+    }).filter(h=>h.pending>0||h.done>0).slice(0,6);
     if(healthData.length){
       el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:10px">
         ${healthData.map(h=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
           <div style="width:8px;height:8px;border-radius:50%;background:${h.s.color}"></div>
           <div style="font-size:.82rem;font-weight:600">${h.s.name}</div>
-          ${h.gn!==null?`<div style="font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--accent)">${h.gn.toFixed(1)}%</div>`:''}
-          ${h.pending?`<div style="font-size:.7rem;color:var(--muted)">${h.pending} tasks</div>`:''}
+          ${h.rate!=null?`<div style="font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--accent)">${h.rate}% done</div>`:''}
+          ${h.pending?`<div style="font-size:.7rem;color:var(--muted)">${h.pending} open</div>`:''}
         </div>`).join('')}
       </div>`;
     } else {
-      el.innerHTML='<div style="color:var(--muted);font-size:.82rem">Add grades and tasks to see subject overview</div>';
+      el.innerHTML='<div style="color:var(--muted);font-size:.82rem">Add classes and tag tasks by subject to see subject overview</div>';
     }
   }
 }
@@ -9262,7 +9152,7 @@ function initFullKeyboardNav(){
 
     // Number keys to navigate sections
     if(!e.metaKey&&!e.ctrlKey&&!e.altKey){
-      const sectionKeys={'1':'dashboard','2':'calendar','3':'ai','4':'grades','5':'notes','6':'timer'};
+      const sectionKeys={'1':'dashboard','2':'calendar','3':'ai','4':'toolbox','5':'notes','6':'timer'};
       if(sectionKeys[e.key])nav(sectionKeys[e.key]);
     }
   });
@@ -10089,19 +9979,6 @@ function askFluxAIAboutTask(taskId){
 
 // ── Feature: Sidebar mini-stats strip ──
 function renderSidebarMiniStats(){}
-
-// ── Feature: Record grade history for sparklines ──
-function recordGradeHistory(){
-  try{
-    const hist=load('flux_grade_history',[]);
-    const entry={date:todayStr(),grades:{...grades}};
-    const last=hist[hist.length-1];
-    if(!last||JSON.stringify(last.grades)!==JSON.stringify(entry.grades)){
-      hist.push(entry);if(hist.length>60)hist.shift();
-      save('flux_grade_history',hist);
-    }
-  }catch(e){}
-}
 
 // ── Feature: Smart tomorrow warning ──
 function checkTomorrowLoad(){

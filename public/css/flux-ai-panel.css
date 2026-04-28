@@ -170,25 +170,23 @@
   justify-content: center;
   flex-shrink: 0;
   line-height: 0;
+  color: var(--accent);
   background: var(--fa-elevated);
   border: 1px solid var(--fa-hair2);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 2px 8px var(--fa-shade);
   overflow: hidden;
 }
-#ai.flux-ai-panel .flux-ai-mark .flux-ai-logo{
-  width: 32px;
-  height: 32px;
+#ai.flux-ai-panel .flux-ai-mark .flux-ai-mark-svg{
+  width: 20px;
+  height: 20px;
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
   display: block;
+  flex-shrink: 0;
+  overflow: visible;
   filter: drop-shadow(0 1px 2px var(--fa-shade));
   pointer-events: none;
   user-select: none;
-}
-#ai.flux-ai-panel .flux-ai-mark-svg.flux-ai-logo{
-  object-fit: unset;
-  overflow: visible;
 }
 [data-theme="light"] #ai.flux-ai-panel .flux-ai-mark{
   background: var(--fa-elevated);

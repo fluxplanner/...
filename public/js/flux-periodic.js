@@ -1,8 +1,8 @@
 /* ════════════════════════════════════════════════════════════════
    FLUX PERIODIC TABLE
    Fully interactive periodic table — all 118 elements, category
-   filters, search, temperature slider for state-of-matter shading,
-   detail side panel with extensive element data, keyboard nav.
+   filters, search, detail side panel with extensive element data, keyboard nav.
+   Grid cells use category colors only (no temperature / phase-mode toolbar).
    Inspired by zperiod.app, tuned to the Flux aesthetic.
    ════════════════════════════════════════════════════════════════ */
 
@@ -160,8 +160,7 @@ const CATEGORIES = [
 const state = {
   activeCat: 'all',
   query: '',
-  temp: 25,           // °C; used for phase-shading
-  phaseMode: false,   // when true, element colors reflect state at temp
+  temp: 25, // °C; used only in element detail (“Phase now”)
   selectedId: null,
   built: false,
 };
@@ -298,12 +297,7 @@ function applyFiltersAndPhase(){
     card.classList.toggle('pt-dim', !on);
     if (on && !firstMatch && isFiltered) firstMatch = card;
 
-    if (state.phaseMode) {
-      const ph = phaseAt(el, state.temp);
-      card.dataset.phase = ph;
-    } else {
-      delete card.dataset.phase;
-    }
+    delete card.dataset.phase;
   });
 
   // Mark wrap as filtered so CSS can animate the matched cells.
@@ -311,11 +305,6 @@ function applyFiltersAndPhase(){
     if (isFiltered) w.setAttribute('data-filtered', '1');
     else w.removeAttribute('data-filtered');
   });
-
-  const tmpLbl = document.getElementById('ptTempVal');
-  if (tmpLbl) tmpLbl.textContent = state.phaseMode
-    ? `${state.temp}°C  ·  phase mode`
-    : `${state.temp}°C`;
 
   // When a category filter is applied on a narrow screen, the matching
   // elements may live in the rightmost columns (e.g. halogens col 17,
@@ -463,26 +452,6 @@ function wireSearchAndSlider(){
     });
   }
 
-  const slider = document.getElementById('ptTempSlider');
-  const tVal   = document.getElementById('ptTempVal');
-  const phaseT = document.getElementById('ptPhaseToggle');
-  if (slider){
-    slider.addEventListener('input', e => {
-      state.temp = parseInt(e.target.value, 10) || 25;
-      if (tVal) tVal.textContent = state.phaseMode
-        ? `${state.temp}°C  ·  phase mode`
-        : `${state.temp}°C`;
-      if (state.phaseMode) applyFiltersAndPhase();
-    });
-  }
-  if (phaseT){
-    phaseT.addEventListener('click', () => {
-      state.phaseMode = !state.phaseMode;
-      phaseT.classList.toggle('active', state.phaseMode);
-      applyFiltersAndPhase();
-    });
-  }
-
   // Close detail on Escape / outside click
   document.addEventListener('keydown', e => {
     const host = document.getElementById('ptDetail');
@@ -521,8 +490,8 @@ window.fluxPeriodic = {
   closeDetail,
   next: () => step(1),
   prev: () => step(-1),
-  setTemp: t => { state.temp = t; applyFiltersAndPhase(); },
-  setPhaseMode: on => { state.phaseMode = !!on; applyFiltersAndPhase(); },
+  setTemp: t => { state.temp = Number(t) || 25; },
+  setPhaseMode: () => {},
   setCategory: c => { state.activeCat = c || 'all'; applyFiltersAndPhase(); },
   search: q => { state.query = q || ''; applyFiltersAndPhase(); },
   ELEMENTS,
