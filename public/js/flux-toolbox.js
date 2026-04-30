@@ -2392,13 +2392,16 @@ function renderTranslate(body){
 /* ================================================================
    MUSIC — dimensions / metadimensions (study reference)
    ================================================================ */
+const DP_MUSIC_INNER_RING = ['Timbre', 'Melody', 'Harmony', 'Dynamics', 'Articulation', 'Texture', 'Meter', 'Tempo', 'Form'];
+const DP_MUSIC_META_RING = ['Style', 'Architecture', 'Affective qualities', 'Sense of ensemble', 'Personal context', 'Cultural context', 'Historical context', 'Sense of simultaneity', 'Genre'];
+const DP_MUSIC_DIMENSIONS_ALL = ['Pitch', 'Rhythm', 'Timbre', 'Melody', 'Harmony', 'Dynamics', 'Form', 'Tempo', 'Meter', 'Texture', 'Articulation'];
+
 function renderDpMusicDimensions(body){
   const uid = 'dp' + Math.random().toString(36).slice(2, 9);
   const cx = 220;
   const cy = 220;
-  const innerRing = ['Timbre', 'Melody', 'Harmony', 'Dynamics', 'Articulation', 'Texture', 'Meter', 'Tempo', 'Form'];
-  const metaRing = ['Style', 'Architecture', 'Affective qualities', 'Sense of ensemble', 'Personal context', 'Cultural context', 'Historical context', 'Sense of simultaneity', 'Genre'];
-  const dimensionsAll = ['Pitch', 'Rhythm', 'Timbre', 'Melody', 'Harmony', 'Dynamics', 'Form', 'Tempo', 'Meter', 'Texture', 'Articulation'];
+  const innerRing = DP_MUSIC_INNER_RING;
+  const metaRing = DP_MUSIC_META_RING;
 
   function placeBubbles(labels, r, phaseDeg, kind){
     const n = labels.length;
@@ -2427,21 +2430,16 @@ function renderDpMusicDimensions(body){
   const metaPhase = -90 + (360 / metaRing.length) / 2;
   const innerPhase = metaPhase + 180 / metaRing.length;
 
-  const chartDim = dimensionsAll.map(d => `<tr><td><span class="dp-music-chart__dot dp-music-chart__dot--dim"></span></td><td>${esc(d)}</td></tr>`).join('');
-  const chartMeta = metaRing.map(d => `<tr><td><span class="dp-music-chart__dot dp-music-chart__dot--meta"></span></td><td>${esc(d)}</td></tr>`).join('');
-
   body.innerHTML = `
     <div class="tb-card tb-dp-music">
       <div class="tb-card-h tb-dp-music__head">
         <div>
           <h3 class="tb-dp-music__title">Dimensions &amp; metadimensions</h3>
-          <p class="tb-sub tb-dp-music__lede">Classic listening framework: <b>dimensions</b> describe the sound itself; <b>metadimensions</b> describe context, culture, and meaning.</p>
+          <p class="tb-sub tb-dp-music__lede">Classic listening framework: <b>dimensions</b> describe the sound itself; <b>metadimensions</b> describe context, culture, and meaning. Use <b>Quick chart</b> for a flat checklist.</p>
         </div>
       </div>
-      <div class="dp-music-dual">
-        <div class="dp-music-stage">
-          <div class="dp-music-stage__label" aria-hidden="true">Diagram</div>
-          <svg class="dp-music-svg" viewBox="0 0 440 440" role="img" aria-labelledby="${uid}-ttl ${uid}-dsc">
+      <div class="dp-music-diagram-wrap">
+        <svg class="dp-music-svg" viewBox="0 0 440 440" role="img" aria-labelledby="${uid}-ttl ${uid}-dsc">
             <title id="${uid}-ttl">Music dimensions and metadimensions</title>
             <desc id="${uid}-dsc">Concentric diagram: outer metadimension labels, inner dimension labels, pitch and rhythm at the center.</desc>
             <defs>
@@ -2475,28 +2473,40 @@ function renderDpMusicDimensions(body){
             ${placeBubbles(metaRing, 192, metaPhase, 'meta')}
             ${placeBubbles(innerRing, 128, innerPhase, 'dim')}
             <text class="dp-music-svg__core" x="${cx}" y="${cy - 7}" text-anchor="middle">Pitch</text>
-            <text class="dp-music-svg__core" x="${cx}" y="${cy + 15}" text-anchor="middle">Rhythm</text>
-          </svg>
+          <text class="dp-music-svg__core" x="${cx}" y="${cy + 15}" text-anchor="middle">Rhythm</text>
+        </svg>
+      </div>
+    </div>`;
+}
+
+function renderDpMusicChart(body){
+  const chartDim = DP_MUSIC_DIMENSIONS_ALL.map(d => `<tr><td><span class="dp-music-chart__dot dp-music-chart__dot--dim"></span></td><td>${esc(d)}</td></tr>`).join('');
+  const chartMeta = DP_MUSIC_META_RING.map(d => `<tr><td><span class="dp-music-chart__dot dp-music-chart__dot--meta"></span></td><td>${esc(d)}</td></tr>`).join('');
+  body.innerHTML = `
+    <div class="tb-card tb-dp-music tb-dp-music--charttool">
+      <div class="tb-card-h tb-dp-music__head">
+        <div>
+          <h3 class="tb-dp-music__title">Quick chart</h3>
+          <p class="tb-sub tb-dp-music__lede">Same framework as the <b>ring diagram</b> — a scannable list for listening notes or essays.</p>
         </div>
-        <aside class="dp-music-sidechart" aria-label="Quick reference chart">
-          <div class="dp-music-sidechart__kicker">Chart</div>
-          <div class="dp-music-sidechart__grid">
-            <div class="dp-music-chart-block">
-              <h4 class="dp-music-chart-block__h">Dimensions</h4>
-              <p class="dp-music-chart-block__sub">Sound &amp; structure</p>
-              <div class="dp-music-chart__scroll">
-                <table class="dp-music-chart__tbl">${chartDim}</table>
-              </div>
-            </div>
-            <div class="dp-music-chart-block dp-music-chart-block--meta">
-              <h4 class="dp-music-chart-block__h">Metadimensions</h4>
-              <p class="dp-music-chart-block__sub">Context &amp; meaning</p>
-              <div class="dp-music-chart__scroll">
-                <table class="dp-music-chart__tbl">${chartMeta}</table>
-              </div>
+      </div>
+      <div class="dp-music-chart-page">
+        <div class="dp-music-chart-grid">
+          <div class="dp-music-chart-block">
+            <h4 class="dp-music-chart-block__h">Dimensions</h4>
+            <p class="dp-music-chart-block__sub">Sound &amp; structure</p>
+            <div class="dp-music-chart__scroll">
+              <table class="dp-music-chart__tbl">${chartDim}</table>
             </div>
           </div>
-        </aside>
+          <div class="dp-music-chart-block dp-music-chart-block--meta">
+            <h4 class="dp-music-chart-block__h">Metadimensions</h4>
+            <p class="dp-music-chart-block__sub">Context &amp; meaning</p>
+            <div class="dp-music-chart__scroll">
+              <table class="dp-music-chart__tbl">${chartMeta}</table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>`;
 }
@@ -2504,7 +2514,8 @@ function renderDpMusicDimensions(body){
 SUBJECTS.push({
   id:'music', label:'Music', icon:'🎵',
   tools:[
-    { id:'dp-dimensions', label:'Dimensions chart', icon:'◎', render: renderDpMusicDimensions },
+    { id:'dp-dimensions', label:'Ring diagram', icon:'◎', render: renderDpMusicDimensions },
+    { id:'dp-chart', label:'Quick chart', icon:'📊', render: renderDpMusicChart },
   ],
 });
 
@@ -3027,7 +3038,8 @@ const UNIFIED_LAYOUT = [
   },
   { id:'music', name:'Music', icon:'🎵', classTags:['music','band','orchestra','choir','ib music','ib'],
     tools:[
-      { id:'dp-dimensions', label:'Dimensions chart', icon:'◎', desc:'Dimensions and metadimensions — listening, analysis, and portfolios.', mode:'inline', sub:'music', tid:'dp-dimensions' },
+      { id:'dp-dimensions', label:'Ring diagram', icon:'◎', desc:'Concentric dimensions map with bubble labels.', mode:'inline', sub:'music', tid:'dp-dimensions' },
+      { id:'dp-chart', label:'Quick chart', icon:'📊', desc:'Flat checklist of dimensions and metadimensions.', mode:'inline', sub:'music', tid:'dp-chart' },
     ],
   },
   { id:'econ', name:'Economics', icon:'💹', classTags:['econ'],
