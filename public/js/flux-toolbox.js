@@ -2389,6 +2389,70 @@ function renderTranslate(body){
   $('trLiteral').addEventListener('click', () => sendAI('a short usage note with 1–2 example sentences'));
 }
 
+/* ================================================================
+   MUSIC (IB DP)
+   ================================================================ */
+function renderDpMusicDimensions(body){
+  const cx = 210;
+  const cy = 210;
+  const innerLabs = ['Timbre', 'Melody', 'Harmony', 'Dynamics', 'Articulation', 'Texture', 'Meter', 'Tempo', 'Form'];
+  const metaLabs = ['Style', 'Architecture', 'Affective qualities', 'Sense of ensemble', 'Personal context', 'Cultural context', 'Historical context', 'Sense of simultaneity', 'Genre'];
+  function ringHtml(labels, r, klass, startDeg){
+    const n = labels.length;
+    const step = 360 / n;
+    return labels.map((label, i) => {
+      const deg = startDeg + i * step;
+      const rad = (deg - 90) * Math.PI / 180;
+      const x = cx + r * Math.cos(rad);
+      const y = cy + r * Math.sin(rad);
+      return `<text class="${klass}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle">${esc(label)}</text>`;
+    }).join('');
+  }
+  body.innerHTML = `
+    <div class="tb-card tb-dp-music">
+      <div class="tb-card-h">
+        <h3>DP Music — dimensions &amp; metadimensions</h3>
+        <p class="tb-sub dp-music-intro">IB reference for listening, comparing works, and writing about music. Inner area: sound and structure; outer ring: context and meaning.</p>
+      </div>
+      <div class="dp-music-figure-wrap">
+        <svg class="dp-music-svg" viewBox="0 0 420 420" role="img" aria-labelledby="dpMusicTitle dpMusicDesc">
+          <title id="dpMusicTitle">IB DP Music dimensions chart</title>
+          <desc id="dpMusicDesc">Concentric chart: dimensions include pitch, rhythm, timbre, melody, harmony, and form; metadimensions include style, culture, genre, and ensemble.</desc>
+          <defs>
+            <linearGradient id="dpMusFillInner" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.22"/>
+              <stop offset="100%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.07"/>
+            </linearGradient>
+            <linearGradient id="dpMusFillRing" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.14"/>
+              <stop offset="100%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.06"/>
+            </linearGradient>
+            <filter id="dpMusSoftGlow" x="-35%" y="-35%" width="170%" height="170%">
+              <feGaussianBlur stdDeviation="1.4" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle class="dp-music-outer" cx="${cx}" cy="${cy}" r="188" fill="url(#dpMusFillRing)" stroke="rgba(var(--accent-rgb), 0.35)" stroke-width="1"/>
+          <circle class="dp-music-hole" cx="${cx}" cy="${cy}" r="122" fill="var(--card, #0b1018)"/>
+          <circle class="dp-music-inner-disk" cx="${cx}" cy="${cy}" r="116" fill="url(#dpMusFillInner)" stroke="rgba(var(--accent-rgb), 0.28)" stroke-width="1" filter="url(#dpMusSoftGlow)"/>
+          <text class="dp-music-bandhead" x="${cx}" y="76" text-anchor="middle">Metadimensions</text>
+          <text class="dp-music-bandhead dp-music-bandhead--inner" x="${cx}" y="146" text-anchor="middle">Dimensions</text>
+          ${ringHtml(metaLabs, 158, 'dp-music-meta-lbl', -70)}
+          ${ringHtml(innerLabs, 90, 'dp-music-inner-lbl', -90)}
+          <text class="dp-music-core" x="${cx}" y="${cy - 8}" text-anchor="middle">Pitch</text>
+          <text class="dp-music-core" x="${cx}" y="${cy + 18}" text-anchor="middle">Rhythm</text>
+        </svg>
+      </div>
+    </div>`;
+}
+
+SUBJECTS.push({
+  id:'music', label:'Music (DP)', icon:'🎵',
+  tools:[
+    { id:'dp-dimensions', label:'Dimensions chart', icon:'◎', render: renderDpMusicDimensions },
+  ],
+});
+
 SUBJECTS.push({
   id:'languages', label:'Languages', icon:'🌍',
   tools:[
@@ -2904,6 +2968,11 @@ const UNIFIED_LAYOUT = [
       { id:'french-conj', label:'French conjugator', icon:'🇫🇷', desc:'French tenses with être / auxiliary flags (modal reference).', mode:'modal', fn:'openFrenchConjugator' },
       { id:'ipa', label:'IPA chart', icon:'Ƃ', desc:'Pulmonic consonants and vowel quadrilateral.', mode:'inline', sub:'languages', tid:'ipa' },
       { id:'translate-ai', label:'Translation', icon:'🔁', desc:'Send text to Flux AI with language pair context.', mode:'link', nav:'ai', btn:'Open Flux AI' },
+    ],
+  },
+  { id:'music', name:'Music (DP)', icon:'🎵', classTags:['music','band','orchestra','choir','ib music','ib'],
+    tools:[
+      { id:'dp-dimensions', label:'Dimensions chart', icon:'◎', desc:'IB DP dimensions and metadimensions — listening, analysis, and portfolios.', mode:'inline', sub:'music', tid:'dp-dimensions' },
     ],
   },
   { id:'econ', name:'Economics', icon:'💹', classTags:['econ'],

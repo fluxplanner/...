@@ -105,7 +105,6 @@
 <link rel="stylesheet" href="public/css/flux-ai-panel.css">
 <link rel="stylesheet" href="public/css/flux-periodic.css">
 <link rel="stylesheet" href="public/css/flux-toolbox.css">
-<link rel="stylesheet" href="public/css/flux-workspace.css">
 <link rel="stylesheet" href="public/css/flux-reftool-history.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -132,7 +131,7 @@
     <div class="login-left">
       <div class="login-left-inner">
         <div class="login-left-headline">Your school life,<br><span class="login-gradient-text">organized.</span></div>
-        <div class="login-left-sub">The all-in-one workspace for tasks, notes, calendar, and extracurriculars — powered by Flux AI.</div>
+        <div class="login-left-sub">The all-in-one student planner for tasks, notes, calendar, and extracurriculars — powered by Flux AI.</div>
         <div class="login-badge login-badge--after-hero">✦ AI-Powered Student Planner</div>
         <div class="login-hero-demo login-demo-wrap" aria-live="polite">
           <div class="login-demo-label">What Flux can do</div>
@@ -482,7 +481,6 @@
         <div class="nav-group-label">School</div>
         <button class="nav-item" onclick="nav('school',this)" data-tab="school"><span class="ni">🏫</span><span class="nl">School Info</span></button>
         <button class="nav-item" onclick="nav('notes',this)" data-tab="notes"><span class="ni">📝</span><span class="nl">Notes</span></button>
-        <button class="nav-item" onclick="nav('workspace',this)" data-tab="workspace"><span class="ni">📋</span><span class="nl">Workspace</span></button>
         <button class="nav-item" onclick="nav('timer',this)" data-tab="timer"><span class="ni">⏱</span><span class="nl">Focus Timer</span></button>
         <button class="nav-item" onclick="nav('canvas',this)" data-tab="canvas"><span class="ni">🎓</span><span class="nl">Canvas</span></button>
         <button class="nav-item" onclick="nav('toolbox',this)" data-tab="toolbox"><span class="ni">🧰</span><span class="nl">Study tools</span></button>
@@ -551,7 +549,6 @@
         <div class="nav-group-label" style="padding:8px 16px 4px">School</div>
         <button class="nav-item" onclick="navMob('school')"><span class="ni">🏫</span><span class="nl">School Info</span></button>
         <button class="nav-item" onclick="navMob('notes')"><span class="ni">📝</span><span class="nl">Notes</span></button>
-        <button class="nav-item" onclick="navMob('workspace')"><span class="ni">📋</span><span class="nl">Workspace</span></button>
         <button class="nav-item" onclick="navMob('timer')"><span class="ni">⏱</span><span class="nl">Focus Timer</span></button>
         <button class="nav-item" onclick="navMob('canvas')"><span class="ni">🎓</span><span class="nl">Canvas</span></button>
         <button class="nav-item" onclick="navMob('toolbox')"><span class="ni">🧰</span><span class="nl">Study tools</span></button>
@@ -1342,11 +1339,6 @@
       </div>
     </div>
 
-    <!-- ─── WORKSPACE (Notion-style pages) ─── -->
-    <div id="workspace" class="panel flux-page flux-workspace-panel" aria-label="Workspace">
-      <div id="fluxWorkspaceRoot" class="flux-ws-root"></div>
-    </div>
-
     <!-- ─── AI (Claude-inspired layout) ─── -->
     <div id="ai" class="panel flux-page flux-ai-panel" style="display:none;flex-direction:column;flex:1;min-height:0;padding:0;max-width:none">
       <div class="flux-ai-canvas">
@@ -1990,7 +1982,6 @@
 <script defer src="public/js/flux-pro.js"></script>
 <script defer src="public/js/flux-periodic.js"></script>
 <script defer src="public/js/flux-toolbox.js"></script>
-<script defer src="public/js/flux-workspace.js"></script>
 
 <!-- ── MOBILE "MORE" BOTTOM SHEET ── -->
 <div class="more-sheet-overlay" id="moreSheetOverlay" onclick="closeMobileSheet()" aria-hidden="true"></div>
@@ -2006,9 +1997,6 @@
   <div class="more-sheet-grid">
     <button type="button" class="more-sheet-item" data-nav-tab="notes" onclick="navMob('notes')">
       <span class="more-sheet-icon" aria-hidden="true">📝</span><span class="more-sheet-label">Notes</span>
-    </button>
-    <button type="button" class="more-sheet-item" data-nav-tab="workspace" onclick="navMob('workspace')">
-      <span class="more-sheet-icon" aria-hidden="true">📋</span><span class="more-sheet-label">Workspace</span>
     </button>
     <button type="button" class="more-sheet-item" data-nav-tab="timer" onclick="navMob('timer')">
       <span class="more-sheet-icon" aria-hidden="true">⏱</span><span class="more-sheet-label">Timer</span>

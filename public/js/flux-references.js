@@ -20,6 +20,7 @@
     cs:       [/computer|coding|programm|cs\b|informatics/i],
     english:  [/english/i, /literature/i, /writing/i, /ela\b/i, /language arts/i],
     econ:     [/economics/i, /business/i, /finance/i, /accounting/i, /marketing/i],
+    music:    [/\bmusic\b/i, /orchestra/i, /\bchoir\b/i, /concert\s+band/i, /ib\s*music/i],
     language: [/language/i, /^latin$/i, /german/i, /italian/i, /mandarin/i, /chinese/i, /japanese/i, /korean/i, /portuguese/i, /russian/i],
   };
 

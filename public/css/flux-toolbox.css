@@ -1633,3 +1633,47 @@
   .tb-subject-btn, .tb-tool-btn, .tr-swap, .fs-copy, .st-section-body, .st-section-chevron{ transition: none !important; }
   .st-section--pulse{ animation: none !important; }
 }
+
+/* ── IB DP Music — dimensions chart ─────────────────────────── */
+.tb-dp-music .dp-music-intro{ max-width: 52rem; line-height: 1.5; }
+.dp-music-figure-wrap{
+  display: flex; justify-content: center; align-items: center;
+  padding: 8px 0 4px;
+}
+.dp-music-svg{
+  width: min(100%, 440px); height: auto;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+}
+.dp-music-outer{ vector-effect: non-scaling-stroke; }
+.dp-music-bandhead{
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  fill: var(--muted2, #8b9cb3);
+}
+.dp-music-bandhead--inner{
+  fill: var(--accent, #38bdf8);
+  opacity: 0.95;
+}
+.dp-music-meta-lbl{
+  font-size: 10.5px; font-weight: 600;
+  fill: var(--text, #e8eef8);
+  letter-spacing: 0.01em;
+}
+.dp-music-inner-lbl{
+  font-size: 11.5px; font-weight: 700;
+  fill: var(--text, #e8eef8);
+  letter-spacing: 0.02em;
+}
+.dp-music-core{
+  font-size: 15px; font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--accent, #38bdf8);
+}
+[data-theme="light"] .dp-music-hole{
+  fill: var(--card, #f6f8fc) !important;
+}
+[data-theme="light"] .dp-music-meta-lbl,
+[data-theme="light"] .dp-music-inner-lbl{
+  fill: var(--text, #1a2332);
+}

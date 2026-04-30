@@ -953,7 +953,7 @@ async function exportEncryptedBackup(){
   if(!window.crypto?.subtle){showToast('Encrypted export needs a secure (HTTPS) context','error');return;}
   const pw=prompt('Choose a passphrase (min 8 characters). You will need it to decrypt.');
   if(!pw||pw.length<8){showToast('Passphrase too short','warning');return;}
-  const data={tasks,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,workspace:load('flux_workspace_v1',null),flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),flux_rest_days_v1:loadRestDaysList(),exportDate:new Date().toISOString(),encrypted:true};
+  const data={tasks,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),flux_rest_days_v1:loadRestDaysList(),exportDate:new Date().toISOString(),encrypted:true};
   const raw=JSON.stringify(data);
   try{
     const enc=await fluxEncryptPayload(raw,pw);
@@ -1003,18 +1003,6 @@ function applyImportedPayloadMerge(d){
   save('flux_school',schoolInfo);
   if(Array.isArray(d.classes)&&d.classes.length)classes=[...classes,...d.classes.filter(c=>!classes.find(x=>x.id===c.id))];
   save('flux_classes',classes);
-  if(d.workspace&&typeof d.workspace==='object'){
-    if(window.FluxWorkspace&&typeof FluxWorkspace.getData==='function'&&typeof FluxWorkspace.saveData==='function'){
-      const cur=FluxWorkspace.getData();
-      const ids=new Set((cur.pages||[]).map(p=>String(p.id)));
-      cur.pages=cur.pages||[];
-      (d.workspace.pages||[]).forEach(p=>{
-        if(p&&p.id&&!ids.has(String(p.id))){cur.pages.push(p);ids.add(String(p.id));}
-      });
-      FluxWorkspace.saveData(cur);
-    }else save('flux_workspace_v1',d.workspace);
-    if(window.FluxWorkspace&&typeof FluxWorkspace.render==='function')FluxWorkspace.render();
-  }
   if(Array.isArray(d.flux_rest_days_v1)&&d.flux_rest_days_v1.length)saveRestDaysList(d.flux_rest_days_v1.filter(x=>x&&x.date));
   showToast('Merged backup data','success');
   renderStats();renderTasks();renderCalendar();renderCountdown();populateSubjectSelects();
@@ -1149,7 +1137,7 @@ function flushTasksOffRestDays(){
   }
   return n;
 }
-const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',notes:'Notes',workspace:'Workspace',timer:'Focus Timer',canvas:'Canvas',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Study Tools',references:'Study Tools',settings:'Settings'};
+const PANEL_TITLES={dashboard:'Dashboard',calendar:'Calendar',school:'School Info',notes:'Notes',timer:'Focus Timer',canvas:'Canvas',profile:'Profile',goals:'Extracurriculars',mood:'Mood',ai:'Flux AI',toolbox:'Study Tools',references:'Study Tools',settings:'Settings'};
 
 function buildABMap(){return load('flux_ab_map',{});}
 const AB_MAP=buildABMap();
@@ -1292,7 +1280,6 @@ const DEFAULT_TABS=[
   {id:'school',icon:'🏫',label:'School Info',visible:true},
   {id:'canvas',icon:'🎓',label:'Canvas',visible:true},
   {id:'notes',icon:'📝',label:'Notes',visible:true},
-  {id:'workspace',icon:'📋',label:'Workspace',visible:true},
   {id:'timer',icon:'⏱',label:'Focus Timer',visible:true},
   {id:'profile',icon:'👤',label:'Profile',visible:true},
   {id:'goals',icon:'🎯',label:'Extracurriculars',visible:true},
@@ -1301,7 +1288,7 @@ const DEFAULT_TABS=[
   {id:'settings',icon:'⚙',label:'Settings',visible:true},
 ];
 let tabConfig=load('flux_tabs',DEFAULT_TABS);
-tabConfig=tabConfig.filter(t=>t.id!=='gmail'&&t.id!=='periodic'&&t.id!=='references'&&t.id!=='grades');
+tabConfig=tabConfig.filter(t=>t.id!=='gmail'&&t.id!=='periodic'&&t.id!=='references'&&t.id!=='grades'&&t.id!=='workspace');
 // Ensure new tabs get added if missing
 DEFAULT_TABS.forEach(dt=>{if(!tabConfig.find(t=>t.id===dt.id))tabConfig.push({...dt});});
 // Legacy tab label (older builds / stored flux_tabs)
@@ -1502,7 +1489,7 @@ function nav(id,btn,navOpt){
   updateNavAriaCurrent(id);
   syncPanelScrollLayout();
   const tTitle=document.getElementById('topbarTitle');if(tTitle)tTitle.textContent=PANEL_TITLES[id]||id;
-  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),notes:()=>renderNotesList(),workspace:()=>{if(window.FluxWorkspace&&FluxWorkspace.render)FluxWorkspace.render();},goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel(),toolbox:()=>{if(typeof window.renderToolbox==='function')window.renderToolbox();}};
+  const fns={dashboard:()=>{renderStats();renderTasks();renderCountdown();renderSmartSug();checkTimePoverty();renderWorkloadForecast();renderSubjectHealth();renderGapFiller();renderExamConflictBanner();if(window.FluxIntel){FluxIntel.renderAiInsightStrip();FluxIntel.renderOverdueBanner();FluxIntel.refreshStreakBadge();}if(window.FluxPersonal){FluxPersonal.applyDashboardOrder();}},calendar:()=>{if(window.FluxPersonal&&FluxPersonal.applyCalendarOrder)FluxPersonal.applyCalendarOrder();loadCalScheduleUI();renderCalendar();const gcalStatusEl=document.getElementById('gcalStatus');if(gcalStatusEl&&!gcalStatusEl.innerHTML)syncGoogleCalendar();},school:()=>renderSchool(),notes:()=>renderNotesList(),goals:()=>{renderExtrasList();renderSchoolsList();renderECGoals();initEcCollegeChatSelect();renderEcChatMessages();initEcCollegeChatListeners();},mood:()=>{renderMoodHistory();renderAffirmation();loadJournalLineUI();},timer:()=>{updateTDisplay();renderTDots();updateTStats();renderSubjectBudget();renderFocusHeatmap();},profile:()=>renderProfile(),ai:()=>{renderAISugs();initAIChats();},settings:()=>{renderNoHWList();renderTabCustomizer();renderAboutStats();loadSettingsUI();},canvas:()=>renderCanvasHubPanel(),toolbox:()=>{if(typeof window.renderToolbox==='function')window.renderToolbox();}};
   fns[id]?.();
   if(typeof fluxApplyCanvasSplitLayout==='function')fluxApplyCanvasSplitLayout();
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
@@ -1600,7 +1587,6 @@ const NAV_TAB_SVGS={
   /* People / clubs — not concentric rings (was too close to old AI look) */
   goals:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.5"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   mood:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01"/><path d="M8.2 15a4 4 0 0 0 7.6 0"/></svg>`,
-  workspace:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h7l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M13 4v5h5"/><path d="M8 13h8M8 17h5"/></svg>`,
   /* Sliders — distinct from Flux AI sunburst */
   settings:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 3v5"/><path d="M20 21v-5"/><path d="M20 8V3"/><path d="M2 14h4"/><path d="M10 8h4"/><path d="M18 14h4"/></svg>`,
   references:`<svg class="nt-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8M8 11h6"/></svg>`,
@@ -1638,7 +1624,7 @@ function syncMoreSheetNavIcons(){
 function renderSidebars(){
   const groups=[
     {label:'Main',ids:['dashboard','calendar','ai']},
-    {label:'School',ids:['school','canvas','notes','workspace','timer','toolbox']},
+    {label:'School',ids:['school','canvas','notes','timer','toolbox']},
     {label:'Me',ids:['profile','goals','mood','settings']},
   ];
   const visibleIds=new Set(tabConfig.filter(t=>t.visible).map(t=>t.id));
@@ -3809,7 +3795,7 @@ function resetTabs(){
   renderSidebars();
   const b=event?.target;if(b){b.textContent='✓ Reset!';setTimeout(()=>b.textContent='↺ Reset to defaults',1500);}
 }
-function exportData(){const data={tasks,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,workspace:load('flux_workspace_v1',null),flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
+function exportData(){const data={tasks,notes:notes.map(n=>({...n,body:strip(n.body)})),habits,goals,colleges,moodHistory,schoolInfo,classes,settings,extras,ecSchools,ecGoals,flux_cycle_config:load('flux_cycle_config',null),flux_weekly_events:load('flux_weekly_events',[]),flux_events:load('flux_events',[]),exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='flux-data.json';a.click();URL.revokeObjectURL(url);}
 function exportToICal(){
   if(FLUX_FLAGS.PAYMENTS_ENABLED&&FLUX_FLAGS.ENFORCE_EXPORT_GATE&&requiresPro('exportIcal')){
     showUpgradePrompt('exportIcal','Export your tasks to iCal with Flux Pro');
@@ -4426,7 +4412,7 @@ WHAT YOU ALWAYS DO:
 - Treat the student as an intelligent person capable of handling honest information.
 
 CONTEXT:
-You have access to the student's full planner — their tasks, classes, schedule, goals, and Workspace pages (Notion-style pages and blocks in the Workspace tab). Use this context actively. When they ask about plans, notes, projects, or pages, use Workspace data from the snapshot. When they ask "what should I do next", look at their actual tasks and give a specific recommendation based on urgency and their schedule. Do not give generic productivity advice when you have their real data.
+You have access to the student's full planner — their tasks, classes, schedule, goals, and notes. Use this context actively. When they ask about plans, notes, or projects, use planner data from the snapshot. When they ask "what should I do next", look at their actual tasks and give a specific recommendation based on urgency and their schedule. Do not give generic productivity advice when you have their real data.
 </identity>
 
 <student_context>
@@ -4452,7 +4438,7 @@ ${buildFullPlannerContextForAI({maxTotalChars:24000})}
 </full_planner_snapshot>
 
 <how_you_work>
-PLANNER DATA: The snapshot above includes tasks, notes, mood, timer sessions, classes, extracurriculars, settings, and Workspace pages (Notion-style notes and plans). Answer questions about any part of the planner from this data. The Extracurriculars tab (internal id: "goals") holds activities, target schools, and EC goals. The Workspace tab (internal id: "workspace") holds free-form pages, templates, and linked tasks. Google Calendar events load live in the Calendar tab and may not fully appear in this snapshot.
+PLANNER DATA: The snapshot above includes tasks, notes, mood, timer sessions, classes, extracurriculars, and settings. Answer questions about any part of the planner from this data. The Extracurriculars tab (internal id: "goals") holds activities, target schools, and EC goals. Google Calendar events load live in the Calendar tab and may not fully appear in this snapshot.
 
 CANVAS: If sections "Canvas — pinned in Flux" or "Canvas — synced assignments" appear, they are from the student's Canvas LMS (API + optional reader pin in the Canvas tab). Help them understand assignments, due dates, and instructions from that text. You cannot see their Canvas iframe if the school blocks embedding — rely on these sections.
 
@@ -4477,15 +4463,10 @@ ${(()=>{
 ${getFluxAIModeInstructions()}
 
 <task_actions>
-When the student asks you to add, complete, or delete tasks, OR to create/update Workspace pages, append ONLY this block at the very end of your reply. No confirmation text. No empty block.
+When the student asks you to add, complete, or delete tasks, append ONLY this block at the very end of your reply. No confirmation text. No empty block.
 \`\`\`actions
 [{"action":"add_task","name":"...","priority":"high","date":"YYYY-MM-DD","type":"hw","subject":"SUBJECT_KEY"}]
 \`\`\`
-Workspace updates (optional, same \`\`\`actions\`\`\` JSON array — may combine with task actions):
-- {"action":"create_workspace_page","title":"...","icon":"📝","parentTitle":"optional parent page title","template":"weekly"|"class"|"project"|"study"|"blank"|"college","blocks":[{"type":"heading2","text":"..."}]}
-- {"action":"append_workspace_block","pageTitle":"...","type":"paragraph","text":"..."}
-- {"action":"update_workspace_property","pageTitle":"...","property":"status"|"due"|"subject"|"tags","value":"..."}
-When asked to create or update workspace pages, prefer these actions so changes apply on-device.
 </task_actions>`
 }
 function execActions(reply){
@@ -4495,8 +4476,7 @@ function execActions(reply){
   try{actions=JSON.parse(match[1].trim());}catch(e){return null;}
   if(!Array.isArray(actions))return null;
   const results=[];
-  let changed=false,wsChanged=false;
-  const wsActs=new Set(['create_workspace_page','append_workspace_block','update_workspace_property']);
+  let changed=false;
   actions.forEach(a=>{
     if(a.action==='add_task'){
       const t={id:Date.now()+Math.random(),name:a.name||'Task',subject:a.subject||'',priority:a.priority||'med',date:a.date||'',type:a.type||'hw',done:false,rescheduled:0,createdAt:Date.now()};
@@ -4512,13 +4492,9 @@ function execActions(reply){
     }else if(a.action==='mark_done'){
       const t=tasks.find(x=>x.name?.toLowerCase().includes((a.name||'').toLowerCase()));
       if(t){t.done=true;t.completedAt=Date.now();results.push('✓ Done: '+t.name);changed=true;}
-    }else if(wsActs.has(a.action)&&window.FluxWorkspace&&typeof FluxWorkspace.applyAIAction==='function'){
-      const msg=FluxWorkspace.applyAIAction(a);
-      if(msg){results.push(msg);wsChanged=true;}
     }
   });
   if(changed){save('tasks',tasks);renderStats();renderTasks();renderCalendar();renderCountdown();checkAllPanic();}
-  if(wsChanged&&window.FluxWorkspace&&typeof FluxWorkspace.render==='function')FluxWorkspace.render();
   return results.length?`<div style="padding:8px 10px;background:rgba(var(--accent-rgb),.08);border-radius:8px;font-size:.8rem;border:1px solid rgba(var(--accent-rgb),.2)">${results.join('<br>')}</div>`:null;
 }
 async function sendAI(){
@@ -4784,13 +4760,6 @@ function buildFullPlannerContextForAI(opts){
     if(hubSnap)add('Canvas — synced assignments (instruction excerpts)',clip(hubSnap,6200));
   }
 
-  try{
-    if(window.FluxWorkspace&&typeof FluxWorkspace.buildAIContext==='function'){
-      const wctx=FluxWorkspace.buildAIContext(3600);
-      if(wctx&&wctx.trim())add('Workspace (tab id: workspace)',clip(wctx,3600));
-    }
-  }catch(e){}
-
   let out=`# FULL PLANNER SNAPSHOT (read-only for Flux)\nLocal today: ${TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}\n\n`+sections.join('\n\n');
   if(out.length>maxTotal)out=out.slice(0,maxTotal)+'\n…[planner snapshot truncated]';
   return out;
@@ -4831,7 +4800,6 @@ function getCloudPayload(){
     ecSchools,
     ecGoals,
     ibProgramProgress:getIbProgramProgress(),
-    workspace:load('flux_workspace_v1',null),
     ...(isOwner()?{
       devAccounts:load('flux_dev_accounts',[]),
       ownerEmail:OWNER_EMAIL,
@@ -4882,7 +4850,6 @@ async function forceSyncNow(){
   // Re-apply accent AFTER all renders (renderSidebars rebuilds SVG logo)
   updateLogoColor(localStorage.getItem('flux_accent')||'#00bfff');
   if(typeof FluxPersonal!=='undefined')FluxPersonal.applyAll();
-  if(document.getElementById('workspace')?.classList.contains('active')&&window.FluxWorkspace&&typeof FluxWorkspace.render==='function')FluxWorkspace.render();
   if(btn){btn.textContent='✓ Synced';setTimeout(()=>{btn.textContent='Force Sync Now';btn.disabled=false;},2000);}
   showToast('✓ Data synced');
 }
@@ -4919,10 +4886,6 @@ async function syncFromCloud(){
       ['tok','ee','cas','pp','comm'].forEach(k=>{
         if(typeof d.ibProgramProgress[k]==='boolean')save('flux_pt_'+k,d.ibProgramProgress[k]);
       });
-    }
-    if(d.workspace!=null&&typeof d.workspace==='object'){
-      save('flux_workspace_v1',d.workspace);
-      if(document.getElementById('workspace')?.classList.contains('active')&&window.FluxWorkspace&&typeof FluxWorkspace.render==='function')FluxWorkspace.render();
     }
     if(Array.isArray(d.restDays)&&d.restDays.length){saveRestDaysList(d.restDays.filter(x=>x&&x.date));}
     else if(d.noHWDays&&Array.isArray(d.noHWDays)){saveRestDaysList(d.noHWDays.map(x=>typeof x==='string'?{date:x,kind:'lazy'}:x));}

@@ -93,7 +93,7 @@ function runShortSplash(callback){
           </div>
         </div>
         <div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:.78rem;letter-spacing:.28em;text-transform:uppercase;color:rgba(195,210,230,.92);text-align:left;line-height:1.35">PLANNER</div>
-        <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:.74rem;letter-spacing:.1em;text-align:left;color:rgba(150,170,200,.58)">Loading workspace</div>
+        <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:.74rem;letter-spacing:.1em;text-align:left;color:rgba(150,170,200,.58)">Loading planner</div>
       </div>
     </div>
     <style>
