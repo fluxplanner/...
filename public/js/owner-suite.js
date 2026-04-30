@@ -12,8 +12,8 @@
     complianceContact:'',
   };
   const ROLE_PRESETS={
-    admin:['clear_data','feature_flags','dev_mode','manage_devs','view_users'],
-    editor:['clear_data','feature_flags','dev_mode','view_users'],
+    admin:['clear_data','feature_flags','dev_mode','manage_devs','view_users','release_push'],
+    editor:['clear_data','feature_flags','dev_mode','view_users','release_push'],
     viewer:['view_users'],
   };
 
@@ -340,7 +340,7 @@
 
       if(tab==='team')return`
         <div style="font-size:.72rem;color:var(--muted2);margin-bottom:12px;line-height:1.5">
-          <b>Roles</b> map to permission bundles. <b>Admin</b> = all tools. <b>Editor</b> = flags + dev mode + clear (no manage devs). <b>Viewer</b> = read-only panel hooks.
+          <b>Roles</b> map to permission bundles. <b>Admin</b> = all tools. <b>Editor</b> = flags + dev mode + clear + release push (no manage devs). <b>Viewer</b> = read-only panel hooks.
         </div>
         ${devAccounts.length?devAccounts.map((d,i)=>`
           <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
@@ -373,6 +373,17 @@
         const buildLabel=String(buildId).replace(/^build-/,'');
         const isLive=gate&&gate.released===buildId;
         const diff=!isLive;
+        const previewMode=(gate&&gate.previewMode)||'all_devs';
+        const previewEmails=(gate&&Array.isArray(gate.previewEmails)?gate.previewEmails:[]).map(x=>String(x||'').toLowerCase());
+        const previewRows=devAccounts.length?devAccounts.map((d,i)=>{
+          const em=String(d.email||'').toLowerCase();
+          const checked=previewEmails.includes(em);
+          return`<label style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.74rem;color:var(--muted2)">
+            <input type="checkbox" data-release-preview-email="${esc(em)}" ${checked?'checked':''} style="width:14px;height:14px;margin:0">
+            <span style="flex:1;word-break:break-all">${esc(d.email||'')}</span>
+            <span style="font-size:.6rem;color:var(--muted);font-family:JetBrains Mono,monospace">${esc(d.role||'viewer')}</span>
+          </label>`;
+        }).join(''):'<div style="font-size:.72rem;color:var(--muted);padding:8px 0">No dev accounts yet. Add devs in Team & roles.</div>';
         return`
           <div style="font-size:.72rem;color:var(--muted2);line-height:1.55;margin-bottom:14px">
             Staged rollout: every deploy lands on <b>owner + dev</b> accounts first. Click <b>Push to all users</b> to release the current build to everyone. Normal users see an <i>"Update under review"</i> screen until you push.
@@ -388,12 +399,32 @@
             </div>
           </div>
           ${gate&&gate.pushedBy?`<div style="font-size:.7rem;color:var(--muted2);margin-bottom:12px">Last push by <b>${esc(gate.pushedBy)}</b> · ${esc(new Date(gate.pushedAt||0).toLocaleString())}${gate.notes?`<br><span style="color:var(--muted)">Notes:</span> ${esc(gate.notes)}`:''}</div>`:''}
-          <button type="button" id="osReleasePushBtn" ${isLive?'disabled':''} style="width:100%;padding:12px;font-size:.9rem;font-weight:800;border-radius:12px;background:${isLive?'var(--card2)':'linear-gradient(135deg,#fbbf24,#f59e0b)'};border:1px solid ${isLive?'var(--border)':'rgba(251,191,36,.4)'};color:${isLive?'var(--muted)':'#080a0f'};cursor:${isLive?'default':'pointer'};opacity:${isLive?.6:1}">${isLive?'✓ This build is already released':'🚀 Push '+esc(buildLabel)+' to all users'}</button>
+          <button type="button" id="osReleasePushBtn" ${isLive?'disabled':''} style="width:100%;padding:12px;font-size:.9rem;font-weight:800;border-radius:12px;background:${isLive?'var(--card2)':'linear-gradient(135deg,#fbbf24,#f59e0b)'};border:1px solid ${isLive?'var(--border)':'rgba(251,191,36,.4)'};color:${isLive?'var(--muted)':'#080a0f'};cursor:${isLive?'default':'pointer'};opacity:${isLive?0.6:1}">${isLive?'✓ This build is already released':'🚀 Push '+esc(buildLabel)+' to all users'}</button>
           <div style="margin-top:10px;font-size:.66rem;color:var(--muted);line-height:1.5">
             ${diff?'Users currently see the "Update under review" screen. Push when you\'re ready to roll out.':'All users on the current build. New deploys will re-enter preview until pushed.'}
           </div>
+          <div style="margin-top:18px;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:14px">
+            <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px">Preview access before release</div>
+            <div style="font-size:.7rem;color:var(--muted2);line-height:1.5;margin-bottom:10px">The owner always sees preview builds. Choose which dev accounts can see a new build before it is released to everyone.</div>
+            <select id="osReleasePreviewMode" style="width:100%;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--border2);color:var(--text);font-size:.78rem;margin-bottom:10px">
+              <option value="all_devs" ${previewMode==='all_devs'?'selected':''}>Owner + all dev accounts</option>
+              <option value="selected" ${previewMode==='selected'?'selected':''}>Owner + selected dev accounts</option>
+              <option value="owner" ${previewMode==='owner'?'selected':''}>Owner only</option>
+            </select>
+            <div style="max-height:160px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px">${previewRows}</div>
+            <button type="button" onclick="ownerSaveReleasePreviewAccess()" style="width:100%;padding:9px;font-size:.78rem;font-weight:700;border-radius:10px;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.32);color:var(--accent)">Save preview access</button>
+          </div>
+          <div style="margin-top:18px;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:14px">
+            <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px">Sync platform config to devs (server)</div>
+            <div style="font-size:.7rem;color:var(--muted2);line-height:1.55;margin-bottom:10px">Merges your <b>cloud</b> owner row’s <code style="font-size:.65rem">platformConfig</code> (release gate, flags, announcements…) into each dev’s <code style="font-size:.65rem">user_data</code> row via the <b>release-admin</b> Edge Function. Does <b>not</b> copy tasks, notes, or workspace pages. Devs must have signed in once so Auth + <code style="font-size:.65rem">user_data</code> exist. Optional: add a <code style="font-size:.65rem">userId</code> field on a dev row in Team to skip Auth email lookup.</div>
+            <select id="osPlatformSyncScope" style="width:100%;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--border2);color:var(--text);font-size:.78rem;margin-bottom:10px">
+              <option value="all">All dev accounts in Team</option>
+              <option value="selected">Only devs checked above (preview list)</option>
+            </select>
+            <button type="button" onclick="ownerSyncPlatformConfigToDevs()" style="width:100%;padding:10px;font-size:.8rem;font-weight:700;border-radius:10px;background:rgba(124,92,255,.14);border:1px solid rgba(124,92,255,.35);color:var(--text)">⬆ Sync platform config to dev cloud rows</button>
+          </div>
           <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:.66rem;color:var(--muted);line-height:1.5">
-            <b>How deploys work:</b> Bump <code style="font-size:.7rem">FLUX_BUILD_ID</code> in <code style="font-size:.7rem">public/js/flux-release-gate.js</code> before committing. After you deploy, the new build is automatically gated for non-devs until you push it here.
+            <b>How deploys work:</b> Bump <code style="font-size:.7rem">FLUX_BUILD_ID</code> in <code style="font-size:.7rem">public/js/flux-release-gate.js</code> before committing. After you deploy, the new build is automatically gated for non-preview users until an owner or release-authorized dev pushes it here.
           </div>`;
       }
 
@@ -715,6 +746,52 @@
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='flux-owner-compliance-bundle.json';a.click();URL.revokeObjectURL(a.href);
     if(typeof ownerAuditAppend==='function')ownerAuditAppend('compliance_bundle_export',{});
     if(typeof showToast==='function')showToast('Compliance bundle downloaded','success');
+  };
+
+  window.ownerSaveReleasePreviewAccess=async function(){
+    if(!isOwner())return;
+    if(typeof FluxRelease==='undefined'||!FluxRelease.savePreviewAccess){
+      alert('Flux Release module not loaded.');
+      return;
+    }
+    const mode=document.getElementById('osReleasePreviewMode')?.value||'all_devs';
+    const emails=[];
+    document.querySelectorAll('#ownerSuite [data-release-preview-email]').forEach((cb)=>{
+      if(cb.checked)emails.push(String(cb.getAttribute('data-release-preview-email')||'').toLowerCase());
+    });
+    const res=await FluxRelease.savePreviewAccess(mode,emails);
+    if(!res.ok&&typeof showToast==='function')showToast(res.err||'Save failed','error');
+    openOwnerSuite('release');
+  };
+
+  window.ownerSyncPlatformConfigToDevs=async function(){
+    if(!isOwner())return;
+    if(typeof FluxRelease==='undefined'||!FluxRelease.syncPlatformToDevs){
+      alert('Flux Release module not loaded.');
+      return;
+    }
+    const scope=document.getElementById('osPlatformSyncScope')?.value||'all';
+    let targetEmails=[];
+    if(scope==='selected'){
+      document.querySelectorAll('#ownerSuite [data-release-preview-email]').forEach((cb)=>{
+        if(cb.checked)targetEmails.push(String(cb.getAttribute('data-release-preview-email')||'').toLowerCase());
+      });
+      if(!targetEmails.length){
+        if(typeof showToast==='function')showToast('Check at least one dev in the list above','warning');
+        return;
+      }
+    }
+    if(!confirm('Merge your owner cloud row’s platformConfig into the selected dev user_data rows? Tasks and notes are not copied.'))return;
+    const res=await FluxRelease.syncPlatformToDevs({targetMode:scope,targetEmails});
+    if(!res.ok){
+      if(typeof showToast==='function')showToast(res.err||'Sync failed','error');
+    }else{
+      const ok=(res.synced||[]).filter(x=>x.ok).length;
+      const bad=(res.synced||[]).filter(x=>!x.ok).length;
+      if(typeof showToast==='function')showToast('Synced '+ok+' dev row(s)'+(bad?'; '+bad+' failed':''),'success');
+      if(typeof ownerAuditAppend==='function')ownerAuditAppend('platform_sync_devs',{scope,ok,bad});
+    }
+    openOwnerSuite('release');
   };
 
   window.ownerAddTesterEmail=function(){

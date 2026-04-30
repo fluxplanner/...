@@ -2338,6 +2338,13 @@ body.flux-bulk-mode .task-item:has(.task-bulk-cb:checked){
   box-shadow: 0 10px 32px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.05) inset;
 }
 
+@media (max-width:768px){
+  #workspace.flux-workspace-panel.active{
+    overflow-x:hidden;
+    max-width:100vw;
+  }
+}
+
 /* ════════════════════════════════════════════════════════════════
    Print: never show the sheet
    ════════════════════════════════════════════════════════════════ */

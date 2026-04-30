@@ -6,9 +6,10 @@
  * under review" screen until the owner (or a dev) clicks
  * "Push update to all users" from the preview banner or panels.
  *
- * Release state lives at flux_platform_config.releaseGate and piggy-backs
- * on the existing Supabase sync path (owner's user_data row is the source
- * of truth; other clients poll it).
+ * Release state lives at flux_platform_config.releaseGate on the owner's
+ * user_data row. Reads prefer the release-admin Edge Function and fall back
+ * to the older direct Supabase read. Pushes go through release-admin so
+ * authorized dev accounts can publish without waiting for the owner browser.
  */
 (function(){
   const FLUX_BUILD_ID='build-2026-04-24-01'; // ⬅ BUMP THIS EACH DEPLOY
@@ -18,6 +19,7 @@
   const KEY_FIRST='flux_release_build_first_seen';
   const POLL_MS=60*1000;
   const OWNER_EMAIL_FALLBACK='azfermohammed21@gmail.com';
+  const ADMIN_FUNCTION='release-admin';
 
   function ownerEmail(){
     try{return typeof OWNER_EMAIL!=='undefined'?OWNER_EMAIL:OWNER_EMAIL_FALLBACK;}
@@ -26,12 +28,29 @@
   function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function buildLabel(id){return String(id||'').replace(/^build-/,'');}
 
+  function normEmail(v){return String(v||'').trim().toLowerCase();}
   function cachedEmail(){
-    try{return localStorage.getItem('flux_last_user_email')||'';}catch(_){return'';}
+    try{return normEmail(localStorage.getItem('flux_last_user_email')||'');}catch(_){return'';}
+  }
+  function currentEmail(){
+    try{
+      if(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)return normEmail(currentUser.email);
+    }catch(_){}
+    return cachedEmail();
   }
   function isOwnerLocal(){
     try{if(typeof isOwner==='function'&&isOwner())return true;}catch(_){}
-    return cachedEmail()===ownerEmail();
+    return currentEmail()===ownerEmail();
+  }
+  function devRecordLocal(email){
+    email=normEmail(email||currentEmail());
+    if(!email)return null;
+    if(email===ownerEmail())return true;
+    try{
+      const devs=JSON.parse(localStorage.getItem('flux_dev_accounts')||'[]');
+      if(!Array.isArray(devs))return null;
+      return devs.find(d=>d&&normEmail(d.email)===email)||null;
+    }catch(_){return null;}
   }
   function isDevLocal(){
     try{
@@ -42,15 +61,29 @@
     }catch(_){}
     // Fallback to cached identity so owner/dev don't flash the blocking overlay
     // on reload before Supabase restores the session.
-    const email=cachedEmail();
-    if(!email)return false;
-    if(email===ownerEmail())return true;
-    try{
-      const devs=JSON.parse(localStorage.getItem('flux_dev_accounts')||'[]');
-      return Array.isArray(devs)&&devs.some(d=>d&&d.email===email);
-    }catch(_){return false;}
+    return !!devRecordLocal();
   }
-  function hasPreviewAccess(){return isOwnerLocal()||isDevLocal();}
+  function canPushReleaseLocal(){
+    if(isOwnerLocal())return true;
+    const dev=devRecordLocal();
+    if(!dev||dev===true)return false;
+    const role=String(dev.role||'viewer').toLowerCase();
+    const perms=Array.isArray(dev.perms)?dev.perms:[];
+    return perms.includes('release_push')||role==='admin'||role==='editor'||role==='owner'||role==='dev';
+  }
+  function hasPreviewAccess(gate){
+    if(isOwnerLocal())return true;
+    const email=currentEmail();
+    const dev=devRecordLocal(email);
+    if(!dev||dev===true)return false;
+    const mode=(gate&&gate.previewMode)||'all_devs';
+    if(mode==='owner')return false;
+    if(mode==='selected'){
+      const allowed=Array.isArray(gate&&gate.previewEmails)?gate.previewEmails.map(normEmail):[];
+      return allowed.includes(email);
+    }
+    return true;
+  }
 
   function getGate(){
     try{
@@ -64,7 +97,22 @@
     return null;
   }
   function saveGate(g){
-    try{localStorage.setItem(KEY_GATE,JSON.stringify(g));}catch(_){}
+    try{
+      localStorage.setItem(KEY_GATE,JSON.stringify(g));
+      const pc=JSON.parse(localStorage.getItem('flux_platform_config')||'{}')||{};
+      pc.releaseGate=g;
+      localStorage.setItem('flux_platform_config',JSON.stringify(pc));
+    }catch(_){}
+  }
+  function clearGate(){
+    try{
+      localStorage.removeItem(KEY_GATE);
+      const pc=JSON.parse(localStorage.getItem('flux_platform_config')||'{}')||{};
+      if(pc&&pc.releaseGate){
+        delete pc.releaseGate;
+        localStorage.setItem('flux_platform_config',JSON.stringify(pc));
+      }
+    }catch(_){}
   }
   /** No gate ever set → don't block anyone (default-on behavior for fresh deploys). */
   function isReleased(gate){
@@ -72,8 +120,34 @@
     return gate.released===FLUX_BUILD_ID;
   }
 
-  /** Fetch the owner's published gate from Supabase (used by all non-owner clients). */
+  function releaseAdminUrl(){
+    try{
+      if(typeof SB_URL!=='undefined'&&SB_URL)return `${SB_URL}/functions/v1/${ADMIN_FUNCTION}`;
+    }catch(_){}
+    return `https://lfigdijuqmbensebnevo.supabase.co/functions/v1/${ADMIN_FUNCTION}`;
+  }
+  async function callReleaseAdmin(action,payload){
+    const method=action?'POST':'GET';
+    const opts={method,headers:typeof fluxAuthHeaders==='function'?await fluxAuthHeaders():{'Content-Type':'application/json'}};
+    if(action)opts.body=JSON.stringify({action,...(payload||{})});
+    const res=await fetch(releaseAdminUrl(),opts);
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(data.error||('Release admin HTTP '+res.status));
+    return data;
+  }
+
+  /** Fetch the owner's published gate from Supabase (used by all clients). */
   async function fetchOwnerGate(){
+    try{
+      const data=await callReleaseAdmin();
+      if(data&&Object.prototype.hasOwnProperty.call(data,'gate')){
+        if(data.gate)saveGate(data.gate);
+        else clearGate();
+        return data.gate||null;
+      }
+    }catch(e){
+      console.warn('[FluxRelease] release-admin fetch failed; falling back',e);
+    }
     let sb=null;
     try{sb=typeof getSB==='function'?getSB():null;}catch(_){}
     if(!sb)return null;
@@ -96,20 +170,30 @@
     return null;
   }
 
-  /** Owner/dev action: flip the gate so the current build becomes live for every user.
-   *  Only the OWNER's user_data row is treated as the cloud source of truth (dev rows
-   *  aren't read by other clients), so a dev push updates local + their own row but
-   *  requires the owner to mirror it for full propagation. */
+  /** Owner/dev action: flip the gate so the current build becomes live for every user. */
   async function pushUpdate(notes){
-    if(!hasPreviewAccess())return{ok:false,err:'Not authorized'};
+    if(!canPushReleaseLocal())return{ok:false,err:'Not authorized to publish releases'};
     const now=Date.now();
-    const by=(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'unknown';
-    const gate={
+    const by=currentEmail()||'unknown';
+    let gate={
+      ...(getGate()||{}),
       released:FLUX_BUILD_ID,
       pushedAt:now,
+      pushedAtIso:new Date(now).toISOString(),
       pushedBy:by,
       notes:String(notes||'').slice(0,800),
     };
+    let propagated=false;
+    try{
+      const data=await callReleaseAdmin('push_release',{buildId:FLUX_BUILD_ID,notes:gate.notes});
+      if(data&&data.gate)gate=data.gate;
+      propagated=true;
+    }catch(e){
+      if(!isOwnerLocal()){
+        return{ok:false,err:e.message||'Release publish failed'};
+      }
+      console.warn('[FluxRelease] release-admin push failed; owner local sync fallback',e);
+    }
     saveGate(gate);
     try{
       if(typeof savePlatformConfig==='function'){
@@ -120,9 +204,8 @@
         localStorage.setItem('flux_platform_config',JSON.stringify(pc));
       }
     }catch(_){}
-    const owner=isOwnerLocal();
     try{
-      if(owner&&typeof syncToCloud==='function')await syncToCloud();
+      if(!propagated&&isOwnerLocal()&&typeof syncToCloud==='function')await syncToCloud();
       else if(typeof syncKey==='function')syncKey('platform',1);
     }catch(_){}
     try{
@@ -132,13 +215,46 @@
     }catch(_){}
     applyGate();
     if(typeof showToast==='function'){
-      if(owner){
-        showToast('✓ Released build '+buildLabel(FLUX_BUILD_ID)+' to all users','success');
-      }else{
-        showToast('Preview updated. The owner needs to confirm to release to all users.','info');
-      }
+      showToast('✓ Released build '+buildLabel(FLUX_BUILD_ID)+' to all users','success');
     }
-    return{ok:true,gate,propagated:owner};
+    return{ok:true,gate,propagated};
+  }
+
+  async function savePreviewAccess(mode,emails){
+    if(!isOwnerLocal())return{ok:false,err:'Only the owner can change preview access'};
+    const previewMode=['owner','selected','all_devs'].includes(mode)?mode:'all_devs';
+    const previewEmails=Array.isArray(emails)?emails.map(normEmail).filter(x=>x.includes('@')):[];
+    let gate={...(getGate()||{}),previewMode,previewEmails,previewUpdatedAt:Date.now(),previewUpdatedBy:currentEmail()||'owner'};
+    try{
+      const data=await callReleaseAdmin('save_preview_access',{previewMode,previewEmails});
+      if(data&&data.gate)gate=data.gate;
+    }catch(e){
+      if(!isOwnerLocal())return{ok:false,err:e.message||'Preview update failed'};
+      console.warn('[FluxRelease] release-admin preview update failed; owner local sync fallback',e);
+    }
+    saveGate(gate);
+    try{
+      if(typeof savePlatformConfig==='function')savePlatformConfig({releaseGate:gate});
+      if(typeof syncToCloud==='function')await syncToCloud();
+    }catch(_){}
+    applyGate();
+    if(typeof showToast==='function')showToast('Preview access saved','success');
+    return{ok:true,gate};
+  }
+
+  /** Owner only: merge owner row platformConfig into devs' user_data (via release-admin). */
+  async function syncPlatformToDevs(opts){
+    if(!isOwnerLocal())return{ok:false,err:'Only the owner account can push platform config to dev rows'};
+    try{
+      const data=await callReleaseAdmin('sync_platform_to_devs',{
+        targetMode:(opts&&opts.targetMode)==='selected'?'selected':'all',
+        targetEmails:Array.isArray(opts&&opts.targetEmails)?opts.targetEmails:[],
+      });
+      if(data&&data.ok)return{ok:true,synced:data.synced||[],okCount:data.okCount};
+      return{ok:false,err:(data&&data.error)||'sync_platform_to_devs failed'};
+    }catch(e){
+      return{ok:false,err:e.message||String(e)};
+    }
   }
 
   function ensureHost(){
@@ -190,7 +306,7 @@
       btn.textContent='Checking…';btn.disabled=true;
       const g=await fetchOwnerGate();
       applyGate();
-      const stillGated=!isReleased(g||getGate())&&!hasPreviewAccess();
+      const stillGated=!isReleased(g||getGate())&&!hasPreviewAccess(g||getGate());
       if(stillGated){
         btn.textContent=old;btn.disabled=false;
         if(typeof showToast==='function')showToast('Still under review — hang tight.','info');
@@ -211,29 +327,31 @@
     ensureHost();
     if(document.getElementById('fluxReleasePreviewBanner'))return;
     const releasedLabel=gate&&gate.released?buildLabel(gate.released):'none yet';
+    const canPush=canPushReleaseLocal();
     const bar=document.createElement('div');
     bar.id='fluxReleasePreviewBanner';
     bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9500;display:flex;align-items:center;gap:10px;padding:7px 14px;background:linear-gradient(90deg,rgba(251,191,36,.18),rgba(124,92,255,.14));border-bottom:1px solid rgba(251,191,36,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:.74rem;color:var(--text,#e6edf6);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
     bar.innerHTML=`
       <span style="font-weight:800;color:#fbbf24;letter-spacing:.04em;font-family:JetBrains Mono,monospace;font-size:.68rem">PREVIEW</span>
-      <span style="flex:1;min-width:0;color:var(--muted2,#8a93a7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Build <b style="color:var(--text,#e6edf6)">${esc(buildLabel(FLUX_BUILD_ID))}</b> — only owner &amp; devs see this. Users are on <b>${esc(releasedLabel)}</b></span>
-      <button type="button" id="fluxReleaseOpenBtn" style="padding:5px 12px;font-size:.72rem;font-weight:700;border-radius:8px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.5);color:#fbbf24;cursor:pointer;white-space:nowrap">Push update →</button>
+      <span style="flex:1;min-width:0;color:var(--muted2,#8a93a7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Build <b style="color:var(--text,#e6edf6)">${esc(buildLabel(FLUX_BUILD_ID))}</b> — preview audience only. Users are on <b>${esc(releasedLabel)}</b></span>
+      <button type="button" id="fluxReleaseOpenBtn" ${canPush?'':'disabled'} style="padding:5px 12px;font-size:.72rem;font-weight:700;border-radius:8px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.5);color:#fbbf24;cursor:${canPush?'pointer':'default'};white-space:nowrap;opacity:${canPush?1:.5}">${canPush?'Push update →':'Preview only'}</button>
       <button type="button" id="fluxReleaseCloseBtn" style="padding:4px 8px;font-size:.8rem;background:none;border:none;color:var(--muted2,#8a93a7);cursor:pointer" title="Hide until next reload">✕</button>`;
     ensureHost().appendChild(bar);
     document.documentElement.style.setProperty('--flux-release-banner-h','34px');
     document.body.classList.add('flux-has-release-banner');
-    bar.querySelector('#fluxReleaseOpenBtn').addEventListener('click',openPushDialog);
+    bar.querySelector('#fluxReleaseOpenBtn').addEventListener('click',()=>{if(canPush)openPushDialog();});
     bar.querySelector('#fluxReleaseCloseBtn').addEventListener('click',removeBanner);
   }
 
   function openPushDialog(){
-    if(!hasPreviewAccess())return;
+    if(!hasPreviewAccess(getGate()))return;
     const existing=document.getElementById('fluxReleaseDialog');
     if(existing)existing.remove();
     const root=document.createElement('div');
     root.id='fluxReleaseDialog';
     root.style.cssText='position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,16,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
     const gate=getGate()||{};
+    const canPush=canPushReleaseLocal();
     const lastPush=gate.pushedAt?new Date(gate.pushedAt).toLocaleString():'—';
     root.innerHTML=`
       <div style="background:var(--card,#121826);border:1px solid rgba(251,191,36,.4);border-radius:20px;padding:22px;width:100%;max-width:460px;box-shadow:0 32px 80px rgba(0,0,0,.55);color:var(--text,#e6edf6)">
@@ -246,7 +364,7 @@
           <button type="button" id="fluxPushClose" style="background:none;border:none;color:var(--muted,#5b6473);font-size:1.2rem;cursor:pointer;padding:0">✕</button>
         </div>
         <div style="font-size:.76rem;color:var(--muted2,#8a93a7);line-height:1.55;margin-bottom:14px">Releases this build to every user. Normal users currently see an <b>"Update under review"</b> screen — on their next load (or auto-poll), they'll pick up the new build and the overlay clears.</div>
-        ${isOwnerLocal()?'':'<div style="font-size:.72rem;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28);border-radius:10px;padding:9px 11px;margin-bottom:12px;line-height:1.5">⚠️ Dev account: pushing saves the release note but only the <b>owner</b> can propagate it to normal users. Ping the owner after pushing.</div>'}
+        ${canPush?'':'<div style="font-size:.72rem;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28);border-radius:10px;padding:9px 11px;margin-bottom:12px;line-height:1.5">This dev account can preview, but does not have release-push permission.</div>'}
         <div style="background:var(--card2,#0c1220);border:1px solid var(--border,rgba(255,255,255,.08));border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:.72rem;line-height:1.5;color:var(--muted2,#8a93a7)">
           <div>Currently released: <b style="color:var(--text,#e6edf6)">${esc(buildLabel(gate.released)||'— (first release)')}</b></div>
           ${gate.pushedBy?`<div style="margin-top:2px">Last push by ${esc(gate.pushedBy)} · ${esc(lastPush)}</div>`:''}
@@ -254,7 +372,7 @@
         <label style="display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted,#5b6473);margin-bottom:6px;font-family:JetBrains Mono,monospace">Release notes (optional)</label>
         <textarea id="fluxPushNotes" placeholder="Liquid glass default, sidebar fixes, tour polish…" style="width:100%;min-height:72px;padding:10px;border-radius:10px;background:var(--card2,#0c1220);border:1px solid var(--border2,rgba(255,255,255,.12));color:var(--text,#e6edf6);font-family:inherit;font-size:.78rem;resize:vertical;box-sizing:border-box"></textarea>
         <div style="display:flex;gap:8px;margin-top:16px">
-          <button type="button" id="fluxPushGoBtn" style="flex:1;padding:11px;font-size:.85rem;font-weight:800;border-radius:12px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;color:#080a0f;cursor:pointer">Push to all users</button>
+          <button type="button" id="fluxPushGoBtn" ${canPush?'':'disabled'} style="flex:1;padding:11px;font-size:.85rem;font-weight:800;border-radius:12px;background:${canPush?'linear-gradient(135deg,#fbbf24,#f59e0b)':'var(--card2,#0c1220)'};border:none;color:${canPush?'#080a0f':'var(--muted,#5b6473)'};cursor:${canPush?'pointer':'default'}">Push to all users</button>
           <button type="button" id="fluxPushCancelBtn" style="padding:11px 16px;font-size:.78rem;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--muted2,#8a93a7);cursor:pointer">Cancel</button>
         </div>
       </div>`;
@@ -263,6 +381,7 @@
     root.querySelector('#fluxPushClose').addEventListener('click',close);
     root.querySelector('#fluxPushCancelBtn').addEventListener('click',close);
     root.querySelector('#fluxPushGoBtn').addEventListener('click',async(e)=>{
+      if(!canPush){if(typeof showToast==='function')showToast('No release permission','warning');return;}
       const btn=e.currentTarget;
       btn.textContent='Pushing…';btn.disabled=true;
       const notes=(root.querySelector('#fluxPushNotes').value||'').trim();
@@ -277,7 +396,7 @@
   function isConfirmedNormal(){
     try{
       if(typeof currentUser==='undefined'||!currentUser)return false;
-      return !isOwnerLocal()&&!isDevLocal();
+      return !isOwnerLocal()&&!hasPreviewAccess(getGate());
     }catch(_){return false;}
   }
 
@@ -289,7 +408,7 @@
         removeBanner();
         return;
       }
-      if(hasPreviewAccess()){
+      if(hasPreviewAccess(g)){
         removeOverlay();
         renderPreviewBanner(g);
         return;
@@ -308,14 +427,12 @@
   function startPolling(){
     if(_pollId)return;
     _pollId=setInterval(async()=>{
-      if(isOwnerLocal())return; // owner is the source of truth
       try{await fetchOwnerGate();}catch(_){}
       applyGate();
     },POLL_MS);
     window.addEventListener('visibilitychange',()=>{
       if(document.visibilityState==='visible'){
-        if(!isOwnerLocal())fetchOwnerGate().finally(applyGate);
-        else applyGate();
+        fetchOwnerGate().finally(applyGate);
       }
     });
   }
@@ -332,7 +449,10 @@
     FLUX_BUILD_ID,
     getGate,
     hasPreviewAccess,
+    canPushRelease:canPushReleaseLocal,
     pushUpdate,
+    savePreviewAccess,
+    syncPlatformToDevs,
     fetchOwnerGate,
     applyGate,
     openPushDialog,
