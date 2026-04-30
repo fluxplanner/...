@@ -2390,64 +2390,57 @@ function renderTranslate(body){
 }
 
 /* ================================================================
-   MUSIC (IB DP)
+   MUSIC — dimensions / metadimensions (study reference)
    ================================================================ */
 function renderDpMusicDimensions(body){
-  const cx = 210;
-  const cy = 210;
-  const innerLabs = ['Timbre', 'Melody', 'Harmony', 'Dynamics', 'Articulation', 'Texture', 'Meter', 'Tempo', 'Form'];
-  const metaLabs = ['Style', 'Architecture', 'Affective qualities', 'Sense of ensemble', 'Personal context', 'Cultural context', 'Historical context', 'Sense of simultaneity', 'Genre'];
-  function ringHtml(labels, r, klass, startDeg){
-    const n = labels.length;
-    const step = 360 / n;
-    return labels.map((label, i) => {
-      const deg = startDeg + i * step;
-      const rad = (deg - 90) * Math.PI / 180;
-      const x = cx + r * Math.cos(rad);
-      const y = cy + r * Math.sin(rad);
-      return `<text class="${klass}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle">${esc(label)}</text>`;
-    }).join('');
-  }
+  const dimensions = ['Pitch', 'Rhythm', 'Timbre', 'Melody', 'Harmony', 'Dynamics', 'Form', 'Tempo', 'Meter', 'Texture', 'Articulation'];
+  const meta = ['Style', 'Architecture', 'Affective qualities', 'Sense of ensemble', 'Personal context', 'Cultural context', 'Historical context', 'Sense of simultaneity', 'Genre'];
+  const dimList = dimensions.map(d => `<li><span class="dp-music-pill dp-music-pill--dim">${esc(d)}</span></li>`).join('');
+  const metaList = meta.map(d => `<li><span class="dp-music-pill dp-music-pill--meta">${esc(d)}</span></li>`).join('');
   body.innerHTML = `
     <div class="tb-card tb-dp-music">
-      <div class="tb-card-h">
-        <h3>DP Music — dimensions &amp; metadimensions</h3>
-        <p class="tb-sub dp-music-intro">IB reference for listening, comparing works, and writing about music. Inner area: sound and structure; outer ring: context and meaning.</p>
+      <div class="tb-card-h tb-dp-music__head">
+        <div>
+          <h3 class="tb-dp-music__title">Dimensions &amp; metadimensions</h3>
+          <p class="tb-sub tb-dp-music__lede">Listening, comparing pieces, and writing about music: describe the <b>sound</b> with dimensions and the <b>context</b> with metadimensions.</p>
+        </div>
       </div>
-      <div class="dp-music-figure-wrap">
-        <svg class="dp-music-svg" viewBox="0 0 420 420" role="img" aria-labelledby="dpMusicTitle dpMusicDesc">
-          <title id="dpMusicTitle">IB DP Music dimensions chart</title>
-          <desc id="dpMusicDesc">Concentric chart: dimensions include pitch, rhythm, timbre, melody, harmony, and form; metadimensions include style, culture, genre, and ensemble.</desc>
-          <defs>
-            <linearGradient id="dpMusFillInner" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.22"/>
-              <stop offset="100%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.07"/>
-            </linearGradient>
-            <linearGradient id="dpMusFillRing" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.14"/>
-              <stop offset="100%" stop-color="var(--accent, #38bdf8)" stop-opacity="0.06"/>
-            </linearGradient>
-            <filter id="dpMusSoftGlow" x="-35%" y="-35%" width="170%" height="170%">
-              <feGaussianBlur stdDeviation="1.4" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          <circle class="dp-music-outer" cx="${cx}" cy="${cy}" r="188" fill="url(#dpMusFillRing)" stroke="rgba(var(--accent-rgb), 0.35)" stroke-width="1"/>
-          <circle class="dp-music-hole" cx="${cx}" cy="${cy}" r="122" fill="var(--card, #0b1018)"/>
-          <circle class="dp-music-inner-disk" cx="${cx}" cy="${cy}" r="116" fill="url(#dpMusFillInner)" stroke="rgba(var(--accent-rgb), 0.28)" stroke-width="1" filter="url(#dpMusSoftGlow)"/>
-          <text class="dp-music-bandhead" x="${cx}" y="76" text-anchor="middle">Metadimensions</text>
-          <text class="dp-music-bandhead dp-music-bandhead--inner" x="${cx}" y="146" text-anchor="middle">Dimensions</text>
-          ${ringHtml(metaLabs, 158, 'dp-music-meta-lbl', -70)}
-          ${ringHtml(innerLabs, 90, 'dp-music-inner-lbl', -90)}
-          <text class="dp-music-core" x="${cx}" y="${cy - 8}" text-anchor="middle">Pitch</text>
-          <text class="dp-music-core" x="${cx}" y="${cy + 18}" text-anchor="middle">Rhythm</text>
-        </svg>
+      <div class="dp-music-layout">
+        <div class="dp-music-visual" aria-hidden="true">
+          <svg class="dp-music-diagram" viewBox="0 0 200 200" focusable="false">
+            <defs>
+              <linearGradient id="dpMusDsk" x1="15%" y1="0%" x2="85%" y2="100%">
+                <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.14"/>
+                <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.04"/>
+              </linearGradient>
+            </defs>
+            <circle class="dp-music-diagram__plate" cx="100" cy="100" r="98"/>
+            <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(var(--accent-rgb), 0.11)" stroke-width="20"/>
+            <circle cx="100" cy="100" r="58" fill="url(#dpMusDsk)" stroke="rgba(var(--accent-rgb), 0.22)" stroke-width="1"/>
+            <text class="dp-music-diagram__label dp-music-diagram__label--meta" x="100" y="30" text-anchor="middle">Metadimensions</text>
+            <text class="dp-music-diagram__label dp-music-diagram__label--dim" x="100" y="52" text-anchor="middle">Dimensions</text>
+            <text class="dp-music-diagram__core" x="100" y="94" text-anchor="middle">Pitch</text>
+            <text class="dp-music-diagram__core" x="100" y="114" text-anchor="middle">Rhythm</text>
+          </svg>
+        </div>
+        <div class="dp-music-grids">
+          <div class="dp-music-grid">
+            <h4 class="dp-music-grid__h">Dimensions</h4>
+            <p class="dp-music-grid__hint">What you hear and how it is built</p>
+            <ul class="dp-music-ul">${dimList}</ul>
+          </div>
+          <div class="dp-music-grid">
+            <h4 class="dp-music-grid__h dp-music-grid__h--meta">Metadimensions</h4>
+            <p class="dp-music-grid__hint">Meaning, setting, and framing</p>
+            <ul class="dp-music-ul">${metaList}</ul>
+          </div>
+        </div>
       </div>
     </div>`;
 }
 
 SUBJECTS.push({
-  id:'music', label:'Music (DP)', icon:'🎵',
+  id:'music', label:'Music', icon:'🎵',
   tools:[
     { id:'dp-dimensions', label:'Dimensions chart', icon:'◎', render: renderDpMusicDimensions },
   ],
@@ -2970,9 +2963,9 @@ const UNIFIED_LAYOUT = [
       { id:'translate-ai', label:'Translation', icon:'🔁', desc:'Send text to Flux AI with language pair context.', mode:'link', nav:'ai', btn:'Open Flux AI' },
     ],
   },
-  { id:'music', name:'Music (DP)', icon:'🎵', classTags:['music','band','orchestra','choir','ib music','ib'],
+  { id:'music', name:'Music', icon:'🎵', classTags:['music','band','orchestra','choir','ib music','ib'],
     tools:[
-      { id:'dp-dimensions', label:'Dimensions chart', icon:'◎', desc:'IB DP dimensions and metadimensions — listening, analysis, and portfolios.', mode:'inline', sub:'music', tid:'dp-dimensions' },
+      { id:'dp-dimensions', label:'Dimensions chart', icon:'◎', desc:'Dimensions and metadimensions — listening, analysis, and portfolios.', mode:'inline', sub:'music', tid:'dp-dimensions' },
     ],
   },
   { id:'econ', name:'Economics', icon:'💹', classTags:['econ'],
