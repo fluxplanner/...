@@ -2393,48 +2393,68 @@ function renderTranslate(body){
    MUSIC — dimensions / metadimensions (study reference)
    ================================================================ */
 function renderDpMusicDimensions(body){
-  const dimensions = ['Pitch', 'Rhythm', 'Timbre', 'Melody', 'Harmony', 'Dynamics', 'Form', 'Tempo', 'Meter', 'Texture', 'Articulation'];
-  const meta = ['Style', 'Architecture', 'Affective qualities', 'Sense of ensemble', 'Personal context', 'Cultural context', 'Historical context', 'Sense of simultaneity', 'Genre'];
-  const dimList = dimensions.map(d => `<li><span class="dp-music-pill dp-music-pill--dim">${esc(d)}</span></li>`).join('');
-  const metaList = meta.map(d => `<li><span class="dp-music-pill dp-music-pill--meta">${esc(d)}</span></li>`).join('');
+  const uid = 'dp' + Math.random().toString(36).slice(2, 9);
+  const cx = 240;
+  const cy = 240;
+  const innerRing = ['Timbre', 'Melody', 'Harmony', 'Dynamics', 'Articulation', 'Texture', 'Meter', 'Tempo', 'Form'];
+  const metaRing = ['Style', 'Architecture', 'Affective qualities', 'Sense of ensemble', 'Personal context', 'Cultural context', 'Historical context', 'Sense of simultaneity', 'Genre'];
+
+  function placeRing(labels, r, klass, phaseDeg){
+    const n = labels.length;
+    const step = 360 / n;
+    return labels.map((label, i) => {
+      const deg = phaseDeg + i * step;
+      const rad = (deg * Math.PI) / 180;
+      const x = cx + r * Math.cos(rad);
+      const y = cy + r * Math.sin(rad);
+      return `<text class="${klass}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle">${esc(label)}</text>`;
+    }).join('');
+  }
+
+  const metaPhase = -90 + (360 / metaRing.length) / 2;
+  const innerPhase = metaPhase + 180 / metaRing.length;
+
   body.innerHTML = `
     <div class="tb-card tb-dp-music">
       <div class="tb-card-h tb-dp-music__head">
         <div>
           <h3 class="tb-dp-music__title">Dimensions &amp; metadimensions</h3>
-          <p class="tb-sub tb-dp-music__lede">Listening, comparing pieces, and writing about music: describe the <b>sound</b> with dimensions and the <b>context</b> with metadimensions.</p>
+          <p class="tb-sub tb-dp-music__lede">Use the rings when you listen or write: <b>dimensions</b> describe the sound; <b>metadimensions</b> describe context and meaning.</p>
         </div>
       </div>
-      <div class="dp-music-layout">
-        <div class="dp-music-visual" aria-hidden="true">
-          <svg class="dp-music-diagram" viewBox="0 0 200 200" focusable="false">
-            <defs>
-              <linearGradient id="dpMusDsk" x1="15%" y1="0%" x2="85%" y2="100%">
-                <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.14"/>
-                <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.04"/>
-              </linearGradient>
-            </defs>
-            <circle class="dp-music-diagram__plate" cx="100" cy="100" r="98"/>
-            <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(var(--accent-rgb), 0.11)" stroke-width="20"/>
-            <circle cx="100" cy="100" r="58" fill="url(#dpMusDsk)" stroke="rgba(var(--accent-rgb), 0.22)" stroke-width="1"/>
-            <text class="dp-music-diagram__label dp-music-diagram__label--meta" x="100" y="30" text-anchor="middle">Metadimensions</text>
-            <text class="dp-music-diagram__label dp-music-diagram__label--dim" x="100" y="52" text-anchor="middle">Dimensions</text>
-            <text class="dp-music-diagram__core" x="100" y="94" text-anchor="middle">Pitch</text>
-            <text class="dp-music-diagram__core" x="100" y="114" text-anchor="middle">Rhythm</text>
-          </svg>
-        </div>
-        <div class="dp-music-grids">
-          <div class="dp-music-grid">
-            <h4 class="dp-music-grid__h">Dimensions</h4>
-            <p class="dp-music-grid__hint">What you hear and how it is built</p>
-            <ul class="dp-music-ul">${dimList}</ul>
-          </div>
-          <div class="dp-music-grid">
-            <h4 class="dp-music-grid__h dp-music-grid__h--meta">Metadimensions</h4>
-            <p class="dp-music-grid__hint">Meaning, setting, and framing</p>
-            <ul class="dp-music-ul">${metaList}</ul>
-          </div>
-        </div>
+      <div class="dp-music-svg-wrap">
+        <svg class="dp-music-svg" viewBox="0 0 480 480" role="img" aria-labelledby="${uid}-ttl ${uid}-dsc">
+          <title id="${uid}-ttl">Music dimensions and metadimensions diagram</title>
+          <desc id="${uid}-dsc">Concentric rings: outer labels are metadimensions, inner labels are musical dimensions, with pitch and rhythm at the center.</desc>
+          <defs>
+            <linearGradient id="${uid}-meta" x1="20%" y1="0%" x2="80%" y2="100%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.11"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.04"/>
+            </linearGradient>
+            <linearGradient id="${uid}-dim" x1="0%" y1="50%" x2="100%" y2="50%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.16"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.06"/>
+            </linearGradient>
+            <linearGradient id="${uid}-core" x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.12"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.03"/>
+            </linearGradient>
+            <filter id="${uid}-soft" x="-25%" y="-25%" width="150%" height="150%">
+              <feGaussianBlur stdDeviation="0.8" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle class="dp-music-svg__plate" cx="${cx}" cy="${cy}" r="236"/>
+          <circle cx="${cx}" cy="${cy}" r="230" fill="url(#${uid}-meta)" stroke="rgba(var(--accent-rgb), 0.12)" stroke-width="1"/>
+          <circle cx="${cx}" cy="${cy}" r="204" fill="var(--card)"/>
+          <circle cx="${cx}" cy="${cy}" r="204" fill="url(#${uid}-dim)"/>
+          <circle cx="${cx}" cy="${cy}" r="172" fill="var(--card)"/>
+          <circle cx="${cx}" cy="${cy}" r="172" fill="url(#${uid}-core)" stroke="rgba(var(--accent-rgb), 0.18)" stroke-width="1" filter="url(#${uid}-soft)"/>
+          ${placeRing(metaRing, 217, 'dp-music-svg__lbl dp-music-svg__lbl--meta', metaPhase)}
+          ${placeRing(innerRing, 188, 'dp-music-svg__lbl dp-music-svg__lbl--dim', innerPhase)}
+          <text class="dp-music-svg__core" x="${cx}" y="${cy - 10}" text-anchor="middle">Pitch</text>
+          <text class="dp-music-svg__core" x="${cx}" y="${cy + 18}" text-anchor="middle">Rhythm</text>
+        </svg>
       </div>
     </div>`;
 }
