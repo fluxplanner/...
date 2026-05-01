@@ -64,10 +64,29 @@ html[data-flux-glass="on"]::after{
   #fluxCursorAmbient{opacity:0!important}
 }
 
-/* ═══ Glass: cards, stats, notes surfaces ═══ */
-.card,.stat,.flux-page .note-card,.cal-hero-card,
-.flux-dash-card-inner,.flux-ai-strip-inner,.flux-mega-card,.flux-patterns-card,
-.dash-v2-pulse,.dash-v2-insight .dash-v2-focus-slot,.dash-v2-countdown-card{
+/* ═══ Glass: cards, stats, notes surfaces (liquid glass on — matches sidebar depth) ═══ */
+html[data-flux-glass="on"] .card,
+html[data-flux-glass="on"] .stat,
+html[data-flux-glass="on"] .flux-page .note-card,
+html[data-flux-glass="on"] .cal-hero-card,
+html[data-flux-glass="on"] .flux-dash-card-inner,
+html[data-flux-glass="on"] .flux-ai-strip-inner,
+html[data-flux-glass="on"] .flux-mega-card,
+html[data-flux-glass="on"] .flux-patterns-card,
+html[data-flux-glass="on"] .dash-v2-pulse,
+html[data-flux-glass="on"] .dash-v2-insight .dash-v2-focus-slot,
+html[data-flux-glass="on"] .dash-v2-countdown-card,
+html[data-flux-glass="on"] .task-item,
+html[data-flux-glass="on"] .quick-add,
+html[data-flux-glass="on"] .tb-card,
+html[data-flux-glass="on"] .feat-card,
+html[data-flux-glass="on"] .info-tile,
+html[data-flux-glass="on"] .goal-item,
+html[data-flux-glass="on"] .gmail-item,
+html[data-flux-glass="on"] .focus-card,
+html[data-flux-glass="on"] .modal-card,
+html[data-flux-glass="on"] .ai-bub.bot,
+html[data-flux-glass="on"] .ai-irow{
   background:
     linear-gradient(165deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.02) 42%,rgba(0,0,0,.06) 100%),
     var(--glass-tint),var(--card)!important;
@@ -84,8 +103,24 @@ html[data-flux-glass="on"]::after{
     box-shadow .22s var(--flux-ease-out-expo),
     transform .22s var(--flux-ease-out-expo)!important;
 }
-.card:hover,.stat:hover,.flux-page .note-card:hover,.cal-hero-card:hover,
-.flux-dash-card-inner:hover,.flux-ai-strip-inner:hover,.flux-mega-card:hover{
+html[data-flux-glass="on"] .card:hover,
+html[data-flux-glass="on"] .stat:hover,
+html[data-flux-glass="on"] .flux-page .note-card:hover,
+html[data-flux-glass="on"] .cal-hero-card:hover,
+html[data-flux-glass="on"] .flux-dash-card-inner:hover,
+html[data-flux-glass="on"] .flux-ai-strip-inner:hover,
+html[data-flux-glass="on"] .flux-mega-card:hover,
+html[data-flux-glass="on"] .task-item:hover,
+html[data-flux-glass="on"] .quick-add:hover,
+html[data-flux-glass="on"] .tb-card:hover,
+html[data-flux-glass="on"] .feat-card:hover,
+html[data-flux-glass="on"] .info-tile:hover,
+html[data-flux-glass="on"] .goal-item:hover,
+html[data-flux-glass="on"] .gmail-item:hover,
+html[data-flux-glass="on"] .focus-card:hover,
+html[data-flux-glass="on"] .modal-card:hover,
+html[data-flux-glass="on"] .ai-bub.bot:hover,
+html[data-flux-glass="on"] .ai-irow:hover{
   border-color:rgba(255,255,255,.14)!important;
   box-shadow:
     0 12px 44px rgba(0,0,0,.38),
@@ -365,7 +400,18 @@ html[data-flux-glass="off"] .flux-mega-card,
 html[data-flux-glass="off"] .flux-patterns-card,
 html[data-flux-glass="off"] .dash-v2-pulse,
 html[data-flux-glass="off"] .dash-v2-insight .dash-v2-focus-slot,
-html[data-flux-glass="off"] .dash-v2-countdown-card{
+html[data-flux-glass="off"] .dash-v2-countdown-card,
+html[data-flux-glass="off"] .task-item,
+html[data-flux-glass="off"] .quick-add,
+html[data-flux-glass="off"] .tb-card,
+html[data-flux-glass="off"] .feat-card,
+html[data-flux-glass="off"] .info-tile,
+html[data-flux-glass="off"] .goal-item,
+html[data-flux-glass="off"] .gmail-item,
+html[data-flux-glass="off"] .focus-card,
+html[data-flux-glass="off"] .modal-card,
+html[data-flux-glass="off"] .ai-bub.bot,
+html[data-flux-glass="off"] .ai-irow{
   background:var(--card)!important;
   border-color:var(--border2)!important;
   box-shadow:0 4px 24px rgba(0,0,0,.22)!important;
@@ -379,7 +425,18 @@ html[data-flux-glass="off"] .flux-page .note-card:hover,
 html[data-flux-glass="off"] .cal-hero-card:hover,
 html[data-flux-glass="off"] .flux-dash-card-inner:hover,
 html[data-flux-glass="off"] .flux-ai-strip-inner:hover,
-html[data-flux-glass="off"] .flux-mega-card:hover{
+html[data-flux-glass="off"] .flux-mega-card:hover,
+html[data-flux-glass="off"] .task-item:hover,
+html[data-flux-glass="off"] .quick-add:hover,
+html[data-flux-glass="off"] .tb-card:hover,
+html[data-flux-glass="off"] .feat-card:hover,
+html[data-flux-glass="off"] .info-tile:hover,
+html[data-flux-glass="off"] .goal-item:hover,
+html[data-flux-glass="off"] .gmail-item:hover,
+html[data-flux-glass="off"] .focus-card:hover,
+html[data-flux-glass="off"] .modal-card:hover,
+html[data-flux-glass="off"] .ai-bub.bot:hover,
+html[data-flux-glass="off"] .ai-irow:hover{
   border-color:rgba(var(--accent-rgb),.22)!important;
   box-shadow:0 8px 32px rgba(0,0,0,.28)!important;
   filter:none!important;
@@ -394,7 +451,18 @@ html[data-flux-glass="off"] body[data-theme="light"] .flux-mega-card,
 html[data-flux-glass="off"] body[data-theme="light"] .flux-patterns-card,
 html[data-flux-glass="off"] body[data-theme="light"] .dash-v2-pulse,
 html[data-flux-glass="off"] body[data-theme="light"] .dash-v2-insight .dash-v2-focus-slot,
-html[data-flux-glass="off"] body[data-theme="light"] .dash-v2-countdown-card{
+html[data-flux-glass="off"] body[data-theme="light"] .dash-v2-countdown-card,
+html[data-flux-glass="off"] body[data-theme="light"] .task-item,
+html[data-flux-glass="off"] body[data-theme="light"] .quick-add,
+html[data-flux-glass="off"] body[data-theme="light"] .tb-card,
+html[data-flux-glass="off"] body[data-theme="light"] .feat-card,
+html[data-flux-glass="off"] body[data-theme="light"] .info-tile,
+html[data-flux-glass="off"] body[data-theme="light"] .goal-item,
+html[data-flux-glass="off"] body[data-theme="light"] .gmail-item,
+html[data-flux-glass="off"] body[data-theme="light"] .focus-card,
+html[data-flux-glass="off"] body[data-theme="light"] .modal-card,
+html[data-flux-glass="off"] body[data-theme="light"] .ai-bub.bot,
+html[data-flux-glass="off"] body[data-theme="light"] .ai-irow{
   box-shadow:0 4px 18px rgba(0,0,0,.07)!important;
 }
 html[data-flux-glass="off"] .flux-dash-card-inner::after,

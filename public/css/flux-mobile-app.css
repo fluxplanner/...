@@ -922,15 +922,18 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 64px;
 }
-/* Perf: per-row backdrop-filter forces expensive repaints on long lists */
-#flux-main .task-item{
+/* Perf: long lists + stacked cards — strip blur only when liquid glass is off or Snappy mode is on */
+html[data-flux-glass="off"] #flux-main .task-item,
+html[data-flux-perf="on"] #flux-main .task-item{
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* Dashboard / shell: many stacked glass cards = heavy GPU; keep solid fills */
-#flux-main .card,
-#flux-main .stat,
-#flux-main .quick-add{
+html[data-flux-glass="off"] #flux-main .card,
+html[data-flux-glass="off"] #flux-main .stat,
+html[data-flux-glass="off"] #flux-main .quick-add,
+html[data-flux-perf="on"] #flux-main .card,
+html[data-flux-perf="on"] #flux-main .stat,
+html[data-flux-perf="on"] #flux-main .quick-add{
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
