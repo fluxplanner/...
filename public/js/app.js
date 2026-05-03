@@ -1494,6 +1494,7 @@ function nav(id,btn,navOpt){
   if(typeof fluxApplyCanvasSplitLayout==='function')fluxApplyCanvasSplitLayout();
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
   if(window.Flux100&&typeof Flux100.onNavAfter==='function')try{Flux100.onNavAfter(id);}catch(e){}
+  if(typeof window.fluxAnimeNavAfter==='function'){try{window.fluxAnimeNavAfter(id);}catch(e){}}
 }
 function navMob(id,opt){closeDrawer();closeMobileSheet();nav(id,null,opt);}
 
@@ -6135,12 +6136,14 @@ function initLoginDemoRotator(){
 function showLoginScreen(){
   const ls=document.getElementById('loginScreen');
   const app=document.getElementById('app');
+  if(typeof teardownFluxAnimeApp==='function')teardownFluxAnimeApp();
   if(ls){ls.style.display='block';ls.classList.add('visible');}
   if(app)app.classList.remove('visible');
   initFeaturePills();
   initLoginFeatureCards();
   setTimeout(()=>{
     if(typeof initLoginAmbient==='function')initLoginAmbient();
+    if(typeof initFluxAnimeLogin==='function')initFluxAnimeLogin();
     initLoginDemoRotator();
   },40);
 }
@@ -6148,6 +6151,7 @@ function showApp(){
   const ls=document.getElementById('loginScreen');
   const app=document.getElementById('app');
   if(typeof stopLoginAmbient==='function')stopLoginAmbient();
+  if(typeof teardownFluxAnimeLogin==='function')teardownFluxAnimeLogin();
   stopLoginDemoRotator();
   if(ls){ls.style.display='none';ls.classList.remove('visible');}
   if(app)app.classList.add('visible');
@@ -6175,6 +6179,9 @@ function showApp(){
   if(typeof FluxRelease!=='undefined'&&FluxRelease&&typeof FluxRelease.applyGate==='function'){
     FluxRelease.applyGate();
   }
+  setTimeout(function(){
+    if(typeof initFluxAnimeApp==='function')initFluxAnimeApp();
+  },100);
   // Always open to the dashboard on load (no tab restore)
   try{localStorage.removeItem('flux_last_tab');localStorage.removeItem('flux_last_tab_ts');}catch(e){}
   // Smart next-day warning
