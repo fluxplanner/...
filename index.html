@@ -106,6 +106,13 @@
 <link rel="stylesheet" href="public/css/flux-periodic.css">
 <link rel="stylesheet" href="public/css/flux-toolbox.css">
 <link rel="stylesheet" href="public/css/flux-reftool-history.css">
+<script type="importmap">
+{
+  "imports": {
+    "animejs": "https://cdn.jsdelivr.net/npm/animejs@4/lib/anime.esm.js"
+  }
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -1950,11 +1957,10 @@
 </div>
 
 <div id="toastLive" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
-<!-- Load scripts (deferred — order preserved) -->
-<script defer src="https://cdn.jsdelivr.net/npm/animejs@4/lib/anime.umd.js"></script>
+<!-- Load scripts: ESM animations first, then deferred app bundle -->
+<script type="module" src="public/js/flux-animations.js"></script>
 <script defer src="public/js/splash.js"></script>
 <script defer src="public/js/login-motion.js"></script>
-<script defer src="public/js/flux-anime-motion.js"></script>
 <script defer src="public/js/app.js"></script>
 <script defer src="public/js/flux-canvas-panel.js"></script>
 <script defer src="public/js/flux-release-gate.js"></script>

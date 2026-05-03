@@ -25,6 +25,8 @@
     _shellReady: false,
     _sidebarCollapsed: load("flux_canvas_sidebar_collapsed", false),
     _inboxThread: null,
+    /** 'back' | 'forward' | null — consumed by navigate() for FluxAnim */
+    navAnim: null,
   };
 
   function hostFromStoredUrl(url) {
@@ -345,23 +347,46 @@
       CanvasState.error = null;
       renderCanvasChrome();
       const content = document.getElementById("canvasContent");
-      if (content) {
-        content.innerHTML = renderCanvasSkeleton(view === "course" ? "course" : "dash");
-      }
+      const dir = CanvasState.navAnim || "forward";
+      CanvasState.navAnim = null;
+
+      const runMid = async () => {
+        if (content) {
+          content.innerHTML = renderCanvasSkeleton(view === "course" ? "course" : "dash");
+        }
+        try {
+          const renderer = this[view];
+          if (!renderer) throw new Error("Unknown view: " + view);
+          await renderer.call(this, CanvasState.currentParams);
+          persistLastView();
+        } catch (e) {
+          CanvasState.error = e.message || String(e);
+          renderCanvasError(CanvasState.error, e.status);
+        }
+      };
+
       try {
-        const renderer = this[view];
-        if (!renderer) throw new Error("Unknown view: " + view);
-        await renderer.call(this, CanvasState.currentParams);
-        persistLastView();
-      } catch (e) {
-        CanvasState.error = e.message || String(e);
-        renderCanvasError(CanvasState.error, e.status);
+        const prm =
+          typeof matchMedia !== "undefined" &&
+          matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const perf = document.documentElement.getAttribute("data-flux-perf") === "on";
+        const FA = window.FluxAnim;
+        if (content && FA && typeof FA.canvasNavForward === "function" && !prm && !perf) {
+          if (dir === "back" && typeof FA.canvasNavBack === "function") {
+            await FA.canvasNavBack(content, runMid);
+          } else {
+            await FA.canvasNavForward(content, runMid);
+          }
+        } else {
+          await runMid();
+        }
       } finally {
         CanvasState.loading = false;
       }
     },
     back() {
       if (CanvasState.historyIndex > 0) {
+        CanvasState.navAnim = "back";
         CanvasState.historyIndex--;
         const h = CanvasState.history[CanvasState.historyIndex];
         this.navigate(h.view, h.params, { noHistory: true });
@@ -369,6 +394,7 @@
     },
     forward() {
       if (CanvasState.historyIndex < CanvasState.history.length - 1) {
+        CanvasState.navAnim = "forward";
         CanvasState.historyIndex++;
         const h = CanvasState.history[CanvasState.historyIndex];
         this.navigate(h.view, h.params, { noHistory: true });
@@ -641,7 +667,7 @@
           <div class="canvas-html-body" style="margin-top:14px">${descHtml || "<span style='color:var(--muted)'>No description.</span>"}</div>
           ${rubricHtml}
           <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
-            <button type="button" style="padding:10px 18px;border-radius:12px;background:var(--accent);color:#000;font-weight:700;border:none;cursor:pointer" onclick="addCanvasAssignmentToPlanner(${Number(courseId)}, ${Number(assignmentId)})">Add to Planner</button>
+            <button type="button" class="canvas-add-btn" data-canvas-cid="${Number(courseId)}" data-canvas-aid="${Number(assignmentId)}" style="padding:10px 18px;border-radius:12px;background:var(--accent);color:#000;font-weight:700;border:none;cursor:pointer" onclick="addCanvasAssignmentToPlanner(${Number(courseId)}, ${Number(assignmentId)})">Add to Planner</button>
             <button type="button" class="btn-sec" onclick="window.open(${JSON.stringify(assignment.html_url || "")},'_blank','noopener,noreferrer')">Open in Canvas</button>
           </div>
         </div>`;

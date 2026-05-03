@@ -831,7 +831,17 @@ function showToast(msg,type='success'){
   t.textContent=msg;
   // Prepend so newest sits visually on top of column-reverse stack
   stack.prepend(t);
-  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .2s,transform .2s';t.style.transform='translateY(8px)';setTimeout(()=>t.remove(),220);},3000);
+  try{
+    if(!reduce&&window.FluxAnim?.toastIn)FluxAnim.toastIn(t);
+  }catch(e){}
+  setTimeout(()=>{
+    const out=()=>{try{t.remove();}catch(e){}};
+    if(!reduce&&window.FluxAnim?.toastOut){
+      try{FluxAnim.toastOut(t,out);}catch(e){out();}
+    }else{
+      t.style.opacity='0';t.style.transition='opacity .2s,transform .2s';t.style.transform='translateY(8px)';setTimeout(out,220);
+    }
+  },3000);
 }
 
 // ══ ACCESSIBILITY · SNOOZE · BULK · EXAM CONFLICTS ══
@@ -1495,6 +1505,10 @@ function nav(id,btn,navOpt){
   if(window.FluxPersonal&&FluxPersonal.bumpNav)FluxPersonal.bumpNav(id);
   if(window.Flux100&&typeof Flux100.onNavAfter==='function')try{Flux100.onNavAfter(id);}catch(e){}
   if(typeof window.fluxAnimeNavAfter==='function'){try{window.fluxAnimeNavAfter(id);}catch(e){}}
+  try{
+    const np=document.getElementById(id);
+    if(np&&window.FluxAnim?.panelFlash)FluxAnim.panelFlash(np);
+  }catch(e){}
 }
 function navMob(id,opt){closeDrawer();closeMobileSheet();nav(id,null,opt);}
 
@@ -1508,16 +1522,23 @@ function openMobileSheet(){
   ov.setAttribute('aria-hidden','false');
   sh.setAttribute('aria-hidden','false');
   document.body.style.overflow='hidden';
+  try{if(window.FluxAnim?.sheetOpen)FluxAnim.sheetOpen(sh,ov);}catch(e){}
 }
 function closeMobileSheet(){
   const ov=document.getElementById('moreSheetOverlay');
   const sh=document.getElementById('moreSheet');
   if(!ov||!sh)return;
-  ov.classList.remove('open');
-  sh.classList.remove('open');
-  ov.setAttribute('aria-hidden','true');
-  sh.setAttribute('aria-hidden','true');
-  document.body.style.overflow='';
+  const done=()=>{
+    ov.classList.remove('open');
+    sh.classList.remove('open');
+    ov.setAttribute('aria-hidden','true');
+    sh.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+  };
+  try{
+    if(window.FluxAnim?.sheetClose)FluxAnim.sheetClose(sh,ov,done);
+    else done();
+  }catch(e){done();}
 }
 window.openMobileSheet=openMobileSheet;
 window.closeMobileSheet=closeMobileSheet;
@@ -1736,6 +1757,7 @@ function addTask(){
   closeDashAddTaskModal();
   renderStats();renderTasks();renderCalendar();renderCountdown();renderSmartSug();panicCheck(task);
   syncKey('tasks',tasks);
+  requestAnimationFrame(()=>{try{const ne=document.querySelector(`[data-task-id="${task.id}"]`);if(ne)window.FluxAnim?.taskEnterSingle?.(ne);}catch(e){}});
   if(typeof window.fluxGCalAutoPushTask==='function')try{window.fluxGCalAutoPushTask(task);}catch(e){}
 }
 function toggleTask(id){
@@ -2229,6 +2251,7 @@ function renderTasks(){
     const msgs={active:"You're free — want to plan your day or add one task?",done:'No completed tasks yet',overdue:'No overdue tasks',today:'Nothing due today',high:'No high-priority tasks',all:'No tasks yet — press T to quick add'};
     const icons={active:'✓',done:'🎉',overdue:'⏰',today:'📋',high:'🔥',all:'✦'};
     el.innerHTML=`<div class="empty flux-empty-smart flux-empty-animated"><div class="empty-icon flux-empty-bounce">${icons[taskFilter]||icons.all}</div><div class="empty-title">${msgs[taskFilter]||msgs.all}</div><div class="empty-sub">Use the <span class="kbd-hint">+</span> menu or <span class="kbd-hint">T</span> quick add · <span class="kbd-hint">⌘⇧K</span> search · <span class="kbd-hint">⌘K</span> palette</div></div>`;
+    requestAnimationFrame(()=>{try{const em=el.querySelector('.empty');if(em)window.FluxAnim?.emptyStateIn?.(em);}catch(e){}});
     return;
   }
   const tm={hw:{l:'HW',c:'var(--muted)'},test:{l:'Test',c:'var(--red)'},quiz:{l:'Quiz',c:'var(--gold)'},project:{l:'Project',c:'var(--purple)'},essay:{l:'Essay',c:'var(--blue)'},lab:{l:'Lab',c:'var(--green)'},reading:{l:'Reading',c:'var(--blue)'},other:{l:'Other',c:'var(--muted)'}};
@@ -2296,6 +2319,12 @@ ${!t.done&&t.date&&!_taskBulkMode?`<button type="button" class="task-action-btn 
     html+=`<div id="completedTasksWrap" style="${showDone?'':'display:none'}">${done.map(renderCard).join('')}</div>`;
   }
   el.innerHTML=html;
+  requestAnimationFrame(()=>{
+    try{
+      const items=[...el.querySelectorAll('.task-item')];
+      if(items.length&&window.FluxAnim?.tasksEnter)FluxAnim.tasksEnter(items);
+    }catch(e){}
+  });
   if(typeof fluxAfterRenderTasks==='function')fluxAfterRenderTasks();
   if(typeof fluxRenderDashMob==='function')fluxRenderDashMob();
 }
@@ -2305,11 +2334,19 @@ function openDashAddTaskModal(){
   if(!m)return;
   populateSubjectSelects();
   m.style.display='flex';
+  const card=m.querySelector('.modal-card');
+  try{if(window.FluxAnim?.modalOpen)FluxAnim.modalOpen(m,card||m);}catch(e){}
   setTimeout(()=>document.getElementById('taskName')?.focus(),80);
 }
 function closeDashAddTaskModal(){
   const m=document.getElementById('dashAddTaskModal');
-  if(m)m.style.display='none';
+  if(!m)return;
+  const card=m.querySelector('.modal-card');
+  const hide=()=>{m.style.display='none';};
+  try{
+    if(window.FluxAnim?.modalClose)FluxAnim.modalClose(m,card||m,hide);
+    else hide();
+  }catch(e){hide();}
   const w=document.getElementById('taskWaitingOn');if(w)w.value='';
   const rw=document.getElementById('taskRecurringWeekly');if(rw)rw.checked=false;
 }
@@ -2322,8 +2359,23 @@ function openEdit(id){const t=tasks.find(x=>x.id===id);if(!t)return;editingId=id
     const currentHtml=current.map(b=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.15);border-radius:6px;margin-bottom:3px;font-size:.78rem"><span style="flex:1">${b.done?'✓ ':'🔒 '}${esc(b.name)}</span><button onclick="removeDependency(${id},${b.id});openEdit(${id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.8rem;padding:0;transform:none;box-shadow:none">✕</button></div>`).join('');
     depEl.innerHTML=(currentHtml||'<div style="font-size:.72rem;color:var(--muted);margin-bottom:6px">No dependencies</div>')+'<details style="margin-top:6px"><summary style="font-size:.72rem;color:var(--accent);cursor:pointer;font-weight:600">+ Add dependency</summary><div style="margin-top:6px">'+renderDepSelector(id)+'</div></details>';
   }
-  document.getElementById('editModal').style.display='flex';}
-function closeEdit(){document.getElementById('editModal').style.display='none';editingId=null;}
+  document.getElementById('editModal').style.display='flex';
+  try{
+    const em=document.getElementById('editModal');
+    const c=em?.querySelector('.modal-card');
+    if(em&&window.FluxAnim?.modalOpen)FluxAnim.modalOpen(em,c||em);
+  }catch(e){}
+}
+function closeEdit(){
+  const m=document.getElementById('editModal');
+  if(!m){editingId=null;return;}
+  const card=m.querySelector('.modal-card');
+  const hide=()=>{m.style.display='none';editingId=null;};
+  try{
+    if(window.FluxAnim?.modalClose)FluxAnim.modalClose(m,card||m,hide);
+    else hide();
+  }catch(e){hide();}
+}
 function completeAllSubtasksInEdit(){
   const t=tasks.find(x=>x.id===editingId);if(!t)return;
   const lines=document.getElementById('editSubtasks').value.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -3266,6 +3318,7 @@ function startBreathing(){if(breathingActive){clearInterval(breathTimer);breathi
 // ══ TIMER ══
 const TM={pomodoro:{label:'Focus Time',mins:25},short:{label:'Short Break',mins:5},long:{label:'Long Break',mins:15}};
 let tMode='pomodoro',tRunning=false,tInterval=null,tSecs=25*60,tTotal=25*60;
+let _fluxPomoPillVisible=false;
 let tDone=load('t_sessions',0),tMins=load('t_minutes',0),tStreak=load('t_streak',0),tLastDate=load('t_date','');
 const CIRC=2*Math.PI*88;
 function updateTLengths(){if(tRunning)return;TM.pomodoro.mins=parseInt(document.getElementById('customWork').value)||25;TM.short.mins=parseInt(document.getElementById('customShort').value)||5;if(tMode==='pomodoro'||tMode==='short'){tSecs=TM[tMode].mins*60;tTotal=tSecs;updateTDisplay();}}
@@ -3278,7 +3331,7 @@ function timerDone(){tRunning=false;clearInterval(tInterval);document.getElement
 showSessionRecap(sub,TM.pomodoro.mins);
 setTimeout(()=>{const mode=tDone%4===0?'long':'short';const btns=document.querySelectorAll('#timer .tmode-btn');setTMode(mode,btns[mode==='long'?2:1]);},400);}else{setTimeout(()=>{setTMode('pomodoro',document.querySelectorAll('#timer .tmode-btn')[0]);},400);}}
 function updateTDisplay(){const m=Math.floor(tSecs/60),s=tSecs%60;const txt=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');const td=document.getElementById('tDisplay');if(td)td.textContent=txt;const pillT=document.getElementById('fluxPomoPillTime');if(pillT)pillT.textContent=txt;const offset=CIRC*(1-tSecs/tTotal);const ring=document.getElementById('timerRing');if(ring){ring.style.strokeDasharray=CIRC;ring.style.strokeDashoffset=offset;}syncFluxPomoPill();}
-function syncFluxPomoPill(){const pill=document.getElementById('fluxPomoPill');if(!pill)return;const show=!!(tRunning&&tMode==='pomodoro');pill.hidden=!show;pill.style.display=show?'':'none';pill.setAttribute('aria-hidden',show?'false':'true');}
+function syncFluxPomoPill(){const pill=document.getElementById('fluxPomoPill');if(!pill)return;const show=!!(tRunning&&tMode==='pomodoro');if(show!==_fluxPomoPillVisible){_fluxPomoPillVisible=show;if(show){pill.hidden=false;pill.setAttribute('aria-hidden','false');try{if(window.FluxAnim?.pillAppear)FluxAnim.pillAppear(pill);else{pill.style.display='flex';}}catch(e){pill.style.display='flex';}}else{try{if(window.FluxAnim?.pillDisappear)FluxAnim.pillDisappear(pill,()=>{pill.hidden=true;pill.style.display='none';pill.setAttribute('aria-hidden','true');});else{pill.hidden=true;pill.style.display='none';pill.setAttribute('aria-hidden','true');}}catch(e){pill.hidden=true;pill.style.display='none';pill.setAttribute('aria-hidden','true');}}}else if(show){pill.hidden=false;if(pill.style.display==='none'||!pill.style.display)pill.style.display='flex';}}
 function fluxFocusPomoPill(){try{if(typeof matchMedia!=='undefined'&&matchMedia('(max-width:768px)').matches){if(typeof navMob==='function'){navMob('timer');return;}}const tab=document.querySelector('[data-tab="timer"]');if(typeof nav==='function')nav('timer',tab);}catch(e){if(typeof nav==='function')nav('timer');}}
 try{window.fluxFocusPomoPill=fluxFocusPomoPill;}catch(e){}
 function renderTDots(){const el=document.getElementById('timerDots');if(!el)return;const c=Math.min((tDone%4)||(tDone>0?4:0),4);el.innerHTML=[0,1,2,3].map(i=>`<div class="t-dot ${i<c?'done':''}"></div>`).join('');const lbl=document.getElementById('tSessionLbl');if(lbl)lbl.textContent=`Session ${(tDone%4)+1} of 4`;}
@@ -4327,7 +4380,7 @@ function fmtAI(raw){
 
   return t;
 }
-function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think"><span></span><span></span><span></span></div></div>';}else{const botText=isBot?filterAIResponse(String(content||'')):String(content||'');const f=isBot?fmtAI(botText):esc(botText);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
+function appendMsg(role,content,isThink){const wrap=document.getElementById('aiMsgs');if(!wrap)return document.createElement('div');const div=document.createElement('div');div.className='ai-msg '+role;const isBot=role==='bot';if(isThink){div.id='aiThink';div.innerHTML='<div class="ai-av bot">✦</div><div class="ai-bub bot"><div class="ai-think" id="aiThinkingIndicator"><span></span><span></span><span></span></div></div>';}else{const botText=isBot?filterAIResponse(String(content||'')):String(content||'');const f=isBot?fmtAI(botText):esc(botText);const init=(localStorage.getItem('flux_user_name')||'U').charAt(0).toUpperCase();div.innerHTML=`<div class="ai-av ${isBot?'bot':'me'}">${isBot?'✦':init}</div><div class="ai-bub ${isBot?'bot':'user'}">${f}</div>`;}wrap.appendChild(div);// Scroll inner wrapper, not the page
 const msgWrap=document.getElementById('aiMsgsWrap');if(msgWrap)setTimeout(()=>msgWrap.scrollTop=msgWrap.scrollHeight,30);return div;}
 function setFluxAIMode(mode,btn){
   const ok=['default','research','deep','overtime'];
@@ -4538,7 +4591,10 @@ async function sendAI(){
   try{const c=parseInt(localStorage.getItem('flux_ai_msg_count')||'0',10)||0;localStorage.setItem('flux_ai_msg_count',String(c+1));}catch(e){}
   saveCurrentChat(); // save user message immediately
   input.value='';input.style.height='auto';btn.disabled=true;
+  let thinkAnim=null;
   const thinkEl=appendMsg('bot','',true);
+  const thinkHost=document.getElementById('aiThinkingIndicator')||thinkEl;
+  try{thinkAnim=window.FluxAnim?.aiThinking?.(thinkHost);}catch(e){}
   try{
     if(window.FluxOrchestrator&&FluxOrchestrator.beginThinking)FluxOrchestrator.beginThinking(thinkEl);
     if(window.FluxOrchestrator&&FluxOrchestrator.handleSlashCommand){
@@ -4559,12 +4615,14 @@ async function sendAI(){
         _entitlement.usage.daily_used=errData.daily_used;
         _entitlement.usage.daily_limit=errData.daily_limit;
         showAILimitReached();
+        try{thinkAnim?.cancel?.();}catch(e){}
         thinkEl.remove();
         btn.disabled=false;input.focus();
         return;
       }
       if(errData.error==='feature_requires_pro'){
         showUpgradePrompt('imageAnalysis',errData.message||'Upgrade to Flux Pro for image analysis');
+        try{thinkAnim?.cancel?.();}catch(e){}
         thinkEl.remove();
         btn.disabled=false;input.focus();
         return;
@@ -4572,6 +4630,7 @@ async function sendAI(){
       if(String(errData.error||'').includes('Invalid or expired token')||res.status===401){
         showToast('Session expired. Please sign in again.','error');
         if(typeof handleSignedOut==='function')handleSignedOut();
+        try{thinkAnim?.cancel?.();}catch(e){}
         thinkEl.remove();
         btn.disabled=false;input.focus();
         return;
@@ -4593,6 +4652,7 @@ async function sendAI(){
       FluxOrchestrator.processAssistantReply(reply,toolsRun);
       clean=window.FluxOrchestrator.stripFluxTools?FluxOrchestrator.stripFluxTools(clean):clean;
     }
+    try{thinkAnim?.cancel?.();}catch(e){}
     thinkEl.remove();
     // Strip ```actions ... ``` blocks (closed)
     clean=clean.replace(/`{3,}actions[\s\S]*?`{3,}/gi,'');
@@ -4619,6 +4679,7 @@ async function sendAI(){
     if(aiHistory.length>24)aiHistory=aiHistory.slice(-24);
     saveCurrentChat(); // persist to chat tabs
   }catch(err){
+    try{thinkAnim?.cancel?.();}catch(e){}
     thinkEl.remove();
     appendMsg('bot','Something went wrong: '+err.message+'\n\nCheck that your Supabase Edge Functions are deployed and API keys are set.');
   }
@@ -6194,6 +6255,14 @@ function showApp(){
   }
   setTimeout(function(){
     if(typeof initFluxAnimeApp==='function')initFluxAnimeApp();
+    try{
+      const main=document.getElementById('flux-main');
+      if(main&&window.FluxAnim?.initScrollReveal)FluxAnim.initScrollReveal(main);
+    }catch(e){}
+    try{
+      const logo=document.querySelector('.sidebar-logo svg');
+      if(logo&&window.FluxAnim?.logoDrawIn)FluxAnim.logoDrawIn(logo);
+    }catch(e){}
   },100);
   // Always open to the dashboard on load (no tab restore)
   try{localStorage.removeItem('flux_last_tab');localStorage.removeItem('flux_last_tab_ts');}catch(e){}
@@ -7021,13 +7090,21 @@ function updateCognitiveLoadMeter(){
   const lbl=document.getElementById('cogLoadLabel');
   const wrap=document.getElementById('cogLoadWrap');
   if(!bar)return;
+  try{window.FluxAnim?.initCogLoadMeter?.();}catch(e){}
   const load=calcCognitiveLoad();
   const color=load>=85?'var(--red)':load>=60?'var(--gold)':'var(--green)';
   const text=load>=85?'High':load>=60?'Med':'Low';
-  bar.style.width=load+'%';bar.style.background=color;
+  let usedFlux=false;
+  try{
+    if(typeof window.FluxAnim?.updateCogLoad==='function'){
+      window.FluxAnim.updateCogLoad(load);
+      usedFlux=true;
+    }
+  }catch(e){}
+  if(!usedFlux){bar.style.width=load+'%';bar.style.background=color;}
   if(lbl){lbl.textContent=text+' '+load+'%';lbl.style.color=color;}
   if(wrap)wrap.title='Cognitive Load: '+load+'% — based on overdue, today density, time of day';
-  if(load>=85)showToast('⚠ High cognitive load ('+load+'%). Consider a break.','warning');
+  if(load>=85)showToast('⚠ High cognitive load ('+load+'%). Consider taking a break.','warning');
 }
 
 
@@ -7038,6 +7115,12 @@ function addMomentum(){
   clearTimeout(_momentumTimer);
   _momentumTimer=setTimeout(()=>{_momentum=0;updateMomentumUI();},10*60*1000);
   updateMomentumUI();
+  if(_momentum>=2){
+    try{
+      const pe=document.getElementById('momentumPill');
+      if(pe&&window.FluxAnim?.momentumPop)FluxAnim.momentumPop(pe);
+    }catch(e){}
+  }
   if(_momentum>=3)showToast('🔥 '+_momentum+'× Momentum! Keep going!','success');
   if(_momentum>=5)spawnConfetti();
 }
@@ -8037,6 +8120,14 @@ async function addCanvasAssignmentToPlanner(courseId,assignmentId,opts){
   tasks.unshift(t);save('tasks',tasks);
   if(!skipRender){syncKey('tasks',tasks);renderStats();renderTasks();renderCalendar();renderCountdown();}
   if(!silent)showToast(`Added '${name.slice(0,48)}' to your planner ✓`,'success');
+  if(!silent){
+    requestAnimationFrame(()=>{
+      try{
+        const b=document.querySelector(`.canvas-add-btn[data-canvas-cid="${Number(courseId)}"][data-canvas-aid="${Number(assignmentId)}"]`);
+        if(b&&window.FluxAnim?.addToPlannerSuccess)FluxAnim.addToPlannerSuccess(b);
+      }catch(e){}
+    });
+  }
 }
 
 function canvasRowKey(c,a){return String(c)+'_'+String(a);}
@@ -8500,7 +8591,7 @@ function renderWorkloadForecast(){
         const isToday=d.label==='Today';
         return`<div class="workload-bar-wrap">
           <div class="workload-bar-outer" style="height:${barPx}px" title="${d.count} tasks · ${d.mins} min" onclick="showDayTasksPopup('${d.date}')">
-            <div class="workload-bar-fill" style="background:${color};opacity:${isToday?1:.72}"></div>
+            <div class="workload-bar-fill" data-target-height="${barPx}" style="background:${color};opacity:${isToday?1:.72}"></div>
           </div>
         </div>`;
       }).join('')}
@@ -8512,6 +8603,12 @@ function renderWorkloadForecast(){
       <span>🟢 &lt;60min</span><span>🟡 60–3h</span><span>🔴 &gt;3h</span>
     </div></div>`;
   el.innerHTML=html;
+  requestAnimationFrame(()=>{
+    try{
+      const fills=el.querySelectorAll('.workload-bar-fill');
+      if(fills.length&&window.FluxAnim?.workloadBarsIn)FluxAnim.workloadBarsIn(Array.from(fills));
+    }catch(e){}
+  });
   
   // Burnout detection
   const heavyDays=days.filter(d=>d.mins>180).length;
@@ -9432,6 +9529,12 @@ FluxBus.on('task_completed',function(task){
   if(unlocked.length){
     const names=unlocked.map(t=>t.name).slice(0,3);
     showToast('🔓 Unlocked: '+names.join(', '),'success');
+    requestAnimationFrame(()=>{
+      try{
+        const els=unlocked.map(t=>document.querySelector(`[data-task-id="${t.id}"]`)).filter(Boolean);
+        if(els.length&&window.FluxAnim?.chainUnlock)FluxAnim.chainUnlock(els);
+      }catch(e){}
+    });
     const allChainDone=unlocked.every(t=>!isBlocked(t));
     if(allChainDone&&unlocked.length>=2){
       setTimeout(()=>{spawnConfetti();showToast('⚡ Chain Reaction! '+unlocked.length+' tasks unlocked','success');},600);
