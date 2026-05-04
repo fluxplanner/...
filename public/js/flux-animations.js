@@ -1145,13 +1145,28 @@ function addToPlannerSuccess(btnEl) {
   }, 2000);
 }
 
-function sectionToggle(sectionBodyEl, chevronEl, isCollapsing) {
-  if (!sectionBodyEl) return;
+/**
+ * @param {HTMLElement} sectionBodyEl
+ * @param {HTMLElement | null} chevronEl
+ * @param {boolean} isCollapsing
+ * @param {() => void} [onComplete] — run after motion settles (sync class / persistence)
+ */
+function sectionToggle(sectionBodyEl, chevronEl, isCollapsing, onComplete) {
+  const done = () => {
+    try {
+      onComplete?.();
+    } catch (_) {}
+  };
+  if (!sectionBodyEl) {
+    done();
+    return;
+  }
   if (prefersReducedMotion() || perfSnappy()) {
     sectionBodyEl.style.maxHeight = isCollapsing ? '0' : '2000px';
-    sectionBodyEl.style.opacity = isCollapsing ? '0' : '1';
+    sectionBodyEl.style.opacity = '';
     sectionBodyEl.style.overflow = isCollapsing ? 'hidden' : 'visible';
     if (chevronEl) chevronEl.classList.toggle('collapsed', !!isCollapsing);
+    done();
     return;
   }
   if (isCollapsing) {
@@ -1159,9 +1174,12 @@ function sectionToggle(sectionBodyEl, chevronEl, isCollapsing) {
     sectionBodyEl.style.overflow = 'hidden';
     animate(sectionBodyEl, {
       maxHeight: [Math.max(h, 8) + 'px', '0px'],
-      opacity: [1, 0],
-      duration: 260,
+      duration: 280,
       ease: 'outQuad',
+      onComplete: () => {
+        sectionBodyEl.style.opacity = '';
+        done();
+      },
     });
     if (chevronEl) {
       chevronEl.style.display = 'inline-block';
@@ -1172,12 +1190,13 @@ function sectionToggle(sectionBodyEl, chevronEl, isCollapsing) {
     const target = Math.min(sectionBodyEl.scrollHeight || 800, 2000);
     animate(sectionBodyEl, {
       maxHeight: [0, target + 'px'],
-      opacity: [0, 1],
-      duration: 300,
+      duration: 320,
       ease: 'outExpo',
       onComplete: () => {
         sectionBodyEl.style.maxHeight = '2000px';
         sectionBodyEl.style.overflow = 'visible';
+        sectionBodyEl.style.opacity = '';
+        done();
       },
     });
     if (chevronEl) {

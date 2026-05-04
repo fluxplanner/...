@@ -1856,7 +1856,12 @@
 
   <!-- Floating Pomodoro pill (shown only while a focus session is running) -->
   <button type="button" id="fluxPomoPill" class="flux-pomo-pill" hidden onclick="typeof fluxFocusPomoPill==='function'&&fluxFocusPomoPill()" aria-live="polite" aria-label="Pomodoro running — open focus timer">
-    <span class="flux-pomo-pill-dot" aria-hidden="true"></span>
+    <span class="flux-pomo-pill-ring" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+        <circle id="fluxPomoMiniRing" cx="12" cy="12" r="9" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" transform="rotate(-90 12 12)"/>
+      </svg>
+    </span>
     <span class="flux-pomo-pill-time" id="fluxPomoPillTime">25:00</span>
     <span class="flux-pomo-pill-lbl">Focus</span>
   </button>

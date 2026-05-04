@@ -2301,18 +2301,14 @@ body.flux-bulk-mode .task-item:has(.task-bulk-cb:checked){
   -webkit-tap-highlight-color: transparent;
 }
 .flux-pomo-pill:active{ transform: scale(.97); }
-.flux-pomo-pill-dot{
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
+.flux-pomo-pill-ring{
   flex-shrink: 0;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.22), 0 0 12px rgba(var(--accent-rgb),.45);
-  animation: fluxPomoDotPulse 1.15s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-@keyframes fluxPomoDotPulse{
-  0%, 100%{ opacity: 1; transform: scale(1); }
-  50%{ opacity: .88; transform: scale(.9); }
+.flux-pomo-pill-ring svg{
+  display: block;
 }
 .flux-pomo-pill-lbl{
   font-size: .58rem;

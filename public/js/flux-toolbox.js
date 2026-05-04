@@ -3491,14 +3491,28 @@ function renderUnifiedStudyTools(){
         const body = secEl.querySelector('.st-section-body');
         const hdr = secEl.querySelector('.st-section-header');
         const chev = secEl.querySelector('.st-section-chevron');
-        const collapsed = body?.classList.toggle('collapsed');
-        if (body){
-          body.style.maxHeight = body.classList.contains('collapsed') ? '0' : '2000px';
+        if (!body || !hdr) return;
+        const wasCollapsed = body.classList.contains('collapsed');
+        const nextCollapsed = !wasCollapsed;
+        const applyDom = () => {
+          body.classList.toggle('collapsed', nextCollapsed);
+          body.style.maxHeight = nextCollapsed ? '0' : '2000px';
+          body.style.opacity = '';
+          hdr.setAttribute('aria-expanded', nextCollapsed ? 'false' : 'true');
+          chev?.classList.toggle('collapsed', !!nextCollapsed);
+          setLsStudyCollapsed(sid, !!nextCollapsed);
+        };
+        const useAnime =
+          typeof window.FluxAnim?.sectionToggle === 'function' &&
+          !(typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) &&
+          document.documentElement.getAttribute('data-flux-perf') !== 'on';
+        if (useAnime) {
+          try {
+            window.FluxAnim.sectionToggle(body, chev, nextCollapsed, applyDom);
+            return;
+          } catch (_) {}
         }
-        const isCol = body?.classList.contains('collapsed');
-        setLsStudyCollapsed(sid, !!isCol);
-        hdr?.setAttribute('aria-expanded', isCol ? 'false' : 'true');
-        chev?.classList.toggle('collapsed', !!isCol);
+        applyDom();
       });
       secEl.querySelectorAll('.st-tool-chip').forEach(btn => {
         btn.addEventListener('click', e => {

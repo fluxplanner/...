@@ -326,7 +326,7 @@
   flex-shrink: 0;
   font-size: .7rem;
   color: var(--muted2);
-  transition: transform .25s ease;
+  /* transform motion from FluxAnim.sectionToggle */
 }
 .st-section-chevron.collapsed{
   transform: rotate(-90deg);
@@ -344,10 +344,10 @@
 }
 .st-section-body{
   overflow: hidden;
-  transition: max-height .3s ease;
+  /* max-height motion owned by FluxAnim.sectionToggle (anime.js) — no CSS transition */
 }
 .st-section-body.collapsed{
-  max-height: 0 !important;
+  max-height: 0;
 }
 .st-tool-chips{
   display: flex;
