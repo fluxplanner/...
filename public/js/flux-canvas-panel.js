@@ -1144,6 +1144,17 @@
         <button type="button" style="width:100%;padding:12px" onclick="fluxCanvasConnectSubmit()">Connect Canvas</button>
         <div id="fluxCanvasConnectErr" style="color:var(--red);font-size:.8rem;margin-top:10px"></div>
       </div>`;
+    requestAnimationFrame(() => {
+      try {
+        const hostInp = document.getElementById("fluxCanvasConnectHost");
+        const tokInp = document.getElementById("fluxCanvasConnectToken");
+        const h =
+          load("flux_canvas_host", null) || hostFromStoredUrl(load("flux_canvas_url", ""));
+        const t = load("flux_canvas_token", null);
+        if (hostInp && h) hostInp.value = h;
+        if (tokInp && typeof t === "string" && t.trim()) tokInp.value = t.trim();
+      } catch (_) {}
+    });
   }
 
   window.fluxCanvasToggleConnectPw = function () {

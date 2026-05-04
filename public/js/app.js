@@ -7,12 +7,19 @@ const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){conso
 // ══ DATA VERSION — bump this to force-wipe all local data on all devices ══
 const DATA_VERSION=5;
 (function checkDataVersion(){
-  const stored=parseInt(localStorage.getItem('flux_data_version')||'0');
-  if(stored<DATA_VERSION){
+    const stored=parseInt(localStorage.getItem('flux_data_version')||'0');
+    if(stored<DATA_VERSION){
     const keep=[
       'flux_data_version','flux_splash_shown',
       'flux_liquid_glass','flux_perf_snappy','flux_ui_density','flux_mood_tint_enabled',
       'flux_nav_counts_v1','flux_layout_dashboard_v1','flux_layout_calendar_v1',
+      /* Canvas LMS — device-local connection; do not wipe on app data migrations */
+      'flux_canvas_token','flux_canvas_url','flux_canvas_host',
+      'flux_canvas_last_view','flux_canvas_last_params',
+      'flux_canvas_autosync','flux_canvas_last_sync',
+      'flux_canvas_due_filter','flux_canvas_hub_tab',
+      'flux_canvas_split','flux_canvas_sidebar_collapsed',
+      'flux_canvas_embed_url','flux_canvas_hub_cache','flux_canvas_ai_focus',
     ];
     Object.keys(localStorage).forEach(k=>{if(!keep.includes(k))localStorage.removeItem(k);});
     localStorage.setItem('flux_data_version',String(DATA_VERSION));
@@ -2866,6 +2873,7 @@ function renderSchool(){
 window.fluxCanvasDisconnectSchool=function(){
   save('flux_canvas_token',null);
   save('flux_canvas_host',null);
+  save('flux_canvas_url',null);
   try{canvasToken='';canvasUrl='';}catch(e){}
   if(window.CanvasState){CanvasState.token=null;CanvasState.host=null;CanvasState.connected=false;}
   schoolInfo=schoolInfo||{};
@@ -6438,6 +6446,13 @@ function handleSignedOut(){
     'flux_splash_shown','flux_theme','flux_accent','flux_accent_rgb',
     'flux_liquid_glass','flux_perf_snappy','flux_ui_density','flux_mood_tint_enabled',
     'flux_nav_counts_v1','flux_layout_dashboard_v1','flux_layout_calendar_v1',
+    'flux_data_version',
+    'flux_canvas_token','flux_canvas_url','flux_canvas_host',
+    'flux_canvas_last_view','flux_canvas_last_params',
+    'flux_canvas_autosync','flux_canvas_last_sync',
+    'flux_canvas_due_filter','flux_canvas_hub_tab',
+    'flux_canvas_split','flux_canvas_sidebar_collapsed',
+    'flux_canvas_embed_url','flux_canvas_hub_cache','flux_canvas_ai_focus',
   ];
   const kept={};
   keysToKeep.forEach(k=>{const v=localStorage.getItem(k);if(v!==null)kept[k]=v;});
